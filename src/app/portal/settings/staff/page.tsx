@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { erp, formatDateTime, useErpQuery } from "@/lib/erp";
 import { roleLabel, roleTone } from "@/lib/staffRoles";
-import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { activeBranches, hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 type Assignment = { id: string; branch_id: string | null; role_id: string; role_code: string; role_name: string };
@@ -37,6 +37,7 @@ export default function TeamAccessPage() {
 
   const canManage = hasPermission(session, "staff", "write");
   const branches = useMemo(() => session?.branches ?? [], [session]);
+  const openBranches = useMemo(() => activeBranches(session), [session]);
   const branchName = (id: string | null) => (id === null ? "All branches" : branches.find((b) => b.id === id)?.branch_name ?? `Branch #${id}`);
   const selected = users.data?.find((u) => u.id === selectedId) ?? null;
 
@@ -81,7 +82,7 @@ export default function TeamAccessPage() {
           <Field label="Phone" htmlFor="u_phone"><Input id="u_phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
           <Field label="Temporary password" htmlFor="u_pw" hint="At least 10 characters." required><Input id="u_pw" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
           <Field label="Role" htmlFor="u_role"><Select id="u_role" value={form.role_id} onChange={(e) => setForm({ ...form, role_id: e.target.value })}><option value="">No access yet</option>{(roles.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</Select></Field>
-          <Field label="Branch" htmlFor="u_branch" hint="“All branches” gives the role everywhere."><Select id="u_branch" value={form.branch_id} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}><option value="">All branches</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}</Select></Field>
+          <Field label="Branch" htmlFor="u_branch" hint="“All branches” gives the role everywhere."><Select id="u_branch" value={form.branch_id} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}><option value="">All branches</option>{openBranches.map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}</Select></Field>
         </div>
       </Modal>
 
@@ -102,7 +103,7 @@ export default function TeamAccessPage() {
               {canManage && (
                 <div className="mt-space-3 flex flex-wrap items-end gap-space-2">
                   <Select aria-label="Role to add" value={grant.role_id} onChange={(e) => setGrant({ ...grant, role_id: e.target.value })} className="w-56"><option value="">Add a role…</option>{(roles.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</Select>
-                  <Select aria-label="Branch" value={grant.branch_id} onChange={(e) => setGrant({ ...grant, branch_id: e.target.value })} className="w-56"><option value="">All branches</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.branch_name}</option>)}</Select>
+                  <Select aria-label="Branch" value={grant.branch_id} onChange={(e) => setGrant({ ...grant, branch_id: e.target.value })} className="w-56"><option value="">All branches</option>{openBranches.map((b) => <option key={b.id} value={b.id}>{b.branch_name}</option>)}</Select>
                   <Button variant="secondary" disabled={busy || !grant.role_id} onClick={() => run(() => erp(`/api/v1/users/${selected.id}/roles`, "POST", { role_id: grant.role_id, branch_id: grant.branch_id || null }), "Access granted", () => setGrant({ role_id: "", branch_id: "" }))}>Grant</Button>
                 </div>
               )}

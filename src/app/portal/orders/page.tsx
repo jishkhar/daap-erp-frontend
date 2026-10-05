@@ -12,7 +12,7 @@ export default function OrdersPage() {
   if (!ready) return null;
   return (
     <PortalShell tenant={tenant} active="orders">
-      <PageHeader icon={<ShoppingCart size={20} />} title="Orders" description="Every order from every channel and branch, in one place." actions={<Button href="/portal/orders/new">New order</Button>} />
+      <PageHeader scopedToBranch icon={<ShoppingCart size={20} />} title="Orders" description="Every order from every channel and branch, in one place." actions={<Button href="/portal/orders/new">New order</Button>} />
       <OrdersView />
     </PortalShell>
   );

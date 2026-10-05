@@ -2,7 +2,6 @@
 
 import { AlertTriangle, IndianRupee, LayoutDashboard, ShoppingCart, Timer } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
 import { ChannelBadge, OrderStatusBadge } from "@/components/erp/StatusBadges";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -15,35 +14,29 @@ import { formatDateTime } from "@/lib/erp";
 
 type Level = { branch_id: string; branch_code: string; variant_id: string; product_name: string; sku: string; available_qty: number; reorder_level: number | null };
 
-const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+type Today = { orders: number; revenue_minor: number; by_channel: { channel: string; orders: number; revenue_minor: number }[]; open_orders: number; low_stock_items: number | null };
 
 export default function DashboardPage() {
   const { tenant, ready } = usePortalGuard();
   const { branchId } = useActiveBranch();
-  const orders = useErpQuery<Order[]>(`/api/v1/orders${qs({ branch_id: branchId, limit: 200 })}`);
+  const today = useErpQuery<Today>(`/api/v1/analytics/today${qs({ branch_id: branchId })}`);
+  const orders = useErpQuery<Order[]>(`/api/v1/orders${qs({ branch_id: branchId, limit: 8 })}`);
   const lowStock = useErpQuery<Level[]>(`/api/v1/inventory${qs({ branch_id: branchId, low_stock: true, limit: 50 })}`);
   const cur = tenant?.currency ?? "INR";
-
-  const stats = useMemo(() => {
-    const all = (orders.data ?? []).filter((o) => o.status !== "cancelled");
-    const today = all.filter((o) => new Date(o.placed_at).getTime() >= startOfToday());
-    const byChannel = Object.fromEntries(CHANNEL_ORDER.map((c) => [c, { orders: 0, revenue: 0 }])) as Record<string, { orders: number; revenue: number }>;
-    for (const o of today) { byChannel[o.channel].orders += 1; byChannel[o.channel].revenue += o.total_minor; }
-    return { todayRevenue: today.reduce((s, o) => s + o.total_minor, 0), todayOrders: today.length, open: all.filter((o) => o.status === "pending" || o.status === "confirmed").length, byChannel };
-  }, [orders.data]);
+  const byChannel = (c: string) => today.data?.by_channel.find((x) => x.channel === c) ?? { orders: 0, revenue_minor: 0 };
 
   if (!ready) return null;
-  const recent = (orders.data ?? []).slice(0, 8);
+  const recent = orders.data ?? [];
 
   return (
     <PortalShell tenant={tenant} active="dashboard">
-      <PageHeader icon={<LayoutDashboard size={20} />} title="Dashboard" description={`Today across ${branchId === null ? "all your branches" : "this branch"}.`} />
-      {(orders.error || lowStock.error) && <p className="mb-space-3 text-[13px] font-medium text-error">{orders.error ?? lowStock.error}</p>}
+      <PageHeader scopedToBranch icon={<LayoutDashboard size={20} />} title="Dashboard" description={`Today across ${branchId === null ? "all your branches" : "this branch"}.`} />
+      {(today.error || orders.error) && <p className="mb-space-3 text-[13px] font-medium text-error">{today.error ?? orders.error}</p>}
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Sales today" value={formatMoney(stats.todayRevenue, cur)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<IndianRupee size={22} />} />
-        <StatTile label="Orders today" value={stats.todayOrders} deltaPct={null} hint="all channels" icon={<ShoppingCart size={22} />} />
-        <StatTile label="Open orders" value={stats.open} deltaPct={null} hint="awaiting payment or fulfilment" tone="warning" icon={<Timer size={22} />} />
-        <StatTile label="Low-stock items" value={lowStock.data?.length ?? 0} deltaPct={null} hint="at or below reorder level" tone="clay" icon={<AlertTriangle size={22} />} />
+        <StatTile label="Sales today" value={formatMoney(today.data?.revenue_minor ?? 0, cur)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<IndianRupee size={22} />} />
+        <StatTile label="Orders today" value={today.data?.orders ?? 0} deltaPct={null} hint="all channels" icon={<ShoppingCart size={22} />} />
+        <StatTile label="Open orders" value={today.data?.open_orders ?? 0} deltaPct={null} hint="awaiting payment or fulfilment" tone="warning" icon={<Timer size={22} />} />
+        <StatTile label="Low-stock items" value={today.data?.low_stock_items ?? lowStock.data?.length ?? 0} deltaPct={null} hint="at or below reorder level" tone="clay" icon={<AlertTriangle size={22} />} />
       </div>
 
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
@@ -51,8 +44,8 @@ export default function DashboardPage() {
           <Link key={c} href={`/portal/channels/${CHANNELS[c].slug}`}>
             <Card elevation="interactive" className="p-space-4">
               <div className="flex items-center justify-between"><ChannelBadge channel={c} /><span className="text-[12px] text-ink-400">today</span></div>
-              <p className="mt-space-2 text-[22px] font-bold text-ink-900">{formatMoney(stats.byChannel[c].revenue, cur)}</p>
-              <p className="text-[13px] text-ink-600">{stats.byChannel[c].orders} order{stats.byChannel[c].orders === 1 ? "" : "s"}</p>
+              <p className="mt-space-2 text-[22px] font-bold text-ink-900">{formatMoney(byChannel(c).revenue_minor, cur)}</p>
+              <p className="text-[13px] text-ink-600">{byChannel(c).orders} order{byChannel(c).orders === 1 ? "" : "s"}</p>
             </Card>
           </Link>
         ))}

@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
-import { formatDateTime, formatMoney, useErpQuery, type TaxDocument } from "@/lib/erp";
+import { useActiveBranch } from "@/lib/branch";
+import { formatDateTime, formatMoney, qs, useErpQuery, type TaxDocument } from "@/lib/erp";
 
 /** GST tax invoices and credit notes, with a printable view. */
 export function TaxInvoicesTab({ currency }: { currency: string }) {
-  const docs = useErpQuery<TaxDocument[]>("/api/v1/finance/tax-documents?limit=200");
+  const { branchId: activeBranch } = useActiveBranch();
+  const docs = useErpQuery<TaxDocument[]>(`/api/v1/finance/tax-documents${qs({ branch_id: activeBranch, limit: 200 })}`);
   const [open, setOpen] = useState<TaxDocument | null>(null);
   const m = (v: number) => formatMoney(v, currency);
 

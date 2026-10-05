@@ -8,66 +8,69 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
-import { CHANNELS, CHANNEL_ORDER, formatMoney, qs, useErpQuery, type Order } from "@/lib/erp";
+import { CHANNELS, CHANNEL_ORDER, formatMoney, qs, useErpQuery } from "@/lib/erp";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 
 const COLORS: Record<string, string> = { online: "#7c5cd6", pos: "#4a5d45", whatsapp: "#25d366" };
-const DAYS = 14;
+const RANGES = [{ days: 7, label: "Last 7 days" }, { days: 14, label: "Last 14 days" }, { days: 30, label: "Last 30 days" }, { days: 90, label: "Last 90 days" }];
 
-/** Sales analytics: revenue by channel and by branch, from live orders (cancelled excluded). The finance-grade
- * reports (margin, GST, branch P&L) arrive with the Finance module. */
+type BranchRow = { branch_id: string; branch_code: string; branch_name: string; status: string; orders: number; revenue_minor: number; avg_order_minor: number; expenses_minor: number; stock_units: number; stock_value_minor: number; low_stock_items: number };
+type Overview = {
+  date_from: string; date_to: string;
+  totals: { orders: number; revenue_minor: number; avg_order_minor: number; expenses_minor: number; stock_units: number; stock_value_minor: number; low_stock_items: number };
+  by_channel: { channel: string; orders: number; revenue_minor: number }[];
+  by_branch: BranchRow[];
+  daily: ({ date: string } & Record<string, number | string>)[];
+};
+
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Sales analytics, computed by the server over the chosen period (cancelled orders excluded): revenue by day, channel and
+ * branch, plus each branch's expenses and current stock. The finance-grade statements are on the Financial reports tab. */
 export default function AnalyticsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
   const [view, setView] = useState<"sales" | "financial">("sales");
-  const { branchId, branches } = useActiveBranch();
-  const orders = useErpQuery<Order[]>(`/api/v1/orders${qs({ branch_id: branchId, limit: 200 })}`);
+  const [days, setDays] = useState(14);
+  const { branchId } = useActiveBranch();
+  const range = useMemo(() => { const to = new Date(); const from = new Date(); from.setDate(to.getDate() - (days - 1)); return { date_from: isoDay(from), date_to: isoDay(to) }; }, [days]);
+  const data = useErpQuery<Overview>(`/api/v1/analytics/sales${qs({ ...range, branch_id: branchId })}`);
   const cur = tenant?.currency ?? "INR";
-
-  const { daily, byChannel, byBranch, total, count } = useMemo(() => {
-    const live = (orders.data ?? []).filter((o) => o.status !== "cancelled");
-    const days: Record<string, Record<string, number>> = {};
-    for (let i = DAYS - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days[d.toISOString().slice(0, 10)] = Object.fromEntries(CHANNEL_ORDER.map((c) => [c, 0])); }
-    const ch = Object.fromEntries(CHANNEL_ORDER.map((c) => [c, 0])) as Record<string, number>;
-    const br = new Map<string, number>();
-    for (const o of live) {
-      const day = new Date(o.placed_at).toISOString().slice(0, 10);
-      if (days[day]) days[day][o.channel] += o.total_minor / 100;
-      ch[o.channel] += o.total_minor;
-      br.set(o.branch_id, (br.get(o.branch_id) ?? 0) + o.total_minor);
-    }
-    return {
-      daily: Object.entries(days).map(([date, v]) => ({ date: date.slice(5), ...v })),
-      byChannel: ch,
-      byBranch: [...br.entries()].map(([id, minor]) => ({ id, minor })).sort((a, b) => b.minor - a.minor),
-      total: live.reduce((s, o) => s + o.total_minor, 0), count: live.length,
-    };
-  }, [orders.data]);
+  const t = data.data?.totals;
+  const daily = useMemo(() => (data.data?.daily ?? []).map((d) => ({ date: String(d.date).slice(5), ...Object.fromEntries(CHANNEL_ORDER.map((c) => [c, Number(d[c] ?? 0) / 100])) })), [data.data]);
+  const topRevenue = Math.max(1, ...(data.data?.by_branch ?? []).map((b) => b.revenue_minor));
 
   if (!ready) return null;
-  const branchName = (id: string) => branches.find((b) => b.id === id)?.branch_name ?? `Branch #${id}`;
 
   return (
     <PortalShell tenant={tenant} active="analytics">
-      <PageHeader icon={<BarChart3 size={20} />} title="Analytics / Reports" description="Live sales analytics, and the financial statements built from your books." />
+      <PageHeader scopedToBranch icon={<BarChart3 size={20} />} title="Analytics / Reports" description="Live sales analytics, and the financial statements built from your books." />
       {hasGrant(session, "finance:view") && <Tabs tabs={[{ key: "sales", label: "Sales" }, { key: "financial", label: "Financial reports" }]} value={view} onChange={setView} />}
       {view === "financial" ? <FinancialReports currency={cur} /> : (<>
-      {orders.error && <p className="mb-space-3 text-[13px] font-medium text-error">{orders.error}</p>}
-      <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
-        <StatTile label="Revenue" value={formatMoney(total, cur)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<BarChart3 size={22} />} />
-        <StatTile label="Orders" value={count} deltaPct={null} hint="excluding cancelled" icon={<BarChart3 size={22} />} />
-        <StatTile label="Average order" value={formatMoney(count ? Math.round(total / count) : 0, cur)} deltaPct={null} hint="per order" tone="violet" icon={<BarChart3 size={22} />} />
+      <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
+        <p className="text-[13.5px] text-ink-600">{branchId ? "This branch" : "All your branches"} · {data.data ? `${data.data.date_from} to ${data.data.date_to}` : ""}</p>
+        <Select value={String(days)} onChange={(e) => setDays(Number(e.target.value))} className="w-44" aria-label="Period">{RANGES.map((r) => <option key={r.days} value={r.days}>{r.label}</option>)}</Select>
+      </div>
+      {data.error && <p className="mb-space-3 text-[13px] font-medium text-error">{data.error}</p>}
+      <div className="mb-space-5 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-3">
+        <StatTile label="Revenue" value={formatMoney(t?.revenue_minor ?? 0, cur)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<BarChart3 size={22} />} />
+        <StatTile label="Orders" value={t?.orders ?? 0} deltaPct={null} hint="excluding cancelled" icon={<BarChart3 size={22} />} />
+        <StatTile label="Average order" value={formatMoney(t?.avg_order_minor ?? 0, cur)} deltaPct={null} hint="per order" tone="violet" icon={<BarChart3 size={22} />} />
+        <StatTile label="Expenses" value={formatMoney(t?.expenses_minor ?? 0, cur)} deltaPct={null} hint="approved and paid" tone="clay" icon={<BarChart3 size={22} />} />
+        <StatTile label="Stock value" value={formatMoney(t?.stock_value_minor ?? 0, cur)} deltaPct={null} hint={`${t?.stock_units ?? 0} units now, at cost`} tone="info" icon={<BarChart3 size={22} />} />
+        <StatTile label="Low-stock items" value={t?.low_stock_items ?? 0} deltaPct={null} hint="at or below reorder level" tone="warning" icon={<BarChart3 size={22} />} />
       </div>
       <Card className="mb-space-5 p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Revenue, last {DAYS} days, by channel</h2>
+        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Revenue by day and channel</h2>
         <div className="h-72 w-full">
           <ResponsiveContainer>
             <BarChart data={daily} margin={{ left: 8, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="date" tickLine={false} fontSize={12} />
+              <XAxis dataKey="date" tickLine={false} fontSize={12} minTickGap={16} />
               <YAxis tickLine={false} axisLine={false} fontSize={12} tickFormatter={(v) => `${v}`} />
               <Tooltip formatter={(v) => formatMoney(Math.round(Number(v) * 100), cur)} />
               <Legend formatter={(key) => CHANNELS[key as keyof typeof CHANNELS]?.label ?? key} />
@@ -76,16 +79,29 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
       </Card>
-      <div className="grid gap-space-4 md:grid-cols-2">
+      <div className="mb-space-5 grid gap-space-4 md:grid-cols-2">
         <Card className="p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">By channel</h2>
-          <ul className="divide-y divide-line">{CHANNEL_ORDER.map((c) => <li key={c} className="flex justify-between py-2 text-[14px]"><span>{CHANNELS[c].label}</span><span className="font-semibold">{formatMoney(byChannel[c], cur)}</span></li>)}</ul>
+          <ul className="divide-y divide-line">{CHANNEL_ORDER.map((c) => { const row = data.data?.by_channel.find((x) => x.channel === c); return <li key={c} className="flex justify-between py-2 text-[14px]"><span>{CHANNELS[c].label} <span className="text-ink-400">· {row?.orders ?? 0} orders</span></span><span className="font-semibold">{formatMoney(row?.revenue_minor ?? 0, cur)}</span></li>; })}</ul>
         </Card>
         <Card className="p-space-4">
-          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">By branch</h2>
-          {byBranch.length === 0 ? <p className="text-[13.5px] text-ink-400">No sales yet.</p> : <ul className="divide-y divide-line">{byBranch.map((b) => <li key={b.id} className="flex justify-between py-2 text-[14px]"><span>{branchName(b.id)}</span><span className="font-semibold">{formatMoney(b.minor, cur)}</span></li>)}</ul>}
+          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Revenue share by branch</h2>
+          {(data.data?.by_branch ?? []).every((b) => b.revenue_minor === 0) ? <p className="text-[13.5px] text-ink-400">{data.loading ? "Loading…" : "No sales in this period."}</p> : (
+            <ul className="space-y-space-2">{(data.data?.by_branch ?? []).map((b) => (
+              <li key={b.branch_id} className="text-[14px]"><div className="flex justify-between"><span>{b.branch_name}</span><span className="font-semibold">{formatMoney(b.revenue_minor, cur)}</span></div>
+                <div className="mt-1 h-1.5 rounded-full bg-black/[0.06]"><div className="h-1.5 rounded-full bg-brand-600" style={{ width: `${(b.revenue_minor / topRevenue) * 100}%` }} /></div></li>))}
+            </ul>)}
         </Card>
       </div>
+      <Card className="overflow-x-auto p-space-4">
+        <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Branch comparison</h2>
+        <table className="w-full min-w-[720px] text-[13.5px]">
+          <thead><tr className="text-left text-[12px] uppercase tracking-wide text-ink-400"><th className="py-2">Branch</th><th>Orders</th><th>Revenue</th><th>Avg order</th><th>Expenses</th><th>Stock units</th><th>Stock value</th><th>Low stock</th></tr></thead>
+          <tbody>{(data.data?.by_branch ?? []).map((b) => (
+            <tr key={b.branch_id} className="border-t border-line"><td className="py-2 font-medium text-ink-900">{b.branch_name} <span className="text-ink-400">{b.branch_code}{b.status === "inactive" ? " · inactive" : ""}</span></td><td>{b.orders}</td><td className="font-semibold">{formatMoney(b.revenue_minor, cur)}</td><td>{formatMoney(b.avg_order_minor, cur)}</td><td>{formatMoney(b.expenses_minor, cur)}</td><td>{b.stock_units}</td><td>{formatMoney(b.stock_value_minor, cur)}</td><td>{b.low_stock_items || "—"}</td></tr>))}
+          </tbody>
+        </table>
+      </Card>
       </>)}
     </PortalShell>
   );

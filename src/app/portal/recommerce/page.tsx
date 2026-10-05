@@ -52,7 +52,7 @@ export default function RecommercePage() {
 
   return (
     <PortalShell tenant={tenant} active="recommerce">
-      <PageHeader icon={<Recycle size={20} />} title="ReCommerce" description="Buy back and take trade-ins, refurbish, quality-check and resell. Every unit carries its exact cost." />
+      <PageHeader scopedToBranch icon={<Recycle size={20} />} title="ReCommerce" description="Buy back and take trade-ins, refurbish, quality-check and resell. Every unit carries its exact cost." />
       <Tabs<Tab> tabs={[{ key: "pipeline", label: "Pipeline" }, ...(canAcquire ? [{ key: "intake" as const, label: "New inspection" }] : []), { key: "guides", label: "Price guides" }]} value={tab} onChange={setTab} />
 
       {tab === "pipeline" && (

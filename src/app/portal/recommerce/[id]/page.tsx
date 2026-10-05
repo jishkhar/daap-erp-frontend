@@ -14,7 +14,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { ASSET_STATUS_TONE, QC_CHECKS, erp, formatDateTime, formatMoney, humanize, toMinor, useErpQuery, type Product, type RecommerceAssetDetail } from "@/lib/erp";
-import { hasGrantAt, useStaffSession } from "@/lib/staffAuth";
+import { activeBranches, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 type Dialog = null | "acquire" | "reject" | "grade" | "part" | "labour" | "move" | "qc" | "scrap";
@@ -37,7 +37,7 @@ export default function AssetPage() {
   const at = (perm: string) => (a ? hasGrantAt(session, perm, a.current_branch_id) : false);
   const canAcquire = a ? hasGrantAt(session, "recommerce:acquire", a.acquisition_branch_id) : false;
   const manager = Boolean(session && session.permissions["recommerce:manage"] === "*");
-  const otherBranches = (session?.branches ?? []).filter((b) => a && b.id !== a.current_branch_id);
+  const otherBranches = activeBranches(session).filter((b) => a && b.id !== a.current_branch_id);
 
   async function act(path: string, body: unknown, ok: string) {
     setBusy(true);

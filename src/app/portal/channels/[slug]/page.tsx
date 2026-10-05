@@ -44,7 +44,7 @@ export default function ChannelPage() {
 
   return (
     <PortalShell tenant={tenant} active={`channel-${slug}`}>
-      <PageHeader icon={<Icon size={20} />} title={`${info.label} sales`} description={info.blurb} actions={<Button href={`/portal/orders/new?channel=${channel}`}>New order</Button>} />
+      <PageHeader scopedToBranch icon={<Icon size={20} />} title={`${info.label} sales`} description={info.blurb} actions={<Button href={`/portal/orders/new?channel=${channel}`}>New order</Button>} />
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
         <StatTile label="Orders" value={summary.count} deltaPct={null} hint="excluding cancelled" icon={<ShoppingCart size={22} />} />
         <StatTile label="Revenue" value={formatMoney(summary.revenue, tenant?.currency)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<Icon size={22} />} />

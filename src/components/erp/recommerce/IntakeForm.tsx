@@ -7,7 +7,7 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { erp, useErpQuery, type Product, type RecommerceAsset } from "@/lib/erp";
-import { hasGrantAt, useStaffSession } from "@/lib/staffAuth";
+import { activeBranches, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 /** Counter inspection: identify the device, record its condition, get a grade and a quote. */
@@ -15,7 +15,7 @@ export function IntakeForm({ branchId, onDone }: { branchId: string | null; onDo
   const session = useStaffSession();
   const products = useErpQuery<Product[]>("/api/v1/products?limit=500");
   const devices = useMemo(() => (products.data ?? []).filter((p) => p.serialization_type !== "NONE" && p.lifecycle_status === "active"), [products.data]);
-  const buyBranches = (session?.branches ?? []).filter((b) => hasGrantAt(session, "recommerce:acquire", b.id));
+  const buyBranches = activeBranches(session).filter((b) => hasGrantAt(session, "recommerce:acquire", b.id));
   const [branch, setBranch] = useState<string>(branchId ? String(branchId) : "");
   const [f, setF] = useState({ product: "", serial: "", source: "BUYBACK", name: "", phone: "", screen: "perfect", body: "perfect", battery: "", water: false, locked: false, stolen: false, faults: "", notes: "" });
   const [busy, setBusy] = useState(false);

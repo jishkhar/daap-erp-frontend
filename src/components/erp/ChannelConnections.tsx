@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { CHANNELS, erp, formatDateTime, useErpQuery, type Channel, type ChannelClient } from "@/lib/erp";
-import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { activeBranches, hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 /** The credentials a sales channel uses to talk to the ERP (an API key per backend/terminal). The key fixes the
@@ -86,7 +86,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
         <Field label="Branch" htmlFor="ck_branch" hint="Leave on “Any branch” for a channel that serves the whole tenant.">
           <Select id="ck_branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
             <option value="">Any branch</option>
-            {(session?.branches ?? []).map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}
+            {activeBranches(session).map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}
           </Select>
         </Field>
       </Modal>

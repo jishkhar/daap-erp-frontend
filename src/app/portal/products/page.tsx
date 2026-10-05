@@ -17,7 +17,8 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { erp, erpUpload, formatMoney, fromMinor, humanize, qs, toMinor, useErpQuery, type Product, type StockSummary, type TaxRule } from "@/lib/erp";
-import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { activeBranches, hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { useActiveBranch } from "@/lib/branch";
 import { toast } from "@/lib/toast";
 import { BARCODE_SPECS, BARCODE_TYPES, inferBarcodeType, sanitizeBarcode, validateBarcode, type BarcodeType } from "@/lib/barcode";
 
@@ -33,7 +34,9 @@ export default function ProductsPage() {
   const session = useStaffSession();
   const [search, setSearch] = useState("");
   const products = useErpQuery<Product[]>(`/api/v1/products${qs({ q: search, limit: 500 })}`);
-  const stock = useErpQuery<StockSummary[]>("/api/v1/inventory/consolidated");
+  const { branchId: activeBranch } = useActiveBranch();
+  // "All branches" shows the consolidated total; a chosen branch shows only that branch's stock.
+  const stock = useErpQuery<StockSummary[]>(activeBranch ? `/api/v1/inventory${qs({ branch_id: activeBranch, limit: 1000 })}` : "/api/v1/inventory/consolidated");
   const taxes = useErpQuery<TaxRule[]>("/api/v1/tax-rules");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [receiving, setReceiving] = useState<Product | null>(null);
@@ -60,7 +63,7 @@ export default function ProductsPage() {
     { header: "Status", cell: ({ row }) => <Badge tone={LIFECYCLE_TONE[row.original.lifecycle_status]}>{row.original.lifecycle_status}</Badge> },
     { header: "", id: "actions", cell: ({ row }) => (
       <div className="flex justify-end gap-space-1">
-        {canReceive && row.original.lifecycle_status !== "archived" && <Button variant="ghost" aria-label={`Receive stock for ${row.original.name}`} onClick={() => { setReceiving(row.original); setRecvBranch(String(session?.branches[0]?.id ?? "")); setRecvQty(""); setRecvSerials(""); }}><PackageOpen size={16} /> Receive</Button>}
+        {canReceive && row.original.lifecycle_status !== "archived" && <Button variant="ghost" aria-label={`Receive stock for ${row.original.name}`} onClick={() => { setReceiving(row.original); setRecvBranch(String(activeBranches(session)[0]?.id ?? "")); setRecvQty(""); setRecvSerials(""); }}><PackageOpen size={16} /> Receive</Button>}
         {canWrite && row.original.lifecycle_status !== "archived" && <Button variant="ghost" aria-label={`Add a variant of ${row.original.name}`} onClick={() => { setVariantOf(row.original); setVariant({ sku: "", name: "", price: fromMinor(row.original.price_minor) }); }}><Copy size={15} /> Variant</Button>}
         {canWrite && <Button variant="ghost" aria-label={`Edit ${row.original.name}`} onClick={() => setDraft({ id: row.original.id, sku: row.original.sku, name: row.original.product_name, variant_name: row.original.variant_name === "Default" ? "" : row.original.variant_name, description: row.original.description ?? "", price: fromMinor(row.original.price_minor), mrp: fromMinor(row.original.mrp_minor), cost: fromMinor(row.original.cost_minor), tax_code: row.original.tax_code ?? "", serialization_type: row.original.serialization_type, barcode: row.original.barcode ?? "", barcode_type: inferBarcodeType(row.original.barcode), lifecycle_status: row.original.lifecycle_status })}><Pencil size={15} /> Edit</Button>}
       </div>) },
@@ -133,7 +136,7 @@ export default function ProductsPage() {
 
   return (
     <PortalShell tenant={tenant} active="products">
-      <PageHeader icon={<Package size={20} />} title="Products" description="The product master shared by every branch and every channel."
+      <PageHeader scopedToBranch icon={<Package size={20} />} title="Products" description="The product master shared by every branch and every channel."
         actions={canWrite && (
           <div className="flex gap-space-2">
             <input ref={fileInput} type="file" accept=".csv,.xlsx" hidden onChange={(e) => importFile(e.target.files?.[0])} />
@@ -185,7 +188,7 @@ export default function ProductsPage() {
 
       <Modal open={receiving !== null} onClose={() => setReceiving(null)} title={`Receive stock — ${receiving?.name ?? ""}`}
         footer={<><Button variant="ghost" onClick={() => setReceiving(null)}>Cancel</Button><Button disabled={busy || !recvQty || !recvBranch} onClick={receive}>Receive</Button></>}>
-        <Field label="Branch" htmlFor="r_branch"><Select id="r_branch" value={recvBranch} onChange={(e) => setRecvBranch(e.target.value)}>{(session?.branches ?? []).map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}</Select></Field>
+        <Field label="Branch" htmlFor="r_branch"><Select id="r_branch" value={recvBranch} onChange={(e) => setRecvBranch(e.target.value)}>{activeBranches(session).map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}</Select></Field>
         <Field label="Quantity" htmlFor="r_qty"><Input id="r_qty" inputMode="numeric" value={recvQty} onChange={(e) => setRecvQty(e.target.value)} /></Field>
         {receiving && receiving.serialization_type !== "NONE" && (
           <Field label={receiving.serialization_type === "IMEI" ? "IMEI numbers" : "Serial numbers"} htmlFor="r_serials" hint="One per line (or comma separated) — exactly as many as the quantity." required>

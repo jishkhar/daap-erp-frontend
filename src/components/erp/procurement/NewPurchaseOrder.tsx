@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { erp, formatMoney, toMinor, useErpQuery, type Product, type PurchaseOrder, type Supplier } from "@/lib/erp";
-import { useStaffSession } from "@/lib/staffAuth";
+import { activeBranches, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 type Row = { variant_id: string; quantity: string; cost: string };
@@ -26,7 +26,7 @@ export function NewPurchaseOrder({ open, onClose, onCreated, currency }: { open:
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const branches = session?.branches ?? [];
+  const branches = activeBranches(session);
   const lineTotal = rows.reduce((sum, r) => sum + (parseInt(r.quantity, 10) || 0) * (toMinor(r.cost) ?? 0), 0);
   const valid = supplierId && (branchId || branches.length === 1) && rows.every((r) => r.variant_id && parseInt(r.quantity, 10) > 0 && toMinor(r.cost) !== null) && rows.length > 0;
   const setRow = (i: number, patch: Partial<Row>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));

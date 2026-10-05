@@ -7,14 +7,16 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { erp, formatMoney, useErpQuery } from "@/lib/erp";
+import { useActiveBranch } from "@/lib/branch";
+import { erp, formatMoney, qs, useErpQuery } from "@/lib/erp";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 type Summary = { month: string; net_revenue_minor: number; gross_profit_minor: number; gross_margin_pct: number | null; net_profit_minor: number; cash_and_bank_minor: number; gateway_clearing_minor: number; receivable_minor: number; payable_minor: number; inventory_minor: number; gst_payable_minor: number };
 
 export function FinanceOverview({ currency }: { currency: string }) {
-  const s = useErpQuery<Summary>("/api/v1/finance/reports/summary");
+  const { branchId } = useActiveBranch();
+  const s = useErpQuery<Summary>(`/api/v1/finance/reports/summary${qs({ branch_id: branchId })}`);
   const session = useStaffSession();
   const [lock, setLock] = useState("");
   const d = s.data;

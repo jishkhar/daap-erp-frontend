@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
+import { useActiveBranch } from "@/lib/branch";
 import { CHANNELS, formatMoney, humanize, monthRange, qs, useErpQuery, type Channel } from "@/lib/erp";
 
 type Sub = "pl" | "matrix" | "bs" | "gst" | "products" | "aging";
@@ -31,7 +32,8 @@ type PlRow = { branch?: string; channel?: string; gross_sales_minor: number; ret
 function ProfitAndLoss({ currency }: { currency: string }) {
   const range = monthRange();
   const [from, setFrom] = useState(range.from), [to, setTo] = useState(range.to), [group, setGroup] = useState("none");
-  const pl = useErpQuery<{ rows: PlRow[]; total: PlRow }>(`/api/v1/finance/reports/profit-and-loss${qs({ date_from: from, date_to: to, group_by: group })}`);
+  const { branchId } = useActiveBranch();
+  const pl = useErpQuery<{ rows: PlRow[]; total: PlRow }>(`/api/v1/finance/reports/profit-and-loss${qs({ date_from: from, date_to: to, group_by: group, branch_id: branchId })}`);
   const m = (v: number) => formatMoney(v, currency);
   const label = (r: PlRow) => group === "branch" ? r.branch : group === "channel" ? channelLabel(r.channel ?? "") : group === "branch_channel" ? `${r.branch} · ${channelLabel(r.channel ?? "")}` : "Whole company";
   const lines: [string, (r: PlRow) => string, boolean?][] = [
@@ -95,7 +97,8 @@ function BsSection({ title, lines, total, extra, currency }: { title: string; li
 }
 
 function BalanceSheet({ currency }: { currency: string }) {
-  const bs = useErpQuery<Bs>("/api/v1/finance/reports/balance-sheet");
+  const { branchId } = useActiveBranch();
+  const bs = useErpQuery<Bs>(`/api/v1/finance/reports/balance-sheet${qs({ branch_id: branchId })}`);
   const d = bs.data;
   return (
     <>
@@ -193,8 +196,10 @@ function AgingReports({ currency }: { currency: string }) {
 // ----------------------------------------------------------------------------------------------- tabs
 export function FinancialReports({ currency }: { currency: string }) {
   const [sub, setSub] = useState<Sub>("pl");
+  const { branchId } = useActiveBranch();
   return (
     <>
+      {branchId && ["matrix", "gst", "products", "aging"].includes(sub) && <p className="mb-space-3 text-[12.5px] text-ink-400">This report always covers the whole company; the branch filter applies to Profit &amp; loss and the Balance sheet.</p>}
       <Tabs<Sub> tabs={[{ key: "pl", label: "Profit & loss" }, { key: "matrix", label: "Branch × channel" }, { key: "bs", label: "Balance sheet" }, { key: "gst", label: "GST" }, { key: "products", label: "Product margin" }, { key: "aging", label: "Receivables & payables" }]} value={sub} onChange={setSub} />
       {sub === "pl" && <ProfitAndLoss currency={currency} />}
       {sub === "matrix" && <SalesMatrix currency={currency} />}

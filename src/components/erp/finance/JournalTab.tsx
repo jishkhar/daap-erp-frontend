@@ -10,7 +10,8 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-import { erp, formatMoney, humanize, toMinor, useErpQuery, type Account, type JournalEntry } from "@/lib/erp";
+import { erp, formatMoney, humanize, toMinor, useErpQuery, type Account, type JournalEntry, qs } from "@/lib/erp";
+import { useActiveBranch } from "@/lib/branch";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
@@ -19,7 +20,8 @@ type Row = { account: string; debit: string; credit: string };
 /** The general journal: every entry the system or a person has posted, and manual adjustments. Entries are never edited — reverse them. */
 export function JournalTab({ currency }: { currency: string }) {
   const session = useStaffSession();
-  const entries = useErpQuery<JournalEntry[]>("/api/v1/finance/journal-entries?limit=200");
+  const { branchId } = useActiveBranch();
+  const entries = useErpQuery<JournalEntry[]>(`/api/v1/finance/journal-entries${qs({ branch_id: branchId, limit: 200 })}`);
   const accounts = useErpQuery<Account[]>("/api/v1/finance/accounts");
   const [view, setView] = useState<JournalEntry | null>(null);
   const [open, setOpen] = useState(false);

@@ -7,6 +7,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useActiveBranch } from "@/lib/branch";
 import { formatDateTime, qs, useErpQuery } from "@/lib/erp";
 
 type Entry = { id: string; action: string; entity_type: string; entity_id: string | null; actor_type: string; actor_id: string | null; branch_id: string | null; after: Record<string, unknown> | null; created_at: string };
@@ -14,12 +15,13 @@ type Entry = { id: string; action: string; entity_type: string; entity_id: strin
 export default function ActivityPage() {
   const { tenant, ready } = usePortalGuard();
   const [entity, setEntity] = useState("");
-  const log = useErpQuery<Entry[]>(`/api/v1/audit-logs${qs({ entity_type: entity, limit: 200 })}`);
+  const { branchId: activeBranch } = useActiveBranch();
+  const log = useErpQuery<Entry[]>(`/api/v1/audit-logs${qs({ entity_type: entity, branch_id: activeBranch, limit: 200 })}`);
   if (!ready) return null;
 
   return (
     <PortalShell tenant={tenant} active="activity">
-      <PageHeader icon={<ClipboardList size={20} />} title="Activity log" description="A permanent record of sensitive actions: approvals, stock adjustments, refunds and permission changes." />
+      <PageHeader scopedToBranch icon={<ClipboardList size={20} />} title="Activity log" description="A permanent record of sensitive actions: approvals, stock adjustments, refunds and permission changes." />
       <Card className="mb-space-4 p-space-3"><Input placeholder="Filter by type, e.g. order, payment, inventory, user…" value={entity} onChange={(e) => setEntity(e.target.value.trim())} className="max-w-md" aria-label="Filter by entity type" /></Card>
       {log.error && <p className="mb-space-3 text-[13px] font-medium text-error">{log.error}</p>}
       <Card className="overflow-x-auto p-space-2">

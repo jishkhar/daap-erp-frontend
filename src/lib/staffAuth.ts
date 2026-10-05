@@ -14,7 +14,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://loca
  * tenant) or the list of branch ids the grant covers. */
 export type PermissionMap = Record<string, "*" | string[]>;
 
-export type SessionBranch = { id: string; branch_code: string; branch_name: string };
+export type SessionBranch = { id: string; branch_code: string; branch_name: string; status?: "active" | "inactive" };
 
 export type StaffSession = {
   id: string;
@@ -87,6 +87,23 @@ async function loadSession(accessToken: string): Promise<StaffSession> {
   const me = (await axios.get<MeResponse>(`${API_BASE_URL}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })).data;
   const tenant: PortalTenant = { id: me.tenant.id, code: me.tenant.tenant_code, name: me.tenant.display_name, currency: me.tenant.currency };
   return { id: me.user_id, name: me.name, roles: me.roles, tenant, permissions: me.permissions, branches: me.branches, modules: me.modules };
+}
+
+/** The branches people can still work in (deactivated ones stay in the session so old records can show their codes). */
+export function activeBranches(session: StaffSession | null): SessionBranch[] {
+  return (session?.branches ?? []).filter((b) => b.status !== "inactive");
+}
+
+/** Re-reads who-am-I from the server and updates the stored session (e.g. after a branch is added or deactivated). */
+export async function refreshStaffSession(): Promise<void> {
+  const token = getStaffAccessToken();
+  const refresh = getStaffRefreshToken();
+  if (!token || !refresh) return;
+  try {
+    saveStaffSession(token, refresh, await loadSession(token));
+  } catch {
+    /* an expired token is handled by the next authenticated call's silent refresh */
+  }
 }
 
 /** Sign in with tenant code + email + password. Returns an error message, or null on success. */
@@ -216,6 +233,7 @@ export function useHasStaffToken(): boolean | null {
 // decides what to show.
 const PAGE_MODULE: Record<string, string> = {
   orders: "orders",
+  branches: "branches",
   products: "products",
   customers: "customers",
   discounts: "orders",
@@ -224,6 +242,8 @@ const PAGE_MODULE: Record<string, string> = {
   feedback: "customers",
   channels: "channels",
   procurement: "procurement",
+  inventory: "inventory",
+  transfers: "transfers",
   finance: "finance",
   recommerce: "recommerce",
   settings: "tenant",

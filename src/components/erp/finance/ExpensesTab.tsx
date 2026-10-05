@@ -11,8 +11,9 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-import { EXPENSE_STATUS_TONE, erp, formatMoney, humanize, toMinor, useErpQuery, type Expense } from "@/lib/erp";
-import { hasGrant, useStaffSession } from "@/lib/staffAuth";
+import { useActiveBranch } from "@/lib/branch";
+import { EXPENSE_STATUS_TONE, erp, formatMoney, humanize, qs, toMinor, useErpQuery, type Expense } from "@/lib/erp";
+import { activeBranches, hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 type Category = { id: string; name: string; account_code: string };
@@ -20,13 +21,15 @@ type Category = { id: string; name: string; account_code: string };
 export function ExpensesTab({ currency }: { currency: string }) {
   const session = useStaffSession();
   const [status, setStatus] = useState("");
-  const expenses = useErpQuery<Expense[]>(`/api/v1/finance/expenses${status ? `?status=${status}` : ""}`);
+  const { branchId: activeBranch } = useActiveBranch();
+  const expenses = useErpQuery<Expense[]>(`/api/v1/finance/expenses${qs({ status, branch_id: activeBranch })}`);
   const categories = useErpQuery<Category[]>("/api/v1/finance/expense-categories");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ branch_id: "", category_id: "", amount: "", description: "", vendor: "", date: "" });
   const [busy, setBusy] = useState(false);
-  const branches = useMemo(() => session?.branches ?? [], [session]);
-  const branchCode = (id: string) => branches.find((b) => b.id === id)?.branch_code ?? `#${id}`;
+  const allBranches = useMemo(() => session?.branches ?? [], [session]);
+  const branches = useMemo(() => activeBranches(session), [session]);
+  const branchCode = (id: string) => allBranches.find((b) => b.id === id)?.branch_code ?? `#${id}`;
   const canCreate = hasGrant(session, "expenses:create"), canApprove = hasGrant(session, "expenses:approve"), canPay = hasGrant(session, "expenses:pay");
 
   async function act(id: string, action: string, body?: unknown, message?: string) {

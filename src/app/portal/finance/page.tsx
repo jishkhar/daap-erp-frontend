@@ -22,12 +22,12 @@ export default function FinancePage() {
 
   return (
     <PortalShell tenant={tenant} active="finance">
-      <PageHeader icon={<Banknote size={20} />} title="Finance" description="One set of books for every branch and channel. Detailed reports are under Analytics / Reports." />
+      <PageHeader scopedToBranch icon={<Banknote size={20} />} title="Finance" description="One set of books for every branch and channel. Detailed reports are under Analytics / Reports." />
       <Tabs<Tab> tabs={[{ key: "overview", label: "Overview" }, { key: "expenses", label: "Expenses" }, { key: "invoices", label: "Tax invoices" }, { key: "reconciliation", label: "Reconciliation" }, { key: "journal", label: "Journal" }]} value={tab} onChange={setTab} />
       {tab === "overview" && <FinanceOverview currency={currency} />}
       {tab === "expenses" && <ExpensesTab currency={currency} />}
       {tab === "invoices" && <TaxInvoicesTab currency={currency} />}
-      {tab === "reconciliation" && <ReconciliationTab currency={currency} />}
+      {tab === "reconciliation" && <><p className="mb-space-3 text-[12.5px] text-ink-400">Gateway payments and settlements are reconciled company-wide, so the branch filter doesn&apos;t apply here.</p><ReconciliationTab currency={currency} /></>}
       {tab === "journal" && <JournalTab currency={currency} />}
     </PortalShell>
   );

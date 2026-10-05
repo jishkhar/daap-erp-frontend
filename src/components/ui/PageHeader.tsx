@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { BranchScopeChip } from "@/components/portal/BranchScopeChip";
 import { cn } from "@/lib/cn";
 
 type PageHeaderProps = {
@@ -8,10 +11,12 @@ type PageHeaderProps = {
   icon?: ReactNode;
   /** Buttons/controls for this page, e.g. "Add product" -- rendered right-aligned. */
   actions?: ReactNode;
+  /** Shows "Viewing: <branch>" when the branch switcher is narrowing this page. Set it only on pages that really filter. */
+  scopedToBranch?: boolean;
   className?: string;
 };
 
-export function PageHeader({ title, description, icon, actions, className }: PageHeaderProps) {
+export function PageHeader({ title, description, icon, actions, scopedToBranch, className }: PageHeaderProps) {
   return (
     <div className={cn("mb-space-5 flex flex-wrap items-center justify-between gap-space-3", className)}>
       <div className="flex min-w-0 items-center gap-space-3">
@@ -23,6 +28,7 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
         <div className="min-w-0">
           <h1 className="text-display">{title}</h1>
           {description && <p className="mt-0.5 text-[13.5px] text-ink-600">{description}</p>}
+          {scopedToBranch && <BranchScopeChip />}
         </div>
       </div>
       {actions && <div className="flex flex-wrap items-center gap-space-2">{actions}</div>}

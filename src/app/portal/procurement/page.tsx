@@ -18,7 +18,8 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
-import { PO_STATUS_TONE, erp, formatDateTime, formatMoney, humanize, useErpQuery, type PurchaseOrder, type PurchaseRequest, type Supplier } from "@/lib/erp";
+import { useActiveBranch } from "@/lib/branch";
+import { PO_STATUS_TONE, erp, formatDateTime, formatMoney, humanize, qs, useErpQuery, type PurchaseOrder, type PurchaseRequest, type Supplier } from "@/lib/erp";
 import { hasGrant, hasPermission, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
@@ -31,8 +32,9 @@ export default function ProcurementPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
   const [status, setStatus] = useState("");
-  const pos = useErpQuery<PurchaseOrder[]>(`/api/v1/purchase-orders${status ? `?status=${status}` : ""}`);
-  const requests = useErpQuery<PurchaseRequest[]>(tab === "requests" ? "/api/v1/purchase-requests" : null);
+  const { branchId: activeBranch } = useActiveBranch();
+  const pos = useErpQuery<PurchaseOrder[]>(`/api/v1/purchase-orders${qs({ status, branch_id: activeBranch })}`);
+  const requests = useErpQuery<PurchaseRequest[]>(tab === "requests" ? `/api/v1/purchase-requests${qs({ branch_id: activeBranch })}` : null);
   const suppliers = useErpQuery<Supplier[]>("/api/v1/suppliers");
   const [newPo, setNewPo] = useState(false);
   const [openSupplier, setOpenSupplier] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export default function ProcurementPage() {
 
   return (
     <PortalShell tenant={tenant} active="procurement">
-      <PageHeader icon={<Truck size={20} />} title="Procurement" description="Buy stock from suppliers: orders, goods receipt with landed cost, returns and what you owe."
+      <PageHeader scopedToBranch icon={<Truck size={20} />} title="Procurement" description="Buy stock from suppliers: orders, goods receipt with landed cost, returns and what you owe."
         actions={<>
           {tab === "suppliers" && canAddSupplier && <Button variant="secondary" onClick={() => setAddSupplier(true)}><Plus size={16} /> Add supplier</Button>}
           {canCreate && <Button onClick={() => setNewPo(true)}><Plus size={16} /> New purchase order</Button>}

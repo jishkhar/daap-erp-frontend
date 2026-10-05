@@ -26,6 +26,8 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDataTransferHorizontalIcon, WarehouseIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoMark } from "@/components/brand/Logo";
@@ -48,6 +50,11 @@ type NavItem = {
   disabled?: boolean;
 };
 
+type IconProps = { size?: number; strokeWidth?: number; className?: string };
+const hugeNav = (icon: typeof WarehouseIcon) => function NavIcon({ size, strokeWidth, className }: IconProps) { return <HugeiconsIcon icon={icon} size={size} strokeWidth={strokeWidth} className={className} />; };
+const InventoryNavIcon = hugeNav(WarehouseIcon);
+const TransfersNavIcon = hugeNav(ArrowDataTransferHorizontalIcon);
+
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Main" },
   { key: "orders", label: "Orders", icon: ShoppingCart, href: "/portal/orders", pageKey: "orders", group: "Main" },
@@ -65,6 +72,8 @@ const NAV_ITEMS: NavItem[] = [
   { key: "channel-whatsapp", label: "WhatsApp", icon: WhatsAppIcon, href: "/portal/channels/whatsapp", pageKey: "orders", group: "Sales Channels" },
 
   { key: "procurement", label: "Procurement", icon: Truck, href: "/portal/procurement", pageKey: "procurement", group: "Back Office" },
+  { key: "inventory", label: "Inventory", icon: InventoryNavIcon, href: "/portal/inventory", pageKey: "inventory", group: "Back Office" },
+  { key: "transfers", label: "Transfers", icon: TransfersNavIcon, href: "/portal/transfers", pageKey: "transfers", group: "Back Office" },
   { key: "recommerce", label: "ReCommerce", icon: Recycle, href: "/portal/recommerce", pageKey: "recommerce", group: "Back Office" },
   { key: "finance", label: "Finance", icon: Banknote, href: "/portal/finance", pageKey: "finance", group: "Back Office" },
 

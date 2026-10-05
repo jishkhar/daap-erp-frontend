@@ -21,6 +21,7 @@ type TenantView = {
 
 const LINKS = [
   { href: "/portal/settings/staff", label: "Team & Access", desc: "People who can sign in and the branches they work in." },
+  { href: "/portal/settings/branches", label: "Branches", desc: "Your stores and locations: add, edit or deactivate." },
   { href: "/portal/settings/roles", label: "Roles & Permissions", desc: "What each role may see and do." },
   { href: "/portal/settings/storefront", label: "Online Storefront", desc: "Connect your website to the ERP." },
   { href: "/portal/settings/billing", label: "Plan & Billing", desc: "Your subscription, usage and payment history." },
@@ -87,7 +88,7 @@ export default function SettingsPage() {
         </Card>
         {view.data && <OperationsCard key={JSON.stringify(view.data.settings)} settings={view.data.settings} currency={view.data.tenant.currency} canEdit={canEdit} onSaved={view.reload} />}
       </div>
-      <div className="mt-space-4 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-space-4 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-5">
         {LINKS.map((l) => (
           <Link key={l.href} href={l.href}>
             <Card elevation="interactive" className="h-full p-space-4"><p className="font-semibold text-ink-900">{l.label}</p><p className="mt-1 text-[13px] text-ink-600">{l.desc}</p></Card>
