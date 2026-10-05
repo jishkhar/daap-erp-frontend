@@ -1,0 +1,27 @@
+sku,name,variant_name,description,category,brand,price,mrp,cost,tax_code,serialization_type,barcode,hsn_code,status
+TEST-001,Lenovo IdeaPad Slim 3,i5/16GB,Everyday laptop,Laptops,Lenovo,52990,61990,46500,GST18,SERIAL,8905000000011,84713010,active
+TEST-002,iQOO Neo 9 Pro,8GB/256GB,Gaming phone,Smartphones,iQOO,35999,39999,31500,GST18,IMEI,8905000000028,85171300,active
+TEST-003,Motorola Edge 50 Fusion,12GB/256GB,,Smartphones,Motorola,22999,27999,19800,,IMEI,8905000000035,85171300,active
+TEST-004,Samsung Galaxy Buds FE,,True wireless earbuds,Audio,Samsung,5999,9999,4300,GST18,NONE,8905000000042,85183000,active
+TEST-005,Sennheiser HD 450BT,,,Audio,Sennheiser,8990,14990,6900,,NONE,8905000000059,85183000,active
+TEST-006,Zebronics Zeb-Thunder Headphones,Black,Bluetooth over-ear,Audio,Zebronics,1099,2499,650,,NONE,8905000000066,,active
+TEST-007,Belkin 3-in-1 Wireless Charger,,,Accessories,Belkin,9999,12999,7800,GST18,NONE,8905000000073,85044030,active
+TEST-008,Baseus 65W GaN Charger,White,,Accessories,Baseus,2199,3499,1500,,NONE,8905000000080,85044030,active
+TEST-009,Spigen Rugged Armor iPhone 15,Black,,Accessories,Spigen,1799,2499,950,,NONE,8905000000097,,active
+TEST-010,Portronics Car Mount,,,Accessories,Portronics,499,999,260,,NONE,8905000000103,,draft
+TEST-011,Logitech MX Master 3S,Graphite,,Computer Accessories,Logitech,9995,10995,8200,GST18,NONE,8905000000110,,active
+TEST-012,Redragon Kumara Keyboard,Red switch,Mechanical TKL,Computer Accessories,Redragon,2999,4499,2100,,NONE,8905000000127,,active
+TEST-013,Crucial 16GB DDR4 RAM,16GB,,Storage,Crucial,3199,4299,2500,,NONE,8905000000134,,active
+TEST-014,Kingston NV2 500GB NVMe,500GB,,Storage,Kingston,3299,4999,2600,,NONE,8905000000141,,active
+TEST-015,Seagate 1TB Backup Plus,1TB,,Storage,Seagate,4299,5999,3500,,NONE,8905000000158,,active
+TEST-016,Netgear Nighthawk AX1800,,,Networking,Netgear,6499,8999,5200,,NONE,8905000000165,,active
+TEST-017,Acer 24in IPS Monitor,24in,,Monitors,Acer,7999,10999,6500,,SERIAL,8905000000172,,active
+TEST-018,Epson EcoTank L3250,,,Printers,Epson,13499,15999,11200,GST18,SERIAL,8905000000189,,active
+TEST-019,Realme Smart Watch 2 Pro,,,Wearables,Realme,3499,4999,2500,,NONE,8905000000196,,active
+TEST-020,Google Nest Mini,Chalk,,Smart Home,Google,4499,5499,3400,,NONE,8905000000202,,active
+TEST-021,Bad price row,,,Accessories,Acme,abc,,,,NONE,,,active
+TEST-022,MRP below price,,,Accessories,Acme,1000,500,,,NONE,,,active
+TEST-023,Unknown tax code,,,Accessories,Acme,1000,,,GST99,NONE,,,active
+TEST-024,Bad tracking type,,,Accessories,Acme,1000,,,,RFID,,,active
+,Missing SKU,,,Accessories,Acme,1000,,,,NONE,,,active
+DEMO-001,Duplicate of demo file,,,Smartphones,Apple,69900,,,,IMEI,,,active

@@ -103,6 +103,20 @@ export async function loginStaff(tenantCode: string, email: string, password: st
   }
 }
 
+/** Sign in with a Google ID token (from Google Identity Services) for an existing user of the workspace. */
+export async function loginStaffWithGoogle(tenantCode: string, idToken: string): Promise<string | null> {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/google`, { tenant_code: tenantCode.trim(), id_token: idToken });
+    const tokens = res.data as TokenResponse;
+    const session = await loadSession(tokens.access_token);
+    saveStaffSession(tokens.access_token, tokens.refresh_token, session);
+    return null;
+  } catch (err) {
+    if (isAxiosError(err) && err.response) return errorMessage(err.response.data);
+    return "Couldn't reach the server. Please try again.";
+  }
+}
+
 /** One silent refresh via /api/v1/auth/refresh (tokens rotate). Returns the new access token, or null. */
 async function tryRefresh(): Promise<string | null> {
   const refreshToken = getStaffRefreshToken();
