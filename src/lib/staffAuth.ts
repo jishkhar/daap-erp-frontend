@@ -23,6 +23,8 @@ export type StaffSession = {
   tenant: PortalTenant;
   permissions: PermissionMap;
   branches: SessionBranch[];
+  /** Modules the tenant has switched on and bought (super admin's Access Management). Absent on sessions saved before this existed. */
+  modules?: Record<string, boolean>;
 };
 
 type MeResponse = {
@@ -33,6 +35,7 @@ type MeResponse = {
   roles: string[];
   permissions: PermissionMap;
   branches: SessionBranch[];
+  modules?: Record<string, boolean>;
 };
 
 type TokenResponse = { access_token: string; refresh_token: string };
@@ -83,7 +86,7 @@ function errorMessage(data: unknown): string {
 async function loadSession(accessToken: string): Promise<StaffSession> {
   const me = (await axios.get<MeResponse>(`${API_BASE_URL}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })).data;
   const tenant: PortalTenant = { id: me.tenant.id, code: me.tenant.tenant_code, name: me.tenant.display_name, currency: me.tenant.currency };
-  return { id: me.user_id, name: me.name, roles: me.roles, tenant, permissions: me.permissions, branches: me.branches };
+  return { id: me.user_id, name: me.name, roles: me.roles, tenant, permissions: me.permissions, branches: me.branches, modules: me.modules };
 }
 
 /** Sign in with tenant code + email + password. Returns an error message, or null on success. */
@@ -213,6 +216,7 @@ const PAGE_MODULE: Record<string, string> = {
   staff: "users",
   roles: "roles",
   activity: "audit",
+  billing: "billing",
 };
 
 // Pages with no ERP module of their own (the dashboard, and the Workforce section, which is not an ERP

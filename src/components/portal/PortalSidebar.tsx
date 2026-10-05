@@ -15,6 +15,7 @@ import {
   Package,
   Truck,
   Settings,
+  CreditCard,
   ShieldCheck,
   ShoppingCart,
   Store,
@@ -77,6 +78,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "channels", group: "Admin" },
   { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
   { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },
+  { key: "billing", label: "Plan & Billing", icon: CreditCard, href: "/portal/settings/billing", pageKey: "billing", group: "Admin" },
 ];
 
 type Props = {
@@ -86,6 +88,11 @@ type Props = {
   open?: boolean;
   onClose?: () => void;
 };
+
+/** A sidebar item whose key names an access module ("whatsapp-inbox" -> whatsapp_inbox) is hidden when that module is off; the rest are unaffected. */
+function moduleOn(modules: Record<string, boolean> | undefined, itemKey: string): boolean {
+  return modules?.[itemKey.replace(/-/g, "_")] !== false;
+}
 
 export function PortalSidebar({ tenant, active, open = false, onClose }: Props) {
   const router = useRouter();
@@ -97,7 +104,7 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
   }
 
   // Nothing until the session has loaded (before it, hasPermission fails open and would flash items the person can't use).
-  const visible = session ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")) : [];
+  const visible = session ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view") && moduleOn(session.modules, item.key)) : [];
 
   return (
     <>

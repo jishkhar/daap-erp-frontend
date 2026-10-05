@@ -15,7 +15,7 @@ npm run dev            # http://localhost:3000
 ```
 
 The backend must be running (default `http://localhost:8000`); override with `NEXT_PUBLIC_API_BASE_URL`.
-Sign in at `/portal/login` with **company code + email + password** (a tenant is created by a platform admin at `/admin/tenants`).
+Sign in at `/portal/login` with **company code + email + password** (a tenant is created by a platform admin in the separate `admin-ecommerce` app).
 
 ## What's here
 
@@ -32,7 +32,6 @@ Sign in at `/portal/login` with **company code + email + password** (a tenant is
 | ReCommerce: pipeline, IMEI inspection & quote, buy / decline, grade, parts & labour, QC, move, scrap, price guides; store credit on the customer; `STORE_CREDIT` payment | `/portal/recommerce`, `/portal/customers/[id]` | `/api/v1/recommerce/*` |
 | Financial reports: P&L (by branch / channel), branch × channel, balance sheet, GST, product margin, aging | `/portal/analytics` → *Financial reports* | `/api/v1/finance/reports/*` |
 | Settings, Team & Access, Roles & Permissions, Activity log, Online Storefront | `/portal/settings/*` | tenant, users, roles, audit-logs, channel keys |
-| Platform admin: tenants (create, plan, feature toggles, suspend), plans | `/admin/*` | `/api/platform/*` |
 
 **Not built yet (shown in the sidebar, but say so on the page):** WhatsApp Inbox, WhatsApp Automation, Discounts, Feedback — they depend on later backend phases.
 Growth is listed but disabled. **Workforce** (Attendance, Check-in/out, My Leave, Team Attendance, Leave Requests) is kept in the navigation as designed, but the ERP

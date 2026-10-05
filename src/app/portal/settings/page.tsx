@@ -23,6 +23,7 @@ const LINKS = [
   { href: "/portal/settings/staff", label: "Team & Access", desc: "People who can sign in and the branches they work in." },
   { href: "/portal/settings/roles", label: "Roles & Permissions", desc: "What each role may see and do." },
   { href: "/portal/settings/storefront", label: "Online Storefront", desc: "Connect your website to the ERP." },
+  { href: "/portal/settings/billing", label: "Plan & Billing", desc: "Your subscription, usage and payment history." },
   { href: "/portal/settings/activity", label: "Activity log", desc: "Who changed what, and when." },
 ];
 
