@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { loginStaff } from "@/lib/staffAuth";
+import { GoogleSignInButton } from "@/components/portal/GoogleSignInButton";
+import { loginStaff, loginStaffWithGoogle } from "@/lib/staffAuth";
 
 export default function PortalLoginPage() {
   const router = useRouter();
@@ -25,6 +26,16 @@ export default function PortalLoginPage() {
     setSubmitting(true);
     setError(null);
     const failure = await loginStaff(tenantCode, email, password);
+    setSubmitting(false);
+    if (failure) return setError(failure);
+    router.push("/portal/dashboard");
+  }
+
+  async function handleGoogle(idToken: string) {
+    if (!tenantCode.trim()) return setError("Enter your workspace first, then continue with Google.");
+    setSubmitting(true);
+    setError(null);
+    const failure = await loginStaffWithGoogle(tenantCode, idToken);
     setSubmitting(false);
     if (failure) return setError(failure);
     router.push("/portal/dashboard");
@@ -61,6 +72,7 @@ export default function PortalLoginPage() {
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+        <GoogleSignInButton onCredential={handleGoogle} />
         <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
           Accounts are created by your company&apos;s administrator.
         </p>

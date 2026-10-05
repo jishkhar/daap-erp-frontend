@@ -2,7 +2,9 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Copy, PackagePlus, Package, Pencil, PackageOpen } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -14,7 +16,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
-import { erp, formatMoney, fromMinor, humanize, qs, toMinor, useErpQuery, type Product, type StockSummary, type TaxRule } from "@/lib/erp";
+import { erp, erpUpload, formatMoney, fromMinor, humanize, qs, toMinor, useErpQuery, type Product, type StockSummary, type TaxRule } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { BARCODE_SPECS, BARCODE_TYPES, inferBarcodeType, sanitizeBarcode, validateBarcode, type BarcodeType } from "@/lib/barcode";
@@ -23,6 +25,8 @@ const LIFECYCLE_TONE = { draft: "warning", active: "success", discontinued: "neu
 
 type Draft = { id?: string; sku: string; name: string; variant_name: string; description: string; price: string; mrp: string; cost: string; tax_code: string; serialization_type: string; barcode: string; barcode_type: BarcodeType; lifecycle_status: string };
 const EMPTY: Draft = { sku: "", name: "", variant_name: "", description: "", price: "", mrp: "", cost: "", tax_code: "", serialization_type: "NONE", barcode: "", barcode_type: "EAN_13", lifecycle_status: "active" };
+
+type ImportResult = { total: number; created: number; failed: number; errors: { row: number; sku: string | null; error: string }[] };
 
 export default function ProductsPage() {
   const { tenant, ready } = usePortalGuard();
@@ -39,6 +43,9 @@ export default function ProductsPage() {
   const [recvQty, setRecvQty] = useState("");
   const [recvSerials, setRecvSerials] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const canWrite = hasPermission(session, "products", "write");
   const canReceive = !!session && Object.keys(session.permissions).includes("inventory:receive");
@@ -80,6 +87,21 @@ export default function ProductsPage() {
     products.reload();
   }
 
+  async function importFile(file: File | undefined) {
+    if (fileInput.current) fileInput.current.value = "";
+    if (!file) return;
+    setImporting(true);
+    let res;
+    try {
+      res = await erpUpload<ImportResult>("/api/v1/products/import", file);
+    } finally {
+      setImporting(false);
+    }
+    if (res.error || !res.data) return toast.error("Couldn't import the file", res.error ?? undefined);
+    setImportResult(res.data);
+    if (res.data.created > 0) products.reload();
+  }
+
   async function addVariant() {
     if (!variantOf) return;
     const price = toMinor(variant.price);
@@ -112,7 +134,12 @@ export default function ProductsPage() {
   return (
     <PortalShell tenant={tenant} active="products">
       <PageHeader icon={<Package size={20} />} title="Products" description="The product master shared by every branch and every channel."
-        actions={canWrite && <Button onClick={() => setDraft({ ...EMPTY })}><PackagePlus size={16} /> Add product</Button>} />
+        actions={canWrite && (
+          <div className="flex gap-space-2">
+            <input ref={fileInput} type="file" accept=".csv,.xlsx" hidden onChange={(e) => importFile(e.target.files?.[0])} />
+            <Button variant="ghost" disabled={importing} onClick={() => fileInput.current?.click()}><HugeiconsIcon icon={FileUploadIcon} size={16} /> {importing ? "Importing…" : "Import CSV / Excel"}</Button>
+            <Button onClick={() => setDraft({ ...EMPTY })}><PackagePlus size={16} /> Add product</Button>
+          </div>)} />
       <Card className="mb-space-4 p-space-3"><Input placeholder="Search by name, SKU or barcode…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" aria-label="Search products" /></Card>
       {products.error && <p className="mb-space-3 text-[13px] font-medium text-error">{products.error}</p>}
       <Card className="p-space-2"><DataTable columns={columns} data={products.data ?? []} getRowId={(p) => String(p.id)} emptyMessage={products.loading ? "Loading products…" : "No products yet."} /></Card>
@@ -135,6 +162,18 @@ export default function ProductsPage() {
             <Field label="Description" htmlFor="p_desc" className="sm:col-span-2"><Textarea id="p_desc" rows={2} value={draft.description} onChange={(e) => set({ description: e.target.value })} /></Field>
           </div>
         )}
+      </Modal>
+
+      <Modal open={importResult !== null} onClose={() => setImportResult(null)} width="lg" title="Import results"
+        description={importResult ? `${importResult.created} of ${importResult.total} products imported${importResult.failed ? `, ${importResult.failed} skipped` : ""}.` : undefined}
+        footer={<Button onClick={() => setImportResult(null)}>Done</Button>}>
+        {importResult && importResult.errors.length > 0 && (
+          <ul className="max-h-72 space-y-space-1 overflow-y-auto text-[13px]">
+            {importResult.errors.map((e) => <li key={e.row}><strong>Row {e.row}{e.sku ? ` (${e.sku})` : ""}:</strong> <span className="text-error">{e.error}</span></li>)}
+          </ul>)}
+        {importResult && importResult.errors.length === 0 && <p className="text-[13px] text-ink-600">Every row was imported.</p>}
+        <p className="mt-space-3 text-[12px] text-ink-400">Required columns: sku, name, price. Optional: variant_name, description, category, brand, mrp, cost, tax_code, serialization_type (NONE / SERIAL / IMEI), barcode, hsn_code, status. New categories and brands are created automatically.{" "}
+          <a className="font-medium underline" href="/sample-products.csv" download><HugeiconsIcon icon={Download04Icon} size={12} className="inline" /> Download sample file</a></p>
       </Modal>
 
       <Modal open={variantOf !== null} onClose={() => setVariantOf(null)} title={`Add a variant — ${variantOf?.product_name ?? ""}`} description="A variant is its own SKU: it has its own price and its own stock."

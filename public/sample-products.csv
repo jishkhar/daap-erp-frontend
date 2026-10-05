@@ -1,0 +1,51 @@
+sku,name,variant_name,description,category,brand,price,mrp,cost,tax_code,serialization_type,barcode,hsn_code,status
+DEMO-001,iPhone 15 128GB,128GB Black,Apple iPhone 15 128GB,Smartphones,Apple,69900,79900,62000,,IMEI,8901234007919,85171300,active
+DEMO-002,Galaxy S24 256GB,256GB Grey,Samsung Galaxy S24 256GB,Smartphones,Samsung,74999,84999,66500,,IMEI,8901234015838,85171300,active
+DEMO-003,Pixel 8 128GB,128GB Obsidian,Google Pixel 8 128GB,Smartphones,Google,58999,75999,52000,,IMEI,8901234023757,85171300,active
+DEMO-004,OnePlus 12R,8GB/128GB,OnePlus OnePlus 12R,Smartphones,OnePlus,39999,45999,35000,,IMEI,8901234031676,85171300,active
+DEMO-005,Redmi Note 13 Pro,8GB/256GB,Xiaomi Redmi Note 13 Pro,Smartphones,Xiaomi,24999,29999,21500,,IMEI,8901234039595,85171300,active
+DEMO-006,Nothing Phone (2a),8GB/128GB,Nothing Nothing Phone (2a),Smartphones,Nothing,23999,26999,20500,,IMEI,8901234047514,85171300,active
+DEMO-007,MacBook Air M2,8GB/256GB,Apple MacBook Air M2,Laptops,Apple,99900,114900,90000,,SERIAL,8901234055433,84713010,active
+DEMO-008,ThinkPad E14,i5/16GB,Lenovo ThinkPad E14,Laptops,Lenovo,62990,74990,55000,,SERIAL,8901234063352,84713010,active
+DEMO-009,Dell Inspiron 15,i5/8GB,Dell Dell Inspiron 15,Laptops,Dell,48990,58990,43000,,SERIAL,8901234071271,84713010,active
+DEMO-010,HP Pavilion 14,Ryzen 5/16GB,HP HP Pavilion 14,Laptops,HP,54990,64990,48500,,SERIAL,8901234079190,84713010,active
+DEMO-011,ASUS Vivobook 15,i3/8GB,ASUS ASUS Vivobook 15,Laptops,ASUS,44990,54990,39000,,SERIAL,8901234087109,84713010,active
+DEMO-012,iPad 10th Gen,64GB Wi-Fi,Apple iPad 10th Gen,Tablets,Apple,34900,39900,30500,,SERIAL,8901234095028,84713010,active
+DEMO-013,Galaxy Tab S9 FE,6GB/128GB,Samsung Galaxy Tab S9 FE,Tablets,Samsung,36999,44999,32000,,SERIAL,8901234102947,84713010,active
+DEMO-014,Apple Watch SE,40mm,Apple Apple Watch SE,Wearables,Apple,24900,29900,21500,,SERIAL,8901234110866,,active
+DEMO-015,Noise ColorFit Pro 5,Black,Noise Noise ColorFit Pro 5,Wearables,Noise,3999,6999,2800,,NONE,8901234118785,,active
+DEMO-016,boAt Wave Call 3,Navy,boAt boAt Wave Call 3,Wearables,boAt,1799,5999,1200,,NONE,8901234126704,,active
+DEMO-017,AirPods Pro 2,,Apple AirPods Pro 2,Audio,Apple,24900,26900,21800,,NONE,8901234134623,85183000,active
+DEMO-018,boAt Airdopes 141,Black,boAt boAt Airdopes 141,Audio,boAt,1299,4490,850,,NONE,8901234142542,85183000,active
+DEMO-019,Sony WH-1000XM5,Black,Sony Sony WH-1000XM5,Audio,Sony,29990,34990,25500,,NONE,8901234150461,85183000,active
+DEMO-020,JBL Flip 6,Blue,JBL JBL Flip 6,Audio,JBL,9999,13999,7800,,NONE,8901234158380,85183000,active
+DEMO-021,Realme Buds T300,White,Realme Realme Buds T300,Audio,Realme,2299,2999,1600,,NONE,8901234166299,85183000,active
+DEMO-022,Anker 20W USB-C Charger,,Anker Anker 20W USB-C Charger,Accessories,Anker,1499,1999,950,,NONE,8901234174218,85044030,active
+DEMO-023,Apple MagSafe Charger,,Apple Apple MagSafe Charger,Accessories,Apple,3900,4500,3200,,NONE,8901234182137,85044030,active
+DEMO-024,Samsung 45W Adapter,,Samsung Samsung 45W Adapter,Accessories,Samsung,2499,2999,1800,,NONE,8901234190056,85044030,active
+DEMO-025,Ambrane 10000mAh Power Bank,Black,Ambrane Ambrane 10000mAh Power Bank,Accessories,Ambrane,999,1999,620,,NONE,8901234197975,85044030,active
+DEMO-026,Mi 20000mAh Power Bank,Black,Xiaomi Mi 20000mAh Power Bank,Accessories,Xiaomi,1999,2999,1400,,NONE,8901234205894,85044030,active
+DEMO-027,USB-C to Lightning Cable 1m,,Apple USB-C to Lightning Cable 1m,Accessories,Apple,1900,1999,1400,,NONE,8901234213813,85044030,active
+DEMO-028,Braided Type-C Cable 1.5m,Grey,Ambrane Braided Type-C Cable 1.5m,Accessories,Ambrane,399,799,210,,NONE,8901234221732,85044030,active
+DEMO-029,Tempered Glass iPhone 15,,Spigen Tempered Glass iPhone 15,Accessories,Spigen,499,999,180,,NONE,8901234229651,85044030,active
+DEMO-030,Silicone Case Galaxy S24,Black,Samsung Silicone Case Galaxy S24,Accessories,Samsung,1299,1999,700,,NONE,8901234237570,85044030,active
+DEMO-031,Logitech M331 Silent Mouse,Black,Logitech Logitech M331 Silent Mouse,Computer Accessories,Logitech,1295,1695,900,,NONE,8901234245489,,active
+DEMO-032,Logitech K380 Keyboard,Grey,Logitech Logitech K380 Keyboard,Computer Accessories,Logitech,2995,3995,2200,,NONE,8901234253408,,active
+DEMO-033,HP USB Wired Mouse,,HP HP USB Wired Mouse,Computer Accessories,HP,399,599,250,,NONE,8901234261327,,active
+DEMO-034,Laptop Sleeve 15.6in,Black,Wildcraft Laptop Sleeve 15.6in,Computer Accessories,Wildcraft,899,1499,520,,NONE,8901234269246,,active
+DEMO-035,USB Hub 4-Port,,Zebronics USB Hub 4-Port,Computer Accessories,Zebronics,599,999,360,,NONE,8901234277165,,active
+DEMO-036,SanDisk 128GB Pen Drive,128GB,SanDisk SanDisk 128GB Pen Drive,Storage,SanDisk,999,1699,640,,NONE,8901234285084,,active
+DEMO-037,SanDisk 1TB Portable SSD,1TB,SanDisk SanDisk 1TB Portable SSD,Storage,SanDisk,8999,12999,7000,,NONE,8901234293003,,active
+DEMO-038,WD 2TB External HDD,2TB,Western Digital WD 2TB External HDD,Storage,Western Digital,5799,7499,4700,,NONE,8901234300922,,active
+DEMO-039,Samsung EVO 256GB microSD,256GB,Samsung Samsung EVO 256GB microSD,Storage,Samsung,1999,3499,1350,,NONE,8901234308841,,active
+DEMO-040,TP-Link Archer C6 Router,,TP-Link TP-Link Archer C6 Router,Networking,TP-Link,2499,3499,1750,,NONE,8901234316760,,active
+DEMO-041,TP-Link TL-WN725N Wi-Fi Adapter,,TP-Link TP-Link TL-WN725N Wi-Fi Adapter,Networking,TP-Link,499,799,300,,NONE,8901234324679,,active
+DEMO-042,D-Link 8-Port Switch,,D-Link D-Link 8-Port Switch,Networking,D-Link,1099,1799,750,,NONE,8901234332598,,active
+DEMO-043,LG 24in Full HD Monitor,24in,LG LG 24in Full HD Monitor,Monitors,LG,9499,12999,7900,,SERIAL,8901234340517,,active
+DEMO-044,Dell 27in QHD Monitor,27in,Dell Dell 27in QHD Monitor,Monitors,Dell,18999,24999,15500,,SERIAL,8901234348436,,active
+DEMO-045,Samsung 32in Smart Monitor,32in,Samsung Samsung 32in Smart Monitor,Monitors,Samsung,21999,28999,18200,,SERIAL,8901234356355,,active
+DEMO-046,Canon PIXMA G3000 Printer,,Canon Canon PIXMA G3000 Printer,Printers,Canon,14999,17999,12300,,SERIAL,8901234364274,,active
+DEMO-047,HP Ink Tank 315,,HP HP Ink Tank 315,Printers,HP,11999,14999,9800,,SERIAL,8901234372193,,active
+DEMO-048,Mi Smart Speaker,,Xiaomi Mi Smart Speaker,Smart Home,Xiaomi,3999,4999,3000,,NONE,8901234380112,,active
+DEMO-049,Echo Dot 5th Gen,Charcoal,Amazon Echo Dot 5th Gen,Smart Home,Amazon,4499,6499,3500,,NONE,8901234388031,,active
+DEMO-050,Wipro 9W Smart Bulb,Warm White,Wipro Wipro 9W Smart Bulb,Smart Home,Wipro,599,1099,380,,NONE,8901234395950,,active

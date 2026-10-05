@@ -10,6 +10,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
+import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveBranch } from "@/lib/branch";
 import { CHANNELS, channelFromSlug, formatMoney, qs, useErpQuery, type Order } from "@/lib/erp";
@@ -43,7 +44,7 @@ export default function ChannelPage() {
 
   return (
     <PortalShell tenant={tenant} active={`channel-${slug}`}>
-      <PageHeader icon={<Icon size={20} />} title={`${info.label} sales`} description={info.blurb} />
+      <PageHeader icon={<Icon size={20} />} title={`${info.label} sales`} description={info.blurb} actions={<Button href={`/portal/orders/new?channel=${channel}`}>New order</Button>} />
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
         <StatTile label="Orders" value={summary.count} deltaPct={null} hint="excluding cancelled" icon={<ShoppingCart size={22} />} />
         <StatTile label="Revenue" value={formatMoney(summary.revenue, tenant?.currency)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<Icon size={22} />} />

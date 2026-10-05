@@ -146,6 +146,17 @@ export async function erp<T = unknown>(path: string, method: "GET" | "POST" | "P
   return { data: result.data as T, error: null, unauthorized: false };
 }
 
+/** A multipart file upload (the browser sets the boundary header itself). */
+export async function erpUpload<T = unknown>(path: string, file: File): Promise<ApiResult<T>> {
+  const form = new FormData();
+  form.append("file", file);
+  const result = await staffFetch(path, { method: "POST", body: form });
+  if (!result.ok) {
+    return { data: null, error: result.unauthorized ? "Session expired — please sign in again." : result.error, unauthorized: result.unauthorized };
+  }
+  return { data: result.data as T, error: null, unauthorized: false };
+}
+
 /** Load-on-mount (and on reload / path change) GET. Redirects to sign-in if the session has ended. */
 export function useErpQuery<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
