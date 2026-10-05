@@ -113,6 +113,7 @@ export default function BranchesPage() {
 type Hour = { weekday: number; opens_at: string; closes_at: string; channel: string | null };
 type Area = { pincode: string; delivery_fee_minor: number | null };
 type StaffRow = { user_id: string; name: string; email: string; status: string; role_name: string; scope: "all" | "branch" };
+const areasToText = (areas: Area[]) => areas.map((a) => (a.delivery_fee_minor === null ? a.pincode : `${a.pincode}, ${fromMinor(a.delivery_fee_minor)}`)).join("\n");
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function BranchDetail({ branch, canWrite, currency, onClose }: { branch: Branch; canWrite: boolean; currency: string; onClose: () => void }) {
@@ -122,23 +123,28 @@ function BranchDetail({ branch, canWrite, currency, onClose }: { branch: Branch;
   const [hours, setHours] = useState<Hour[] | null>(null);        // null = not edited yet: show what the server has
   const [pins, setPins] = useState<string | null>(null);
   const [slot, setSlot] = useState({ weekday: "1", opens_at: "09:00", closes_at: "18:00" });
+  const [dirtyHours, setDirtyHours] = useState(false);
+  const [dirtyPins, setDirtyPins] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const shownHours = hours ?? schedule.data?.hours ?? [];
-  const shownPins = pins ?? (schedule.data?.areas ?? []).map((a) => (a.delivery_fee_minor === null ? a.pincode : `${a.pincode}, ${fromMinor(a.delivery_fee_minor)}`)).join("\n");
+  const shownPins = pins ?? areasToText(schedule.data?.areas ?? []);
+  const loadingSchedule = schedule.loading && !schedule.data;
 
   function addSlot() {
     if (slot.opens_at >= slot.closes_at) return toast.error("Closing time must be after opening time");
+    setDirtyHours(true);
     setHours([...shownHours, { weekday: Number(slot.weekday), opens_at: slot.opens_at, closes_at: slot.closes_at, channel: null }].sort((a, b) => a.weekday - b.weekday || a.opens_at.localeCompare(b.opens_at)));
   }
 
   async function saveHours() {
     setBusy(true);
-    const res = await erp(`/api/v1/branches/${branch.id}/hours`, "PUT", { hours: shownHours });
+    const res = await erp<Hour[]>(`/api/v1/branches/${branch.id}/hours`, "PUT", { hours: shownHours });
     setBusy(false);
     if (res.error) return toast.error("Couldn't save the hours", res.error);
     toast.success("Opening hours saved");
-    setHours(null);
+    setHours(res.data ?? shownHours);          // keep showing what was saved; don't fall back to the stale copy while reloading
+    setDirtyHours(false);
     schedule.reload();
   }
 
@@ -151,11 +157,12 @@ function BranchDetail({ branch, canWrite, currency, onClose }: { branch: Branch;
       areas.push({ pincode, delivery_fee_minor: minor });
     }
     setBusy(true);
-    const res = await erp(`/api/v1/branches/${branch.id}/serviceable-areas`, "PUT", { areas });
+    const res = await erp<Area[]>(`/api/v1/branches/${branch.id}/serviceable-areas`, "PUT", { areas });
     setBusy(false);
     if (res.error) return toast.error("Couldn't save the pincodes", res.error);
     toast.success("Serviceable pincodes saved");
-    setPins(null);
+    setPins(areasToText(res.data ?? areas));
+    setDirtyPins(false);
     schedule.reload();
   }
 
@@ -168,7 +175,7 @@ function BranchDetail({ branch, canWrite, currency, onClose }: { branch: Branch;
         <ul className="mb-space-3 divide-y divide-line">{shownHours.map((h, i) => (
           <li key={`${h.weekday}-${h.opens_at}-${i}`} className="flex items-center justify-between py-space-2 text-[14px]">
             <span><strong className="text-ink-900">{DAYS[h.weekday]}</strong> {h.opens_at} – {h.closes_at}{h.channel && <span className="text-ink-400"> · {humanize(h.channel)} only</span>}</span>
-            {canWrite && <button type="button" className="text-[13px] font-semibold text-error" onClick={() => setHours(shownHours.filter((_, j) => j !== i))}>Remove</button>}
+            {canWrite && <button type="button" className="text-[13px] font-semibold text-error" onClick={() => { setDirtyHours(true); setHours(shownHours.filter((_, j) => j !== i)); }}>Remove</button>}
           </li>))}
         </ul>
         {canWrite && (<>
@@ -178,14 +185,14 @@ function BranchDetail({ branch, canWrite, currency, onClose }: { branch: Branch;
             <Input aria-label="Closes at" type="time" value={slot.closes_at} onChange={(e) => setSlot({ ...slot, closes_at: e.target.value })} className="w-32" />
             <Button variant="secondary" onClick={addSlot}>Add</Button>
           </div>
-          <Button disabled={busy || hours === null} onClick={saveHours}>Save hours</Button>
+          <Button disabled={busy || !dirtyHours} onClick={saveHours}>Save hours</Button>
         </>)}
       </>)}
       {tab === "areas" && (<>
         <Field label="Pincodes this branch delivers to" htmlFor="b_pins" hint={`One per line. Add a delivery fee after a comma if it differs, e.g. “560001, 49” (${currency}). Online orders to a listed pincode are fulfilled from this branch first when the ordering branch can't supply them.`}>
-          <Textarea id="b_pins" rows={8} disabled={!canWrite} value={shownPins} onChange={(e) => setPins(e.target.value)} />
+          <Textarea id="b_pins" rows={8} disabled={!canWrite || loadingSchedule} placeholder={loadingSchedule ? "Loading…" : "560001\n560002, 49"} value={shownPins} onChange={(e) => { setDirtyPins(true); setPins(e.target.value); }} />
         </Field>
-        {canWrite && <Button disabled={busy || pins === null} onClick={savePins}>Save pincodes</Button>}
+        {canWrite && <Button disabled={busy || !dirtyPins} onClick={savePins}>Save pincodes</Button>}
       </>)}
       {tab === "staff" && (<>
         {staff.error && <p className="text-[13px] text-error">{staff.error}</p>}
