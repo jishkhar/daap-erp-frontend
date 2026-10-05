@@ -1,0 +1,195 @@
+"use client";
+
+import {
+  BarChart3,
+  CalendarDays,
+  CalendarOff,
+  Clock,
+  Globe,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  MessageCircle,
+  MessageSquareText,
+  Banknote, Recycle,
+  Package,
+  Truck,
+  Settings,
+  ShieldCheck,
+  ShoppingCart,
+  Store,
+  Tag,
+  TrendingUp,
+  UserCheck,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { LogoMark } from "@/components/brand/Logo";
+import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
+import { cn } from "@/lib/cn";
+import { logoutStaff, hasPermission, useStaffSession } from "@/lib/staffAuth";
+import type { PortalTenant } from "@/lib/portalAuth";
+
+type NavGroup = "Main" | "Sales Channels" | "Back Office" | "Workforce" | "Admin";
+
+type NavItem = {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  href: string;
+  /** Permission key (lib/staffAuth.ts PAGE_MODULE) deciding whether the item is shown. */
+  pageKey: string;
+  group: NavGroup;
+  /** Listed but not usable yet. */
+  disabled?: boolean;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Main" },
+  { key: "orders", label: "Orders", icon: ShoppingCart, href: "/portal/orders", pageKey: "orders", group: "Main" },
+  { key: "products", label: "Products", icon: Package, href: "/portal/products", pageKey: "products", group: "Main" },
+  { key: "customers", label: "Customers", icon: Users, href: "/portal/customers", pageKey: "customers", group: "Main" },
+  { key: "whatsapp-inbox", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/whatsapp-inbox", pageKey: "whatsapp", group: "Main" },
+  { key: "whatsapp-automation", label: "WhatsApp Automation", icon: Zap, href: "/portal/whatsapp-automation", pageKey: "whatsapp", group: "Main" },
+  { key: "discounts", label: "Discounts", icon: Tag, href: "/portal/discounts", pageKey: "discounts", group: "Main" },
+  { key: "analytics", label: "Analytics / Reports", icon: BarChart3, href: "/portal/analytics", pageKey: "reports", group: "Main" },
+  { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Main" },
+  { key: "growth", label: "Growth", icon: TrendingUp, href: "/portal/growth", pageKey: "dashboard", group: "Main", disabled: true },
+
+  { key: "channel-online", label: "Online", icon: Globe, href: "/portal/channels/online", pageKey: "orders", group: "Sales Channels" },
+  { key: "channel-pos", label: "POS", icon: Store, href: "/portal/channels/pos", pageKey: "orders", group: "Sales Channels" },
+  { key: "channel-whatsapp", label: "WhatsApp", icon: WhatsAppIcon, href: "/portal/channels/whatsapp", pageKey: "orders", group: "Sales Channels" },
+
+  { key: "procurement", label: "Procurement", icon: Truck, href: "/portal/procurement", pageKey: "procurement", group: "Back Office" },
+  { key: "recommerce", label: "ReCommerce", icon: Recycle, href: "/portal/recommerce", pageKey: "recommerce", group: "Back Office" },
+  { key: "finance", label: "Finance", icon: Banknote, href: "/portal/finance", pageKey: "finance", group: "Back Office" },
+
+  { key: "my-attendance", label: "Attendance", icon: Clock, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
+  { key: "check-in-out", label: "Check-in / Check-out", icon: LogIn, href: "/portal/check-in-out", pageKey: "check_in_out", group: "Workforce" },
+  { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
+  { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
+  { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
+
+  { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
+  { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "channels", group: "Admin" },
+  { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
+  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },
+];
+
+type Props = {
+  tenant: PortalTenant | null;
+  active: string;
+  /** Mobile drawer state: off-canvas below the `lg` breakpoint (PortalShell owns the toggle). */
+  open?: boolean;
+  onClose?: () => void;
+};
+
+export function PortalSidebar({ tenant, active, open = false, onClose }: Props) {
+  const router = useRouter();
+  const session = useStaffSession();
+
+  async function handleLogout() {
+    await logoutStaff();
+    router.push("/portal/login");
+  }
+
+  // Nothing until the session has loaded (before it, hasPermission fails open and would flash items the person can't use).
+  const visible = session ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")) : [];
+
+  return (
+    <>
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 lg:hidden",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
+      />
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-brand-700 py-space-4 text-white transition-transform duration-200 ease-out",
+          "lg:static lg:z-auto lg:w-64 lg:max-w-none lg:translate-x-0",
+          open && "translate-x-0",
+        )}
+      >
+        <div className="mb-space-4 flex items-center gap-space-3 px-space-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white">
+            <LogoMark size={28} />
+          </div>
+          <div className="min-w-0 leading-tight">
+            <span className="block truncate text-[15px] font-bold">{tenant?.name || "ERP"}</span>
+            <span className="block text-[11.5px] text-white/60">ERP</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+        <div className="mx-space-4 mb-space-2 border-t border-white/10" />
+
+        <nav className="scrollbar-dark flex-1 overflow-y-auto px-space-3" aria-label="Main navigation">
+          {visible.map((item, index) => {
+            const { key, label, icon: Icon, href, group, disabled } = item;
+            const isActive = key === active;
+            const startsGroup = index === 0 || visible[index - 1].group !== group;
+            return (
+              <div key={key}>
+                {startsGroup && (
+                  <p className={cn("px-space-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-white/50 uppercase", index === 0 ? "pt-space-2" : "pt-space-3")}>
+                    {group}
+                  </p>
+                )}
+                {disabled ? (
+                  <span
+                    aria-disabled="true"
+                    title="Coming soon"
+                    className="flex w-full cursor-not-allowed items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] font-medium text-white/40 select-none"
+                  >
+                    <Icon size={18} strokeWidth={2} className="shrink-0" />
+                    {label}
+                    <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/60 uppercase">Soon</span>
+                  </span>
+                ) : (
+                  <Link
+                    href={href}
+                    onClick={onClose}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
+                      isActive ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]" : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
+                    )}
+                  >
+                    <Icon size={18} strokeWidth={2} className="shrink-0" />
+                    {label}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="mx-space-4 mt-space-2 border-t border-white/10" />
+        <div className="px-space-3 pt-space-2">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] font-medium text-white/80 transition-colors duration-150 hover:bg-white/[0.08] hover:text-white"
+          >
+            <LogOut size={18} strokeWidth={2} className="shrink-0" />
+            Log out
+          </button>
+          <p className="px-space-3 pt-space-2 text-[11.5px] leading-snug text-white/55">One company. Many branches. One source of truth.</p>
+        </div>
+      </aside>
+    </>
+  );
+}
