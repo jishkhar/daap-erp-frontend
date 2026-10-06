@@ -106,10 +106,10 @@ export async function refreshStaffSession(): Promise<void> {
   }
 }
 
-/** Sign in with tenant code + email + password. Returns an error message, or null on success. */
-export async function loginStaff(tenantCode: string, email: string, password: string): Promise<string | null> {
+/** Sign in with email + password (the server finds the workspace). Returns an error message, or null on success. */
+export async function loginStaff(email: string, password: string): Promise<string | null> {
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, { tenant_code: tenantCode.trim(), email: email.trim(), password });
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, { email: email.trim(), password });
     const tokens = res.data as TokenResponse;
     const session = await loadSession(tokens.access_token);
     saveStaffSession(tokens.access_token, tokens.refresh_token, session);
@@ -120,13 +120,63 @@ export async function loginStaff(tenantCode: string, email: string, password: st
   }
 }
 
-/** Sign in with a Google ID token (from Google Identity Services) for an existing user of the workspace. */
-export async function loginStaffWithGoogle(tenantCode: string, idToken: string): Promise<string | null> {
+const SIGNUP_KEY = "erp_signup";
+
+/** What Google sign-in found: an existing account (session saved), or a new email that may set up a business. */
+export type GoogleOutcome = { kind: "signed_in" } | { kind: "signup" } | { kind: "error"; message: string };
+export type PendingSignup = { token: string; email: string; name: string };
+
+/** The Google-verified identity waiting to set up a business (kept for this tab only). */
+export function getPendingSignup(): PendingSignup | null {
+  if (typeof window === "undefined") return null;
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/google`, { tenant_code: tenantCode.trim(), id_token: idToken });
-    const tokens = res.data as TokenResponse;
-    const session = await loadSession(tokens.access_token);
-    saveStaffSession(tokens.access_token, tokens.refresh_token, session);
+    const raw = sessionStorage.getItem(SIGNUP_KEY);
+    return raw ? (JSON.parse(raw) as PendingSignup) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingSignup() {
+  try { sessionStorage.removeItem(SIGNUP_KEY); } catch { /* storage unavailable */ }
+}
+
+async function startSession(tokens: TokenResponse) {
+  const session = await loadSession(tokens.access_token);
+  saveStaffSession(tokens.access_token, tokens.refresh_token, session);
+}
+
+/** Sign in with a Google ID token (from Google Identity Services). An existing user gets a session; a new email gets a
+ * short-lived sign-up pass and goes on to /onboarding to set up their business. */
+export async function loginStaffWithGoogle(idToken: string): Promise<GoogleOutcome> {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/google`, { id_token: idToken });
+    if (res.data.status === "signup_required") {
+      sessionStorage.setItem(SIGNUP_KEY, JSON.stringify({ token: res.data.signup_token, email: res.data.email, name: res.data.name }));
+      return { kind: "signup" };
+    }
+    await startSession(res.data as TokenResponse);
+    return { kind: "signed_in" };
+  } catch (err) {
+    if (isAxiosError(err) && err.response) return { kind: "error", message: errorMessage(err.response.data) };
+    return { kind: "error", message: "Couldn't reach the server. Please try again." };
+  }
+}
+
+export type SignupInput = {
+  business_name: string;
+  legal_name?: string;
+  first_branch: { branch_name: string; address_line?: string; city?: string; state?: string; pincode?: string };
+};
+
+/** Creates the business (+ first branch + admin) for the pending Google identity and signs them in. Null on success. */
+export async function signupWithGoogle(input: SignupInput): Promise<string | null> {
+  const pending = getPendingSignup();
+  if (!pending) return "Your Google sign-in has expired. Please start again.";
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/signup`, { signup_token: pending.token, ...input });
+    await startSession(res.data as TokenResponse);
+    clearPendingSignup();
     return null;
   } catch (err) {
     if (isAxiosError(err) && err.response) return errorMessage(err.response.data);

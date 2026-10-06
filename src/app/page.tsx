@@ -60,7 +60,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-wrap gap-space-3">
-                <Button href="/portal/login" variant="primary" size="lg">Sign in to your ERP</Button>
+                <Button href="/auth" variant="primary" size="lg">Set up your business</Button>
                 <Button href={DEMO_MAIL} variant="secondary" size="lg">Request a product demo</Button>
               </div>
             </div>
@@ -86,6 +86,7 @@ export default function HomePage() {
               <div>
                 <p className="text-eyebrow mb-space-2">Product</p>
                 <ul className="space-y-space-2 text-[13.5px] text-ink-600">
+                  <li><Link href="/auth" className="hover:text-brand-600 hover:underline">Set up your business</Link></li>
                   <li><Link href="/portal/login" className="hover:text-brand-600 hover:underline">Sign in</Link></li>
                   <li><a href={DEMO_MAIL} className="hover:text-brand-600 hover:underline">Request a demo</a></li>
                 </ul>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
@@ -14,7 +15,6 @@ import { loginStaff, loginStaffWithGoogle } from "@/lib/staffAuth";
 
 export default function PortalLoginPage() {
   const router = useRouter();
-  const [tenantCode, setTenantCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,20 +25,19 @@ export default function PortalLoginPage() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const failure = await loginStaff(tenantCode, email, password);
+    const failure = await loginStaff(email, password);
     setSubmitting(false);
     if (failure) return setError(failure);
     router.push("/portal/dashboard");
   }
 
   async function handleGoogle(idToken: string) {
-    if (!tenantCode.trim()) return setError("Enter your workspace first, then continue with Google.");
     setSubmitting(true);
     setError(null);
-    const failure = await loginStaffWithGoogle(tenantCode, idToken);
+    const outcome = await loginStaffWithGoogle(idToken);
     setSubmitting(false);
-    if (failure) return setError(failure);
-    router.push("/portal/dashboard");
+    if (outcome.kind === "error") return setError(outcome.message);
+    router.push(outcome.kind === "signup" ? "/onboarding" : "/portal/dashboard");
   }
 
   return (
@@ -46,13 +45,11 @@ export default function PortalLoginPage() {
       <Card className="w-full max-w-sm p-space-6">
         <Logo className="mb-space-5" />
         <h1 className="text-display mb-space-1 !text-[22px]">Sign in</h1>
-        <p className="text-body mb-space-5">Use your workspace and your individual ERP login.</p>
+        <p className="text-body mb-space-5">Use your individual ERP login.</p>
+        <GoogleSignInButton onCredential={handleGoogle} width={336} />
         <form onSubmit={handleSubmit}>
-          <Field label="Workspace" htmlFor="tenant_code" hint="Looks like acme-stores — your administrator can tell you.">
-            <Input id="tenant_code" autoFocus autoCapitalize="none" value={tenantCode} onChange={(e) => setTenantCode(e.target.value)} />
-          </Field>
           <Field label="Email" htmlFor="email">
-            <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="email" type="email" autoFocus autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <Field label="Password" htmlFor="password" error={error || undefined}>
             <div className="relative">
@@ -68,13 +65,13 @@ export default function PortalLoginPage() {
               </button>
             </div>
           </Field>
-          <Button type="submit" disabled={submitting || !tenantCode || !email || !password} className="mt-space-2 w-full" size="lg">
+          <Button type="submit" disabled={submitting || !email || !password} className="mt-space-2 w-full" size="lg">
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
-        <GoogleSignInButton onCredential={handleGoogle} />
         <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
-          Accounts are created by your company&apos;s administrator.
+          Don&apos;t have an account yet?{" "}
+          <Link href="/auth" className="font-semibold text-brand-600 hover:underline">Set one up</Link>
         </p>
       </Card>
     </div>
