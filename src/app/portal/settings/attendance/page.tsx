@@ -52,7 +52,7 @@ function SettingsForm({ initial, onSave }: { initial: AttendanceSettings; onSave
   }
 
   return (
-    <form onSubmit={submit} aria-label="Attendance settings" className="grid grid-cols-1 gap-space-4 lg:grid-cols-2">
+    <form onSubmit={submit} aria-label="Attendance settings" className="flex flex-col gap-space-4">
       <Card className="p-space-5">
         <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Shift and lateness</h2>
         <p className="mb-space-4 text-[13px] text-ink-600">The default shift for anyone without their own pattern (set per person on the Staff page).</p>

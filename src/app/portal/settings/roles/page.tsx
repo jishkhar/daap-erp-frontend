@@ -35,9 +35,9 @@ export default function RolesPage() {
     <PortalShell tenant={tenant} active="roles">
       <PageHeader icon={<ShieldCheck size={20} />} title="Roles & Permissions" description="What each role can do. A role applies to one branch or to all of them, depending on how it is granted." />
       {roles.error && <p className="mb-space-3 text-[13px] font-medium text-error">{roles.error}</p>}
-      <div className="mb-space-5 grid gap-space-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mb-space-4 flex flex-col gap-space-4">
         {(roles.data ?? []).map((r) => (
-          <Card key={r.id} className="p-space-4"><p className="font-bold text-ink-900">{r.name}</p><p className="mt-1 text-[13px] text-ink-600">{r.description ?? roleDescription(r.code)}</p><p className="mt-space-2 text-[12px] text-ink-400">{r.permissions.length} permissions</p></Card>
+          <Card key={r.id} className="p-space-4"><div className="flex items-center justify-between gap-space-3"><h2 className="text-[15px] font-bold text-ink-900">{r.name}</h2><span className="text-[12px] text-ink-400">{r.permissions.length} permissions</span></div><div className="mt-space-3 rounded-md border border-line px-space-3 py-space-3 text-[13px] text-ink-600">{r.description ?? roleDescription(r.code)}</div></Card>
         ))}
       </div>
       <Card className="overflow-x-auto p-space-2">
