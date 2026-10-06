@@ -6,6 +6,8 @@ export type PortalTenant = {
   code: string;
   name: string;
   currency: string;
+  /** true: the price shown is what the customer pays (GST carved out of it); false: GST is added on top. Absent on sessions saved before this existed. */
+  pricesIncludeTax?: boolean;
 };
 
 export function getPortalToken(): string | null {
