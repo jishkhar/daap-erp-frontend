@@ -3,17 +3,14 @@
 import { BarChart3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { FinancialReports } from "@/components/erp/reports/FinancialReports";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
 import { CHANNELS, CHANNEL_ORDER, formatMoney, qs, useErpQuery } from "@/lib/erp";
-import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 
 const COLORS: Record<string, string> = { online: "#7c5cd6", pos: "#4a5d45", whatsapp: "#25d366" };
 const RANGES = [{ days: 7, label: "Last 7 days" }, { days: 14, label: "Last 14 days" }, { days: 30, label: "Last 30 days" }, { days: 90, label: "Last 90 days" }];
@@ -30,11 +27,9 @@ type Overview = {
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** Sales analytics, computed by the server over the chosen period (cancelled orders excluded): revenue by day, channel and
- * branch, plus each branch's expenses and current stock. The finance-grade statements are on the Financial reports tab. */
+ * branch, plus each branch's expenses and current stock. */
 export default function AnalyticsPage() {
   const { tenant, ready } = usePortalGuard();
-  const session = useStaffSession();
-  const [view, setView] = useState<"sales" | "financial">("sales");
   const [days, setDays] = useState(14);
   const { branchId } = useActiveBranch();
   const range = useMemo(() => { const to = new Date(); const from = new Date(); from.setDate(to.getDate() - (days - 1)); return { date_from: isoDay(from), date_to: isoDay(to) }; }, [days]);
@@ -48,9 +43,8 @@ export default function AnalyticsPage() {
 
   return (
     <PortalShell tenant={tenant} active="analytics">
-      <PageHeader scopedToBranch icon={<BarChart3 size={20} />} title="Analytics / Reports" description="Live sales analytics, and the financial statements built from your books." />
-      {hasGrant(session, "finance:view") && <Tabs tabs={[{ key: "sales", label: "Sales" }, { key: "financial", label: "Financial reports" }]} value={view} onChange={setView} />}
-      {view === "financial" ? <FinancialReports currency={cur} /> : (<>
+      <PageHeader scopedToBranch icon={<BarChart3 size={20} />} title="Analytics" description="Live sales analytics: revenue by day, channel and branch." />
+      <>
       <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
         <p className="text-[13.5px] text-ink-600">{branchId ? "This branch" : "All your branches"} · {data.data ? `${data.data.date_from} to ${data.data.date_to}` : ""}</p>
         <Select value={String(days)} onChange={(e) => setDays(Number(e.target.value))} className="w-44" aria-label="Period">{RANGES.map((r) => <option key={r.days} value={r.days}>{r.label}</option>)}</Select>
@@ -102,7 +96,7 @@ export default function AnalyticsPage() {
           </tbody>
         </table>
       </Card>
-      </>)}
+      </>
     </PortalShell>
   );
 }

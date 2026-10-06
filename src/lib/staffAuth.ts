@@ -31,7 +31,7 @@ type MeResponse = {
   user_id: string;
   name: string;
   tenant_id: string;
-  tenant: { id: string; tenant_code: string; display_name: string; currency: string; timezone: string };
+  tenant: { id: string; tenant_code: string; display_name: string; currency: string; timezone: string; prices_include_tax?: boolean };
   roles: string[];
   permissions: PermissionMap;
   branches: SessionBranch[];
@@ -85,7 +85,7 @@ function errorMessage(data: unknown): string {
 
 async function loadSession(accessToken: string): Promise<StaffSession> {
   const me = (await axios.get<MeResponse>(`${API_BASE_URL}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })).data;
-  const tenant: PortalTenant = { id: me.tenant.id, code: me.tenant.tenant_code, name: me.tenant.display_name, currency: me.tenant.currency };
+  const tenant: PortalTenant = { id: me.tenant.id, code: me.tenant.tenant_code, name: me.tenant.display_name, currency: me.tenant.currency, pricesIncludeTax: me.tenant.prices_include_tax };
   return { id: me.user_id, name: me.name, roles: me.roles, tenant, permissions: me.permissions, branches: me.branches, modules: me.modules };
 }
 

@@ -24,16 +24,19 @@ import { toast } from "@/lib/toast";
 
 type Branch = {
   id: string; branch_code: string; branch_name: string; address_line: string | null; city: string | null; state: string | null; pincode: string | null;
-  fulfilment_enabled: boolean; fulfilment_priority: number; status: "active" | "inactive";
+  fulfilment_enabled: boolean; fulfilment_priority: number; status: "active" | "inactive"; gst_registration_id: string | null;
 };
-type Draft = { id?: string; branch_code: string; branch_name: string; address_line: string; city: string; state: string; pincode: string; fulfilment_enabled: boolean; fulfilment_priority: string; status: string };
-const EMPTY: Draft = { branch_code: "", branch_name: "", address_line: "", city: "", state: "", pincode: "", fulfilment_enabled: true, fulfilment_priority: "100", status: "active" };
+type GstRegistration = { id: string; gstin: string; state_name: string | null; state_code: string; is_active: boolean };
+type Draft = { id?: string; branch_code: string; branch_name: string; address_line: string; city: string; state: string; pincode: string; fulfilment_enabled: boolean; fulfilment_priority: string; status: string; gst_registration_id: string };
+const EMPTY: Draft = { branch_code: "", branch_name: "", address_line: "", city: "", state: "", pincode: "", fulfilment_enabled: true, fulfilment_priority: "100", status: "active", gst_registration_id: "" };
 
 export default function BranchesPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
   const branches = useErpQuery<Branch[]>("/api/v1/branches");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const canViewGst = hasPermission(session, "settings", "view");
+  const gst = useErpQuery<{ registrations: GstRegistration[] }>(canViewGst ? "/api/v1/tenant/gst-registrations" : null);
   const [busy, setBusy] = useState(false);
   const [detail, setDetail] = useState<Branch | null>(null);
   const [added, setAdded] = useState<Branch | null>(null);
@@ -45,7 +48,7 @@ export default function BranchesPage() {
     { header: "Online orders", cell: ({ row }) => (row.original.fulfilment_enabled ? `Fulfils (priority ${row.original.fulfilment_priority})` : <span className="text-ink-400">Doesn&apos;t fulfil</span>) },
     { header: "Status", cell: ({ row }) => <Badge tone={row.original.status === "active" ? "success" : "neutral"}>{row.original.status}</Badge> },
     { header: "", id: "actions", cell: ({ row }) => (
-      <div className="flex justify-end"><Button variant="ghost" aria-label={`Hours, pincodes and staff of ${row.original.branch_name}`} onClick={() => setDetail(row.original)}>Hours &amp; staff</Button>{canWrite && <Button variant="ghost" aria-label={`Edit ${row.original.branch_name}`} onClick={() => setDraft({ id: row.original.id, branch_code: row.original.branch_code, branch_name: row.original.branch_name, address_line: row.original.address_line ?? "", city: row.original.city ?? "", state: row.original.state ?? "", pincode: row.original.pincode ?? "", fulfilment_enabled: row.original.fulfilment_enabled, fulfilment_priority: String(row.original.fulfilment_priority), status: row.original.status })}><HugeiconsIcon icon={PencilEdit02Icon} size={15} /> Edit</Button>}</div>) },
+      <div className="flex justify-end"><Button variant="ghost" aria-label={`Hours, pincodes and staff of ${row.original.branch_name}`} onClick={() => setDetail(row.original)}>Hours &amp; staff</Button>{canWrite && <Button variant="ghost" aria-label={`Edit ${row.original.branch_name}`} onClick={() => setDraft({ id: row.original.id, branch_code: row.original.branch_code, branch_name: row.original.branch_name, address_line: row.original.address_line ?? "", city: row.original.city ?? "", state: row.original.state ?? "", pincode: row.original.pincode ?? "", fulfilment_enabled: row.original.fulfilment_enabled, fulfilment_priority: String(row.original.fulfilment_priority), status: row.original.status, gst_registration_id: row.original.gst_registration_id ?? "" })}><HugeiconsIcon icon={PencilEdit02Icon} size={15} /> Edit</Button>}</div>) },
   ], [canWrite]);
 
   if (!ready) return null;
@@ -60,8 +63,15 @@ export default function BranchesPage() {
     const res = draft.id
       ? await erp(`/api/v1/branches/${draft.id}`, "PATCH", { ...common, status: draft.status })
       : await erp("/api/v1/branches", "POST", { ...common, ...(draft.branch_code.trim() ? { branch_code: draft.branch_code.trim() } : {}) });
+    if (res.error) { setBusy(false); return toast.error("Couldn't save the branch", res.error); }
+    const saved = res.data as Branch | null;
+    const branchId = draft.id ?? saved?.id;
+    const before = draft.id ? (branches.data ?? []).find((b) => b.id === draft.id)?.gst_registration_id ?? "" : "";
+    if (canViewGst && canWrite && branchId && draft.gst_registration_id !== before) {
+      const link = await erp(`/api/v1/branches/${branchId}/gst-registration`, "PUT", { gst_registration_id: draft.gst_registration_id || null });
+      if (link.error) toast.error("Branch saved, but the GST registration wasn't set", link.error);
+    }
     setBusy(false);
-    if (res.error) return toast.error("Couldn't save the branch", res.error);
     toast.success(draft.id ? "Branch updated" : "Branch added");
     if (!draft.id && res.data) setAdded(res.data as Branch);
     setDraft(null);
@@ -101,6 +111,14 @@ export default function BranchesPage() {
             <Field label="Pincode" htmlFor="b_pin"><Input id="b_pin" inputMode="numeric" value={draft.pincode} onChange={(e) => set({ pincode: e.target.value })} /></Field>
             <Field label="Fulfilment priority" htmlFor="b_prio" hint="When a branch can't supply an online order, the next lowest number is tried."><Input id="b_prio" inputMode="numeric" value={draft.fulfilment_priority} onChange={(e) => set({ fulfilment_priority: e.target.value.replace(/\D/g, "") })} /></Field>
             <div className="mb-space-4 flex items-center gap-space-3 sm:col-span-2"><Switch checked={draft.fulfilment_enabled} onChange={() => set({ fulfilment_enabled: !draft.fulfilment_enabled })} aria-label="Fulfils online orders" /><span className="text-[14px] text-ink-900">Fulfils online and WhatsApp orders</span></div>
+            {canViewGst && (
+              <Field label="GST registration" htmlFor="b_gst" hint="The GSTIN this branch sells under; it appears on its invoices." className="sm:col-span-2">
+                <Select id="b_gst" value={draft.gst_registration_id} onChange={(e) => set({ gst_registration_id: e.target.value })}>
+                  <option value="">None</option>
+                  {(gst.data?.registrations ?? []).filter((r) => r.is_active || r.id === draft.gst_registration_id).map((r) => <option key={r.id} value={r.id}>{r.gstin} — {r.state_name ?? r.state_code}</option>)}
+                </Select>
+              </Field>
+            )}
             {draft.id && <Field label="Status" htmlFor="b_status" hint="A branch with open orders, or the only active branch, can't be deactivated."><Select id="b_status" value={draft.status} onChange={(e) => set({ status: e.target.value })}><option value="active">Active</option><option value="inactive">Inactive</option></Select></Field>}
           </div>
         )}

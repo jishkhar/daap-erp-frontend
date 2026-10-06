@@ -38,6 +38,14 @@ export function TaxInvoicesTab({ currency }: { currency: string }) {
         footer={<Button variant="secondary" onClick={() => window.print()}><Printer size={15} /> Print</Button>}>
         {open && (
           <div className="text-[13.5px]">
+            <div className="mb-space-3">
+              <p className="text-[12px] text-ink-400">Sold by</p>
+              {open.seller_gstin ? (<>
+                <p className="font-semibold text-ink-900">{open.seller_legal_name}</p>
+                {open.seller_address && <p className="whitespace-pre-line text-ink-600">{open.seller_address}</p>}
+                <p className="text-ink-600">GSTIN {open.seller_gstin}</p>
+              </>) : <p className="text-ink-400">Seller GSTIN not recorded — assign a GST registration to this branch under Settings → Taxes and duties.</p>}
+            </div>
             <div className="mb-space-3 grid grid-cols-2 gap-space-3">
               <div><p className="text-[12px] text-ink-400">Billed to</p><p className="font-semibold text-ink-900">{open.customer_name ?? "Walk-in customer"}</p>{open.customer_gstin && <p className="text-ink-600">GSTIN {open.customer_gstin}</p>}</div>
               <div className="text-right"><p className="text-[12px] text-ink-400">Place of supply</p><p className="font-medium">{open.place_of_supply ?? "—"} ({open.supply_type === "INTER" ? "inter-state" : "intra-state"})</p></div>

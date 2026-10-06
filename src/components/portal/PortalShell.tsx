@@ -4,6 +4,7 @@ import { CalendarDays, Menu } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalTenant } from "@/lib/portalAuth";
@@ -26,12 +27,13 @@ export function PortalShell({ tenant, active, children }: Props) {
   // The drawer is "open for the page it was opened on": navigating anywhere (a link tap, back/forward) closes it
   // without an effect.
   const [openOn, setOpenOn] = useState<string | null>(null);
+  const inSettings = pathname.startsWith("/portal/settings");
   const sidebarOpen = openOn === pathname;
   const setSidebarOpen = (open: boolean) => setOpenOn(open ? pathname : null);
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
-      <PortalSidebar tenant={tenant} active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {!inSettings && <PortalSidebar tenant={tenant} active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
@@ -39,7 +41,7 @@ export function PortalShell({ tenant, active, children }: Props) {
             type="button"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
-            className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden"
+            className={`-ml-space-2 h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden ${inSettings ? "hidden" : "flex"}`}
           >
             <Menu size={20} strokeWidth={2} />
           </button>
@@ -58,7 +60,13 @@ export function PortalShell({ tenant, active, children }: Props) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">{inSettings ? (
+            <div className="mx-auto flex max-w-[1100px] flex-col gap-space-4 lg:flex-row lg:items-start">
+              <SettingsNav />
+              <div className="min-w-0 flex-1">{children}</div>
+            </div>
+          ) : children}
+        </main>
       </div>
     </div>
   );

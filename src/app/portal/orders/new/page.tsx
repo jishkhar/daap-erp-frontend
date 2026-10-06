@@ -22,8 +22,18 @@ type ProductWithTax = Product & { tax_rate_bps?: number | null };
 
 const COUNTER_METHODS = [["cash", "Cash"], ["card", "Card"], ["upi", "UPI"]] as const;
 
-/** Same rule as the server: tax = round-half-up(line amount x rate) per line. The server recomputes everything; this is a preview. */
-const lineTax = (l: Line) => Math.floor((l.product.price_minor * l.quantity * ((l.product as ProductWithTax).tax_rate_bps ?? 0) + 5000) / 10000);
+/** Same rules as the server, per line, round-half-up. Exclusive prices: tax = amount x rate, added on top. Inclusive prices: the amount is what
+ * the customer pays and tax is carved out of it (amount - amount x 100 / (100 + rate)). The server recomputes everything; this is a preview. */
+type Bands = Record<string, { up_to_minor: number | null; rate_bps: number }[]>;
+const lineTax = (l: Line, inclusive: boolean, bands: Bands) => {
+  const code = (l.product as ProductWithTax).tax_code ?? "";
+  const band = [...(bands[code] ?? [])].sort((a, b) => (a.up_to_minor ?? Infinity) - (b.up_to_minor ?? Infinity)).find((b) => b.up_to_minor === null || l.product.price_minor <= b.up_to_minor);
+  const rate = band ? band.rate_bps : (l.product as ProductWithTax).tax_rate_bps ?? 0;
+  const amount = l.product.price_minor * l.quantity;
+  if (!inclusive) return Math.floor((amount * rate + 5000) / 10000);
+  const divisor = 10000 + rate;
+  return amount - Math.floor((amount * 10000 + Math.floor(divisor / 2)) / divisor);
+};
 
 function NewOrder() {
   const router = useRouter();
@@ -56,11 +66,14 @@ function NewOrder() {
   const stock = useErpQuery<StockRow[]>(branchId ? `/api/v1/inventory${qs({ branch_id: branchId, limit: 1000 })}` : null);
   const available = useMemo(() => new Map((stock.data ?? []).map((s) => [s.variant_id, s.available_qty])), [stock.data]);
 
+  const inclusive = tenant?.pricesIncludeTax ?? false;
+  const bandsQuery = useErpQuery<Bands>("/api/v1/tax-rule-bands");
+  const bands = useMemo<Bands>(() => bandsQuery.data ?? {}, [bandsQuery.data]);
   const totals = useMemo(() => {
-    const subtotal = lines.reduce((s, l) => s + l.product.price_minor * l.quantity, 0);
-    const tax = lines.reduce((s, l) => s + lineTax(l), 0);
-    return { subtotal, tax, total: subtotal + tax };
-  }, [lines]);
+    const amount = lines.reduce((s, l) => s + l.product.price_minor * l.quantity, 0);
+    const tax = lines.reduce((s, l) => s + lineTax(l, inclusive, bands), 0);
+    return inclusive ? { subtotal: amount - tax, tax, total: amount } : { subtotal: amount, tax, total: amount + tax };
+  }, [lines, inclusive, bands]);
 
   function add(product: Product) {
     setLines((ls) => (ls.some((l) => l.product.id === product.id) ? ls.map((l) => (l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l)) : [...ls, { product, quantity: 1, serials: "" }]));
@@ -182,6 +195,7 @@ function NewOrder() {
             <div className="flex justify-between"><span className="text-ink-600">Subtotal</span><span>{formatMoney(totals.subtotal, cur)}</span></div>
             <div className="flex justify-between"><span className="text-ink-600">Tax</span><span>{formatMoney(totals.tax, cur)}</span></div>
             <div className="flex justify-between text-[16px] font-bold text-ink-900"><span>Total</span><span>{formatMoney(totals.total, cur)}</span></div>
+            {inclusive && <p className="text-[12px] text-ink-400">Prices include GST; the subtotal is shown before tax.</p>}
           </div>
           {isPos ? (
             <div className="mb-space-3">

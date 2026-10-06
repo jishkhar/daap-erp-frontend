@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
+import { GstReturnReport } from "@/components/erp/reports/GstReturnReport";
 import { CHANNELS, formatMoney, humanize, monthRange, qs, useErpQuery, type Channel } from "@/lib/erp";
 
-type Sub = "pl" | "matrix" | "bs" | "gst" | "products" | "aging";
+type Sub = "pl" | "matrix" | "bs" | "gst" | "gstr1" | "products" | "aging";
 
 const th = "p-space-3 text-left text-[12px] tracking-wide text-ink-400 uppercase";
 const num = "p-space-3 text-right tabular-nums";
@@ -117,26 +118,46 @@ function BalanceSheet({ currency }: { currency: string }) {
 }
 
 // ----------------------------------------------------------------------------------------------- GST
-type Gst = { outward_taxable_minor: number; output_tax: { cgst: number; sgst: number; igst: number; total_minor: number }; by_rate: { rate_bps: number; doc_type: string; taxable_minor: number; tax_minor: number }[]; input_credit_minor: number; net_payable_minor: number };
+type Tax3 = { cgst: number; sgst: number; igst: number; total_minor: number };
+type Gst = {
+  outward_taxable_minor: number; output_tax: Tax3; input_credit: Tax3; by_rate: { rate_bps: number; doc_type: string; taxable_minor: number; tax_minor: number }[]; net_payable_minor: number;
+  by_registration: { registration_id: string | null; gstin: string | null; state_name: string | null; outward_taxable_minor: number; output_tax: Tax3; input_credit: Tax3; net_payable_minor: number }[];
+};
+type RegistrationOption = { id: string; gstin: string; state_name: string | null; state_code: string };
 
 function GstReport({ currency }: { currency: string }) {
   const range = monthRange();
   const [from, setFrom] = useState(range.from), [to, setTo] = useState(range.to);
-  const g = useErpQuery<Gst>(`/api/v1/finance/reports/gst${qs({ date_from: from, date_to: to })}`);
+  const [registration, setRegistration] = useState(""), [branch, setBranch] = useState("");
+  const regs = useErpQuery<{ registrations: RegistrationOption[] }>("/api/v1/tenant/gst-registrations");
+  const branches = useErpQuery<{ id: string; branch_code: string; branch_name: string }[]>("/api/v1/branches");
+  const g = useErpQuery<Gst>(`/api/v1/finance/reports/gst${qs({ date_from: from, date_to: to, registration_id: registration || null, branch_id: branch || null })}`);
   const m = (v: number) => formatMoney(v, currency);
   const d = g.data;
+  const line = (k: string, v: number) => <div key={k} className="flex justify-between py-1.5 text-[14px]"><span className="text-ink-600">{k}</span><span className="tabular-nums">{m(v)}</span></div>;
   return (
     <>
-      <DateRange from={from} to={to} onChange={(a, b) => { setFrom(a); setTo(b); }} />
+      <div className="flex flex-wrap items-end gap-space-3">
+        <DateRange from={from} to={to} onChange={(a, b) => { setFrom(a); setTo(b); }} />
+        <Field label="GST registration" htmlFor="r_reg" className="!mb-space-4"><Select id="r_reg" value={registration} onChange={(e) => setRegistration(e.target.value)} className="w-64"><option value="">All registrations</option>{(regs.data?.registrations ?? []).map((r) => <option key={r.id} value={r.id}>{r.gstin} — {r.state_name ?? r.state_code}</option>)}</Select></Field>
+        <Field label="Branch" htmlFor="r_branch" className="!mb-space-4"><Select id="r_branch" value={branch} onChange={(e) => setBranch(e.target.value)} className="w-52"><option value="">All branches</option>{(branches.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.branch_name}</option>)}</Select></Field>
+      </div>
       {g.error && <p className="mb-space-3 text-[13px] font-medium text-error">{g.error}</p>}
       {d && (
         <div className="grid gap-space-4 lg:grid-cols-2">
           <Card className="p-space-4"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">GST summary</h3>
-            {[["Taxable sales (net of credit notes)", d.outward_taxable_minor], ["CGST collected", d.output_tax.cgst], ["SGST collected", d.output_tax.sgst], ["IGST collected", d.output_tax.igst], ["Output tax", d.output_tax.total_minor], ["Input credit (purchases)", -d.input_credit_minor]].map(([k, v]) => <div key={k as string} className="flex justify-between py-1.5 text-[14px]"><span className="text-ink-600">{k}</span><span className="tabular-nums">{m(v as number)}</span></div>)}
+            {line("Taxable sales (net of credit notes)", d.outward_taxable_minor)}
+            {line("CGST collected", d.output_tax.cgst)}{line("SGST collected", d.output_tax.sgst)}{line("IGST collected", d.output_tax.igst)}
+            <div className="border-t border-line">{line("Output tax", d.output_tax.total_minor)}</div>
+            {line("Input credit: CGST", -d.input_credit.cgst)}{line("Input credit: SGST", -d.input_credit.sgst)}{line("Input credit: IGST", -d.input_credit.igst)}
             <div className="mt-space-2 flex justify-between border-t border-line pt-space-2 text-[16px] font-bold"><span>Net GST payable</span><span className="tabular-nums">{m(d.net_payable_minor)}</span></div></Card>
           <Card className="p-space-4"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">By tax rate</h3>
             <table className="w-full text-[14px]"><thead><tr><th className={`${th} !p-1`}>Rate</th><th className={`${th} !p-1`}>Document</th><th className={`${th} !p-1 text-right`}>Taxable</th><th className={`${th} !p-1 text-right`}>Tax</th></tr></thead>
               <tbody>{d.by_rate.map((r, i) => <tr key={i} className="border-t border-line"><td className="py-1.5">{r.rate_bps / 100}%</td><td>{r.doc_type === "INVOICE" ? "Invoices" : "Credit notes"}</td><td className="text-right tabular-nums">{m(r.taxable_minor)}</td><td className="text-right tabular-nums">{m(r.tax_minor)}</td></tr>)}{d.by_rate.length === 0 && <tr><td colSpan={4} className="py-3 text-center text-ink-400">No tax documents in this period.</td></tr>}</tbody></table></Card>
+          <Card className="p-space-4 lg:col-span-2"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">By GST registration</h3>
+            <p className="mb-space-2 text-[12.5px] text-ink-400">GST returns are filed per GSTIN, so each registration has its own payable. Input credit set off only within the same GSTIN.</p>
+            <div className="overflow-x-auto"><table className="w-full text-[14px]"><thead><tr><th className={`${th} !p-1`}>GSTIN</th><th className={`${th} !p-1 text-right`}>Taxable sales</th><th className={`${th} !p-1 text-right`}>CGST</th><th className={`${th} !p-1 text-right`}>SGST</th><th className={`${th} !p-1 text-right`}>IGST</th><th className={`${th} !p-1 text-right`}>Input credit</th><th className={`${th} !p-1 text-right`}>Net payable</th></tr></thead>
+              <tbody>{d.by_registration.map((r) => <tr key={r.registration_id ?? "none"} className="border-t border-line"><td className="py-1.5">{r.gstin ? <>{r.gstin}<span className="block text-[11.5px] text-ink-400">{r.state_name}</span></> : <span className="text-ink-400">Unassigned (no GSTIN on the document)</span>}</td><td className="text-right tabular-nums">{m(r.outward_taxable_minor)}</td><td className="text-right tabular-nums">{m(r.output_tax.cgst)}</td><td className="text-right tabular-nums">{m(r.output_tax.sgst)}</td><td className="text-right tabular-nums">{m(r.output_tax.igst)}</td><td className="text-right tabular-nums">{m(r.input_credit.total_minor)}</td><td className="text-right font-semibold tabular-nums">{m(r.net_payable_minor)}</td></tr>)}{d.by_registration.length === 0 && <tr><td colSpan={7} className="py-3 text-center text-ink-400">Nothing in this period.</td></tr>}</tbody></table></div></Card>
         </div>
       )}
     </>
@@ -199,12 +220,13 @@ export function FinancialReports({ currency }: { currency: string }) {
   const { branchId } = useActiveBranch();
   return (
     <>
-      {branchId && ["matrix", "gst", "products", "aging"].includes(sub) && <p className="mb-space-3 text-[12.5px] text-ink-400">This report always covers the whole company; the branch filter applies to Profit &amp; loss and the Balance sheet.</p>}
-      <Tabs<Sub> tabs={[{ key: "pl", label: "Profit & loss" }, { key: "matrix", label: "Branch × channel" }, { key: "bs", label: "Balance sheet" }, { key: "gst", label: "GST" }, { key: "products", label: "Product margin" }, { key: "aging", label: "Receivables & payables" }]} value={sub} onChange={setSub} />
+      {branchId && ["matrix", "products", "aging"].includes(sub) && <p className="mb-space-3 text-[12.5px] text-ink-400">This report always covers the whole company; the branch filter applies to Profit &amp; loss and the Balance sheet.</p>}
+      <Tabs<Sub> tabs={[{ key: "pl", label: "Profit & loss" }, { key: "matrix", label: "Branch × channel" }, { key: "bs", label: "Balance sheet" }, { key: "gst", label: "GST" }, { key: "gstr1", label: "GSTR-1 view" }, { key: "products", label: "Product margin" }, { key: "aging", label: "Receivables & payables" }]} value={sub} onChange={setSub} />
       {sub === "pl" && <ProfitAndLoss currency={currency} />}
       {sub === "matrix" && <SalesMatrix currency={currency} />}
       {sub === "bs" && <BalanceSheet currency={currency} />}
       {sub === "gst" && <GstReport currency={currency} />}
+      {sub === "gstr1" && <GstReturnReport currency={currency} />}
       {sub === "products" && <ProductReport currency={currency} />}
       {sub === "aging" && <AgingReports currency={currency} />}
     </>

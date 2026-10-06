@@ -8,15 +8,12 @@ import {
   Globe,
   LayoutDashboard,
   LogIn,
-  LogOut,
   MessageCircle,
   MessageSquareText,
   Banknote, Recycle,
   Package,
   Truck,
   Settings,
-  CreditCard,
-  ShieldCheck,
   ShoppingCart,
   Store,
   Tag,
@@ -29,11 +26,10 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowDataTransferHorizontalIcon, WarehouseIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { LogoMark } from "@/components/brand/Logo";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { cn } from "@/lib/cn";
-import { logoutStaff, hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import type { PortalTenant } from "@/lib/portalAuth";
 
 type NavGroup = "Main" | "Sales Channels" | "Back Office" | "Workforce" | "Admin";
@@ -63,7 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "whatsapp-inbox", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/whatsapp-inbox", pageKey: "whatsapp", group: "Main" },
   { key: "whatsapp-automation", label: "WhatsApp Automation", icon: Zap, href: "/portal/whatsapp-automation", pageKey: "whatsapp", group: "Main" },
   { key: "discounts", label: "Discounts", icon: Tag, href: "/portal/discounts", pageKey: "discounts", group: "Main" },
-  { key: "analytics", label: "Analytics / Reports", icon: BarChart3, href: "/portal/analytics", pageKey: "reports", group: "Main" },
+  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/portal/analytics", pageKey: "reports", group: "Main" },
   { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Main" },
   { key: "growth", label: "Growth", icon: TrendingUp, href: "/portal/growth", pageKey: "dashboard", group: "Main", disabled: true },
 
@@ -82,13 +78,11 @@ const NAV_ITEMS: NavItem[] = [
   { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
-
-  { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
-  { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "channels", group: "Admin" },
-  { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
-  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },
-  { key: "billing", label: "Plan & Billing", icon: CreditCard, href: "/portal/settings/billing", pageKey: "billing", group: "Admin" },
 ];
+
+/** Pinned at the bottom of the sidebar (where Log out used to be); Log out lives in the header's account menu. Everything else that was
+ * under "Admin" (storefront, team, roles, billing) is inside Settings now. */
+const SETTINGS_ITEM: NavItem = { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" };
 
 type Props = {
   tenant: PortalTenant | null;
@@ -104,16 +98,12 @@ function moduleOn(modules: Record<string, boolean> | undefined, itemKey: string)
 }
 
 export function PortalSidebar({ tenant, active, open = false, onClose }: Props) {
-  const router = useRouter();
   const session = useStaffSession();
 
-  async function handleLogout() {
-    await logoutStaff();
-    router.push("/portal/login");
-  }
-
   // Nothing until the session has loaded (before it, hasPermission fails open and would flash items the person can't use).
-  const visible = session ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view") && moduleOn(session.modules, item.key)) : [];
+  const allowed = (item: NavItem) => !!session && hasPermission(session, item.pageKey, "view") && moduleOn(session.modules, item.key);
+  const visible = NAV_ITEMS.filter(allowed);
+  const showSettings = allowed(SETTINGS_ITEM);
 
   return (
     <>
@@ -195,14 +185,20 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
 
         <div className="mx-space-4 mt-space-2 border-t border-white/10" />
         <div className="px-space-3 pt-space-2">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] font-medium text-white/80 transition-colors duration-150 hover:bg-white/[0.08] hover:text-white"
-          >
-            <LogOut size={18} strokeWidth={2} className="shrink-0" />
-            Log out
-          </button>
+          {showSettings && (
+            <Link
+              href={SETTINGS_ITEM.href}
+              onClick={onClose}
+              aria-current={active === "settings" ? "page" : undefined}
+              className={cn(
+                "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
+                active === "settings" ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]" : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white",
+              )}
+            >
+              <Settings size={18} strokeWidth={2} className="shrink-0" />
+              Settings
+            </Link>
+          )}
           <p className="px-space-3 pt-space-2 text-[11.5px] leading-snug text-white/55">One company. Many branches. One source of truth.</p>
         </div>
       </aside>
