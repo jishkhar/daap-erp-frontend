@@ -16,7 +16,7 @@ declare global {
 }
 
 /** Google's own "Sign in with Google" button. Renders nothing when NEXT_PUBLIC_GOOGLE_CLIENT_ID isn't set. */
-export function GoogleSignInButton({ onCredential, width = 320 }: { onCredential: (idToken: string) => void; width?: number }) {
+export function GoogleSignInButton({ onCredential, width = 320, divider = true }: { onCredential: (idToken: string) => void; width?: number; divider?: boolean }) {
   const holder = useRef<HTMLDivElement>(null);
   const callback = useRef(onCredential);
   const [ready, setReady] = useState(() => typeof window !== "undefined" && !!window.google);
@@ -35,12 +35,12 @@ export function GoogleSignInButton({ onCredential, width = 320 }: { onCredential
   return (
     <>
       <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onReady={() => setReady(true)} />
-      <div className="my-space-4 flex items-center gap-space-3 text-[12.5px] text-ink-400">
+      <div ref={holder} className="flex min-h-10 justify-center" />
+      {divider && <div className="my-space-4 flex items-center gap-space-3 text-[12.5px] text-ink-400">
         <span className="h-px flex-1 bg-line" />
         or
         <span className="h-px flex-1 bg-line" />
-      </div>
-      <div ref={holder} className="flex min-h-10 justify-center" />
+      </div>}
     </>
   );
 }
