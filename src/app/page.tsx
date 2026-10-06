@@ -1,61 +1,117 @@
-import { Globe, MessageCircle, Store } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkCircle02Icon, TaskDone01Icon, Tag01Icon } from "@hugeicons/core-free-icons";
 import { Logo } from "@/components/brand/Logo";
+import { PhoneMockup } from "@/components/marketing/PhoneMockup";
 import { Button } from "@/components/ui/Button";
 
-const CHANNELS = [
-  { icon: Globe, title: "Online", text: "Your website's orders land in the same system as everything else, reserving stock from the right branch." },
-  { icon: Store, title: "POS", text: "Bill at the counter with barcode and IMEI scanning, take payments and handle returns." },
-  { icon: MessageCircle, title: "WhatsApp", text: "Let customers browse, order and pay in a conversation, and keep every chat tied to their record." },
+const FEATURES = [
+  { title: "One source of truth", desc: "Orders, stock and customers in one system", icon: CheckmarkCircle02Icon },
+  { title: "Every channel", desc: "Online, POS and WhatsApp, branch-aware", icon: TaskDone01Icon },
+  { title: "Role-based access", desc: "Each manager sees only their branch", icon: Tag01Icon },
 ];
 
-const POINTS = [
-  { title: "Branch-aware inventory", text: "Stock per branch with reservations, transfers and an audit trail for every movement." },
-  { title: "One customer, every channel", text: "A single customer record across Online, POS and WhatsApp." },
-  { title: "Access by role and branch", text: "A Patna manager sees Patna. The owner sees everything." },
-];
+const DEMO_MAIL = "mailto:info@daaprimeprojects.com?subject=Product%20Demo%20Request";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-space-4 py-space-4">
-        <Logo />
-        <Button href="/portal/login" variant="secondary">Sign in</Button>
+    <>
+      <header className="flex flex-wrap items-center justify-between gap-space-3 px-space-4 py-space-4 md:px-space-7 lg:px-space-9">
+        <Link href="/" aria-label="ERP home"><Logo /></Link>
+        <Button href="/portal/login" variant="secondary" size="md">Sign in</Button>
       </header>
 
-      <main>
-        <section className="mx-auto max-w-4xl px-space-4 pt-space-8 pb-space-8 text-center">
-          <p className="mb-space-3 text-[12px] font-bold tracking-[0.12em] text-brand-600 uppercase">DAAP Commerce Cloud</p>
-          <h1 className="text-[40px] leading-[1.1] font-extrabold tracking-tight text-ink-900 sm:text-[52px]">One company. Many branches.<br />One source of truth.</h1>
-          <p className="mx-auto mt-space-4 max-w-2xl text-[17px] text-ink-600">
-            Run every branch and every sales channel — Online, POS and WhatsApp — on a single ERP for orders, inventory, customers and payments.
-          </p>
-          <div className="mt-space-6 flex justify-center"><Button href="/portal/login" size="lg">Sign in to your ERP</Button></div>
-        </section>
+      <main className="relative isolate overflow-hidden">
+        <Image src="/home-bg.svg" alt="" fill priority aria-hidden className="-z-10 object-cover object-right" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-br from-paper via-paper/75 to-paper/10 md:from-paper/95 md:via-paper/55 md:to-transparent"
+        />
 
-        <section className="mx-auto grid max-w-6xl gap-space-4 px-space-4 pb-space-8 md:grid-cols-3">
-          {CHANNELS.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="rounded-lg border border-line bg-card p-space-5 shadow-[var(--shadow-sm)]">
-              <span className="mb-space-3 flex h-11 w-11 items-center justify-center rounded-md bg-brand-50 text-brand-600"><Icon size={22} /></span>
-              <h2 className="text-[18px] font-bold text-ink-900">{title}</h2>
-              <p className="mt-1 text-[14px] text-ink-600">{text}</p>
+        <div className="px-space-4 pt-space-2 pb-space-8 sm:pt-space-4 md:px-space-7 lg:px-space-9 lg:pt-space-5 lg:pb-space-9">
+          <div className="grid grid-cols-1 items-center gap-space-7 lg:grid-cols-[1.15fr_0.85fr] lg:gap-space-9">
+            <div>
+              <p className="mb-space-3 text-[14.5px] text-ink-600">
+                Omnichannel Commerce ERP for Multi-Branch Businesses
+              </p>
+
+              <h1 className="text-display-lg mb-space-5 max-w-[650px]">
+                Sell on <span className="text-brand-600">WhatsApp</span>, online and POS. Managed from one ERP dashboard.
+              </h1>
+
+              <p className="text-body mb-space-6 max-w-[620px]">
+                Run every branch and every sales channel on a single system for orders, inventory, customers and
+                payments. One company, many branches, one source of truth.
+              </p>
+
+              <div className="mb-space-7 flex flex-wrap gap-space-5">
+                {FEATURES.map(({ title, desc, icon }) => (
+                  <div key={title} className="flex flex-1 basis-40 items-start gap-space-3 py-space-1">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-success-tint text-success">
+                      <HugeiconsIcon icon={icon} size={18} strokeWidth={2} />
+                    </div>
+                    <div>
+                      <strong className="block text-[15px] text-ink-900">{title}</strong>
+                      <span className="mt-space-1 block text-[13px] text-ink-600">{desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-space-3">
+                <Button href="/auth" variant="primary" size="lg">Set up your business</Button>
+                <Button href={DEMO_MAIL} variant="secondary" size="lg">Request a product demo</Button>
+              </div>
             </div>
-          ))}
-        </section>
 
-        <section className="border-t border-line bg-card">
-          <div className="mx-auto grid max-w-6xl gap-space-5 px-space-4 py-space-8 md:grid-cols-3">
-            {POINTS.map((p) => (
-              <div key={p.title}><h3 className="text-[16px] font-bold text-ink-900">{p.title}</h3><p className="mt-1 text-[14px] text-ink-600">{p.text}</p></div>
-            ))}
+            <div className="flex items-center justify-center">
+              <PhoneMockup />
+            </div>
           </div>
-        </section>
+        </div>
       </main>
 
-      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-space-3 px-space-4 py-space-5 text-[13px] text-ink-400">
-        <span>© {new Date().getFullYear()} DAAPrime Technologies</span>
-        <span className="flex gap-space-4"><Link href="/terms" className="hover:text-ink-700">Terms</Link><Link href="/privacy" className="hover:text-ink-700">Privacy</Link></span>
+      <footer className="border-t border-line bg-paper">
+        <div className="px-space-4 py-space-7 md:px-space-7 lg:px-space-9">
+          <div className="flex flex-col gap-space-6 md:flex-row md:justify-between">
+            <div className="max-w-[320px]">
+              <Logo />
+              <p className="mt-space-3 text-[13px] text-ink-600">
+                Orders, inventory, customers and payments across every branch and channel, managed from one dashboard.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-space-6 md:flex md:gap-space-9">
+              <div>
+                <p className="text-eyebrow mb-space-2">Product</p>
+                <ul className="space-y-space-2 text-[13.5px] text-ink-600">
+                  <li><Link href="/auth" className="hover:text-brand-600 hover:underline">Set up your business</Link></li>
+                  <li><Link href="/portal/login" className="hover:text-brand-600 hover:underline">Sign in</Link></li>
+                  <li><a href={DEMO_MAIL} className="hover:text-brand-600 hover:underline">Request a demo</a></li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-eyebrow mb-space-2">Contact</p>
+                <ul className="space-y-space-2 text-[13.5px] text-ink-600">
+                  <li><a href="mailto:info@daaprimeprojects.com" className="hover:text-brand-600 hover:underline">info@daaprimeprojects.com</a></li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-eyebrow mb-space-2">Legal</p>
+                <ul className="space-y-space-2 text-[13.5px] text-ink-600">
+                  <li><Link href="/privacy" className="hover:text-brand-600 hover:underline">Privacy Policy</Link></li>
+                  <li><Link href="/terms" className="hover:text-brand-600 hover:underline">Terms of Service</Link></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-space-6 border-t border-line pt-space-4 text-[12.5px] text-ink-400">
+            © {new Date().getFullYear()} DAAPrime Technologies. All rights reserved.
+          </div>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
