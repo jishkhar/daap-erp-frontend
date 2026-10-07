@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
-type Tone = "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
+type Tone =
+  "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
 
 // Icon-square background/text per tone -- brand (the default, used everywhere else) plus the app's existing
 // success/clay/warning/neutral tokens, reused here rather than one-off hex values, so a page that wants
@@ -64,25 +65,61 @@ type Props = {
   info?: ReactNode;
 };
 
-export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand", filled = false, upIsGood = true, hint = "vs last week", loading = false, info }: Props) {
+export function StatTile({
+  label,
+  value,
+  deltaPct,
+  prefix,
+  icon,
+  tone = "brand",
+  filled = false,
+  upIsGood = true,
+  hint = "vs last week",
+  loading = false,
+  info,
+}: Props) {
   const isUp = deltaPct !== null && deltaPct > 0;
   const isDown = deltaPct !== null && deltaPct < 0;
   const isGoodDirection = (isUp && upIsGood) || (isDown && !upIsGood);
   const isBadDirection = (isUp && !upIsGood) || (isDown && upIsGood);
   // "vs last week" only means something next to a real delta; a custom hint (e.g. "Currently booked") always shows.
-  const showHint = Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
+  const showHint =
+    Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
 
   return (
     <Card className="flex items-start gap-space-3 p-space-4">
       {icon && (
-        <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-md", (filled ? TONE_CLASSES_FILLED : TONE_CLASSES)[tone])}>
+        <span
+          className={cn(
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-md",
+            (filled ? TONE_CLASSES_FILLED : TONE_CLASSES)[tone],
+          )}
+        >
           {icon}
         </span>
       )}
       <div className="min-w-0">
-        <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}{info}</p>
+        <p className="text-[13px] leading-snug font-semibold text-ink-600">
+          {label}
+          {info}
+        </p>
         <div className="mt-1 flex items-baseline gap-space-2">
-          {loading ? <Skeleton className="h-[30px] w-24" /> : <span className={cn("leading-none font-bold text-ink-900", typeof value === "string" && value.length + (prefix?.length ?? 0) > 9 ? "text-[24px]" : "text-[30px]")}>{prefix}{typeof value === "number" ? value.toLocaleString() : value}</span>}
+          {loading ? (
+            <Skeleton className="h-[30px] w-24" />
+          ) : (
+            <span
+              className={cn(
+                "leading-none font-bold text-ink-900",
+                typeof value === "string" &&
+                  value.length + (prefix?.length ?? 0) > 9
+                  ? "text-[24px]"
+                  : "text-[30px]",
+              )}
+            >
+              {prefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
+            </span>
+          )}
           {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
           {!loading && deltaPct !== null && (
             <span

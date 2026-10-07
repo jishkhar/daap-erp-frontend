@@ -15,9 +15,17 @@ export function BranchSwitcher() {
       <Building2 size={15} className="text-ink-400" />
       <span className="sr-only">Branch</span>
       <select
-        value={single ? String(branches[0].id) : branchId === null ? "all" : String(branchId)}
+        value={
+          single
+            ? String(branches[0].id)
+            : branchId === null
+              ? "all"
+              : String(branchId)
+        }
         disabled={single}
-        onChange={(e) => setBranch(e.target.value === "all" ? null : e.target.value)}
+        onChange={(e) =>
+          setBranch(e.target.value === "all" ? null : e.target.value)
+        }
         className="max-w-[170px] cursor-pointer truncate bg-transparent text-ink-900 focus:outline-none disabled:cursor-default"
       >
         {!single && <option value="all">All branches</option>}

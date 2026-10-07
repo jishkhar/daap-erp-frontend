@@ -8,13 +8,19 @@ const ACCESS_KEY = "erp_access_token";
 const REFRESH_KEY = "erp_refresh_token";
 const SESSION_KEY = "erp_session";
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 /** Permissions as the ERP API returns them (GET /api/v1/auth/me): "module:action" -> "*" (every branch of the
  * tenant) or the list of branch ids the grant covers. */
 export type PermissionMap = Record<string, "*" | string[]>;
 
-export type SessionBranch = { id: string; branch_code: string; branch_name: string; status?: "active" | "inactive" };
+export type SessionBranch = {
+  id: string;
+  branch_code: string;
+  branch_name: string;
+  status?: "active" | "inactive";
+};
 
 export type StaffSession = {
   id: string;
@@ -25,22 +31,36 @@ export type StaffSession = {
   branches: SessionBranch[];
   /** Modules the tenant has switched on and bought (super admin's Access Management). Absent on sessions saved before this existed. */
   modules?: Record<string, boolean>;
+  /** The tenant has no active plan (trial over, subscription cancelled or expired): the portal shows the renew screen and nothing else works. */
+  accessEnded?: boolean;
 };
 
 type MeResponse = {
   user_id: string;
   name: string;
   tenant_id: string;
-  tenant: { id: string; tenant_code: string; display_name: string; currency: string; timezone: string; prices_include_tax?: boolean };
+  tenant: {
+    id: string;
+    tenant_code: string;
+    display_name: string;
+    currency: string;
+    timezone: string;
+    prices_include_tax?: boolean;
+  };
   roles: string[];
   permissions: PermissionMap;
   branches: SessionBranch[];
   modules?: Record<string, boolean>;
+  access_ended?: boolean;
 };
 
 type TokenResponse = { access_token: string; refresh_token: string };
 
-export function saveStaffSession(accessToken: string, refreshToken: string, session: StaffSession) {
+export function saveStaffSession(
+  accessToken: string,
+  refreshToken: string,
+  session: StaffSession,
+) {
   localStorage.setItem(ACCESS_KEY, accessToken);
   localStorage.setItem(REFRESH_KEY, refreshToken);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -75,18 +95,57 @@ export function clearStaffSession() {
   notifyStorageChange();
 }
 
+/** The server refuses everything but billing once the plan has ended; remember that so the renew screen shows even mid-session. */
+function noteAccessEnded(status: number, data: unknown) {
+  const reason = (data as { error?: { reason?: string } } | undefined)?.error
+    ?.reason;
+  const session = getStaffSession();
+  if (
+    status === 403 &&
+    reason === "access_ended" &&
+    session &&
+    !session.accessEnded
+  ) {
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({ ...session, accessEnded: true }),
+    );
+    notifyStorageChange();
+  }
+}
+
 /** The ERP reports errors as { error: { code, message } }; older call sites expect a plain string. */
 function errorMessage(data: unknown): string {
   const err = (data as { error?: unknown } | undefined)?.error;
   if (typeof err === "string") return err;
-  if (err && typeof err === "object" && "message" in err) return String((err as { message: unknown }).message);
+  if (err && typeof err === "object" && "message" in err)
+    return String((err as { message: unknown }).message);
   return "Something went wrong.";
 }
 
 async function loadSession(accessToken: string): Promise<StaffSession> {
-  const me = (await axios.get<MeResponse>(`${API_BASE_URL}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })).data;
-  const tenant: PortalTenant = { id: me.tenant.id, code: me.tenant.tenant_code, name: me.tenant.display_name, currency: me.tenant.currency, pricesIncludeTax: me.tenant.prices_include_tax };
-  return { id: me.user_id, name: me.name, roles: me.roles, tenant, permissions: me.permissions, branches: me.branches, modules: me.modules };
+  const me = (
+    await axios.get<MeResponse>(`${API_BASE_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+  ).data;
+  const tenant: PortalTenant = {
+    id: me.tenant.id,
+    code: me.tenant.tenant_code,
+    name: me.tenant.display_name,
+    currency: me.tenant.currency,
+    pricesIncludeTax: me.tenant.prices_include_tax,
+  };
+  return {
+    id: me.user_id,
+    name: me.name,
+    roles: me.roles,
+    tenant,
+    permissions: me.permissions,
+    branches: me.branches,
+    modules: me.modules,
+    accessEnded: me.access_ended,
+  };
 }
 
 /** The branches people can still work in (deactivated ones stay in the session so old records can show their codes). */
@@ -107,15 +166,22 @@ export async function refreshStaffSession(): Promise<void> {
 }
 
 /** Sign in with email + password (the server finds the workspace). Returns an error message, or null on success. */
-export async function loginStaff(email: string, password: string): Promise<string | null> {
+export async function loginStaff(
+  email: string,
+  password: string,
+): Promise<string | null> {
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, { email: email.trim(), password });
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, {
+      email: email.trim(),
+      password,
+    });
     const tokens = res.data as TokenResponse;
     const session = await loadSession(tokens.access_token);
     saveStaffSession(tokens.access_token, tokens.refresh_token, session);
     return null;
   } catch (err) {
-    if (isAxiosError(err) && err.response) return errorMessage(err.response.data);
+    if (isAxiosError(err) && err.response)
+      return errorMessage(err.response.data);
     return "Couldn't reach the server. Please try again.";
   }
 }
@@ -123,7 +189,10 @@ export async function loginStaff(email: string, password: string): Promise<strin
 const SIGNUP_KEY = "erp_signup";
 
 /** What Google sign-in found: an existing account (session saved), or a new email that may set up a business. */
-export type GoogleOutcome = { kind: "signed_in" } | { kind: "signup" } | { kind: "error"; message: string };
+export type GoogleOutcome =
+  | { kind: "signed_in" }
+  | { kind: "signup" }
+  | { kind: "error"; message: string };
 export type PendingSignup = { token: string; email: string; name: string };
 
 /** The Google-verified identity waiting to set up a business (kept for this tab only). */
@@ -138,7 +207,11 @@ export function getPendingSignup(): PendingSignup | null {
 }
 
 export function clearPendingSignup() {
-  try { sessionStorage.removeItem(SIGNUP_KEY); } catch { /* storage unavailable */ }
+  try {
+    sessionStorage.removeItem(SIGNUP_KEY);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 async function startSession(tokens: TokenResponse) {
@@ -148,48 +221,77 @@ async function startSession(tokens: TokenResponse) {
 
 /** Sign in with a Google ID token (from Google Identity Services). An existing user gets a session; a new email gets a
  * short-lived sign-up pass and goes on to /onboarding to set up their business. */
-export async function loginStaffWithGoogle(idToken: string): Promise<GoogleOutcome> {
+export async function loginStaffWithGoogle(
+  idToken: string,
+): Promise<GoogleOutcome> {
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/google`, { id_token: idToken });
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/google`, {
+      id_token: idToken,
+    });
     if (res.data.status === "signup_required") {
-      sessionStorage.setItem(SIGNUP_KEY, JSON.stringify({ token: res.data.signup_token, email: res.data.email, name: res.data.name }));
+      sessionStorage.setItem(
+        SIGNUP_KEY,
+        JSON.stringify({
+          token: res.data.signup_token,
+          email: res.data.email,
+          name: res.data.name,
+        }),
+      );
       return { kind: "signup" };
     }
     await startSession(res.data as TokenResponse);
     return { kind: "signed_in" };
   } catch (err) {
-    if (isAxiosError(err) && err.response) return { kind: "error", message: errorMessage(err.response.data) };
-    return { kind: "error", message: "Couldn't reach the server. Please try again." };
+    if (isAxiosError(err) && err.response)
+      return { kind: "error", message: errorMessage(err.response.data) };
+    return {
+      kind: "error",
+      message: "Couldn't reach the server. Please try again.",
+    };
   }
 }
 
 export type SignupInput = {
   business_name: string;
   legal_name?: string;
-  first_branch: { branch_name: string; address_line?: string; city?: string; state?: string; pincode?: string };
+  first_branch: {
+    branch_name: string;
+    address_line?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
 };
 
 /** Creates the business (+ first branch + admin) for the pending Google identity and signs them in. Null on success. */
-export async function signupWithGoogle(input: SignupInput): Promise<string | null> {
+export async function signupWithGoogle(
+  input: SignupInput,
+): Promise<string | null> {
   const pending = getPendingSignup();
   if (!pending) return "Your Google sign-in has expired. Please start again.";
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/signup`, { signup_token: pending.token, ...input });
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/signup`, {
+      signup_token: pending.token,
+      ...input,
+    });
     await startSession(res.data as TokenResponse);
     clearPendingSignup();
     return null;
   } catch (err) {
-    if (isAxiosError(err) && err.response) return errorMessage(err.response.data);
+    if (isAxiosError(err) && err.response)
+      return errorMessage(err.response.data);
     return "Couldn't reach the server. Please try again.";
   }
 }
 
-/** One silent refresh via /api/v1/auth/refresh (tokens rotate). Returns the new access token, or null. */
-async function tryRefresh(): Promise<string | null> {
+async function renewSession(): Promise<string | null> {
   const refreshToken = getStaffRefreshToken();
   if (!refreshToken) return null;
   try {
-    const res = await axios.post<TokenResponse>(`${API_BASE_URL}/api/v1/auth/refresh`, { refresh_token: refreshToken });
+    const res = await axios.post<TokenResponse>(
+      `${API_BASE_URL}/api/v1/auth/refresh`,
+      { refresh_token: refreshToken },
+    );
     const session = await loadSession(res.data.access_token);
     saveStaffSession(res.data.access_token, res.data.refresh_token, session);
     return res.data.access_token;
@@ -198,11 +300,33 @@ async function tryRefresh(): Promise<string | null> {
   }
 }
 
+let inflightRefresh: Promise<string | null> | null = null;
+
+/** One silent refresh via /api/v1/auth/refresh (tokens rotate). Returns the new access token, or null.
+ * Refresh tokens are single-use and reusing one looks like theft (the server then revokes the whole session), so only one refresh runs at a time:
+ * callers in this tab share one promise, and across tabs a lock lets the second tab pick up the first tab's new token instead of using the old one. */
+function tryRefresh(): Promise<string | null> {
+  if (inflightRefresh) return inflightRefresh;
+  const stale = getStaffRefreshToken();
+  const run = async () =>
+    getStaffRefreshToken() !== stale ? getStaffAccessToken() : renewSession();
+  const started: Promise<string | null> =
+    typeof navigator !== "undefined" && navigator.locks
+      ? navigator.locks.request("staff-token-refresh", run).then((t) => t)
+      : run();
+  inflightRefresh = started.finally(() => {
+    inflightRefresh = null;
+  });
+  return inflightRefresh;
+}
+
 export async function logoutStaff() {
   const refreshToken = getStaffRefreshToken();
   if (refreshToken) {
     try {
-      await axios.post(`${API_BASE_URL}/api/v1/auth/logout`, { refresh_token: refreshToken });
+      await axios.post(`${API_BASE_URL}/api/v1/auth/logout`, {
+        refresh_token: refreshToken,
+      });
     } catch {
       /* best effort: the local session is cleared regardless */
     }
@@ -217,7 +341,10 @@ type FetchResult =
 
 /** axios wrapper for authenticated ERP requests. Access tokens last ~15 minutes, so a 401 first tries ONE silent
  * refresh before giving up and clearing the session. */
-export async function staffFetch(path: string, init?: RequestInit): Promise<FetchResult> {
+export async function staffFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<FetchResult> {
   let token = getStaffAccessToken();
   if (!token) return { ok: false, unauthorized: true };
 
@@ -234,10 +361,19 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
     res = await request(token);
   } catch (err) {
     if (!isAxiosError(err) || !err.response) {
-      return { ok: false, unauthorized: false, error: "Network error — check your connection." };
+      return {
+        ok: false,
+        unauthorized: false,
+        error: "Network error — check your connection.",
+      };
     }
     if (err.response.status !== 401) {
-      return { ok: false, unauthorized: false, error: errorMessage(err.response.data) };
+      noteAccessEnded(err.response.status, err.response.data);
+      return {
+        ok: false,
+        unauthorized: false,
+        error: errorMessage(err.response.data),
+      };
     }
     token = await tryRefresh();
     if (!token) {
@@ -248,13 +384,22 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
       res = await request(token);
     } catch (retryErr) {
       if (!isAxiosError(retryErr) || !retryErr.response) {
-        return { ok: false, unauthorized: false, error: "Network error — check your connection." };
+        return {
+          ok: false,
+          unauthorized: false,
+          error: "Network error — check your connection.",
+        };
       }
       if (retryErr.response.status === 401) {
         clearStaffSession();
         return { ok: false, unauthorized: true };
       }
-      return { ok: false, unauthorized: false, error: errorMessage(retryErr.response.data) };
+      noteAccessEnded(retryErr.response.status, retryErr.response.data);
+      return {
+        ok: false,
+        unauthorized: false,
+        error: errorMessage(retryErr.response.data),
+      };
     }
   }
   return { ok: true, data: res.data };
@@ -305,7 +450,13 @@ const PAGE_MODULE: Record<string, string> = {
 
 // Pages with no ERP module of their own (the dashboard, and the Workforce section, which is not an ERP
 // backend module yet) are visible to every signed-in person.
-const ALWAYS_VISIBLE = new Set(["dashboard", "check_in_out", "my_leave", "attendance", "leave_requests"]);
+const ALWAYS_VISIBLE = new Set([
+  "dashboard",
+  "check_in_out",
+  "my_leave",
+  "attendance",
+  "leave_requests",
+]);
 
 const ACTION_VERBS: Record<"view" | "write" | "delete", string[]> = {
   view: ["view"],
@@ -313,30 +464,49 @@ const ACTION_VERBS: Record<"view" | "write" | "delete", string[]> = {
   delete: ["archive", "cancel", "delete"],
 };
 
-export function hasPermission(session: StaffSession | null, pageKey: string, action: "view" | "write" | "delete"): boolean {
+export function hasPermission(
+  session: StaffSession | null,
+  pageKey: string,
+  action: "view" | "write" | "delete",
+): boolean {
   if (!session) return true; // before the session loads; the API enforces regardless
   if (ALWAYS_VISIBLE.has(pageKey)) return true;
   const moduleKey = PAGE_MODULE[pageKey];
   if (!moduleKey) return true;
-  return ACTION_VERBS[action].some((verb) => Boolean(session.permissions[`${moduleKey}:${verb}`]));
+  return ACTION_VERBS[action].some((verb) =>
+    Boolean(session.permissions[`${moduleKey}:${verb}`]),
+  );
 }
 
-export function usePermission(pageKey: string, action: "view" | "write" | "delete"): boolean {
+export function usePermission(
+  pageKey: string,
+  action: "view" | "write" | "delete",
+): boolean {
   return hasPermission(useStaffSession(), pageKey, action);
 }
 
 /** Does the person hold this exact `module:action` for EVERY branch (a tenant-wide grant)? */
-export function hasTenantWide(session: StaffSession | null, permission: string): boolean {
+export function hasTenantWide(
+  session: StaffSession | null,
+  permission: string,
+): boolean {
   return session?.permissions[permission] === "*";
 }
 
 /** Does the person hold this exact `module:action` for at least one branch? */
-export function hasGrant(session: StaffSession | null, permission: string): boolean {
+export function hasGrant(
+  session: StaffSession | null,
+  permission: string,
+): boolean {
   return Boolean(session?.permissions[permission]);
 }
 
 /** Does the person hold this `module:action` at one specific branch? */
-export function hasGrantAt(session: StaffSession | null, permission: string, branchId: string): boolean {
+export function hasGrantAt(
+  session: StaffSession | null,
+  permission: string,
+  branchId: string,
+): boolean {
   const grant = session?.permissions[permission];
   return grant === "*" || (Array.isArray(grant) && grant.includes(branchId));
 }

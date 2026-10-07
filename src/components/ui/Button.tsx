@@ -51,7 +51,9 @@ type ButtonAsButton = CommonProps &
   React.ButtonHTMLAttributes<HTMLButtonElement> & { href?: undefined };
 
 type ButtonAsLink = CommonProps &
-  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { href: string };
+  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
+    href: string;
+  };
 
 export function Button({
   variant = "primary",
@@ -72,7 +74,10 @@ export function Button({
   }
 
   return (
-    <button className={classes} {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}>
+    <button
+      className={classes}
+      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+    >
       {children}
     </button>
   );

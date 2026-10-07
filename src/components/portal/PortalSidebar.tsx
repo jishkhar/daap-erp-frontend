@@ -10,7 +10,8 @@ import {
   LogIn,
   MessageCircle,
   MessageSquareText,
-  Banknote, Recycle,
+  Banknote,
+  Recycle,
   Package,
   Truck,
   Settings,
@@ -24,7 +25,10 @@ import {
   Zap,
 } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowDataTransferHorizontalIcon, WarehouseIcon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDataTransferHorizontalIcon,
+  WarehouseIcon,
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { LogoMark } from "@/components/brand/Logo";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
@@ -32,12 +36,17 @@ import { cn } from "@/lib/cn";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import type { PortalTenant } from "@/lib/portalAuth";
 
-type NavGroup = "Main" | "Sales Channels" | "Back Office" | "Workforce" | "Admin";
+type NavGroup =
+  "Main" | "Sales Channels" | "Back Office" | "Workforce" | "Admin";
 
 type NavItem = {
   key: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  icon: React.ComponentType<{
+    size?: number;
+    strokeWidth?: number;
+    className?: string;
+  }>;
   href: string;
   /** Permission key (lib/staffAuth.ts PAGE_MODULE) deciding whether the item is shown. */
   pageKey: string;
@@ -47,42 +56,221 @@ type NavItem = {
 };
 
 type IconProps = { size?: number; strokeWidth?: number; className?: string };
-const hugeNav = (icon: typeof WarehouseIcon) => function NavIcon({ size, strokeWidth, className }: IconProps) { return <HugeiconsIcon icon={icon} size={size} strokeWidth={strokeWidth} className={className} />; };
+const hugeNav = (icon: typeof WarehouseIcon) =>
+  function NavIcon({ size, strokeWidth, className }: IconProps) {
+    return (
+      <HugeiconsIcon
+        icon={icon}
+        size={size}
+        strokeWidth={strokeWidth}
+        className={className}
+      />
+    );
+  };
 const InventoryNavIcon = hugeNav(WarehouseIcon);
 const TransfersNavIcon = hugeNav(ArrowDataTransferHorizontalIcon);
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Main" },
-  { key: "orders", label: "Orders", icon: ShoppingCart, href: "/portal/orders", pageKey: "orders", group: "Main" },
-  { key: "products", label: "Products", icon: Package, href: "/portal/products", pageKey: "products", group: "Main" },
-  { key: "customers", label: "Customers", icon: Users, href: "/portal/customers", pageKey: "customers", group: "Main" },
-  { key: "whatsapp-inbox", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/whatsapp-inbox", pageKey: "whatsapp", group: "Main" },
-  { key: "whatsapp-automation", label: "WhatsApp Automation", icon: Zap, href: "/portal/whatsapp-automation", pageKey: "whatsapp", group: "Main" },
-  { key: "discounts", label: "Discounts", icon: Tag, href: "/portal/discounts", pageKey: "discounts", group: "Main" },
-  { key: "analytics", label: "Analytics", icon: BarChart3, href: "/portal/analytics", pageKey: "reports", group: "Main" },
-  { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Main" },
-  { key: "growth", label: "Growth", icon: TrendingUp, href: "/portal/growth", pageKey: "dashboard", group: "Main", disabled: true },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    href: "/portal/dashboard",
+    pageKey: "dashboard",
+    group: "Main",
+  },
+  {
+    key: "orders",
+    label: "Orders",
+    icon: ShoppingCart,
+    href: "/portal/orders",
+    pageKey: "orders",
+    group: "Main",
+  },
+  {
+    key: "products",
+    label: "Products",
+    icon: Package,
+    href: "/portal/products",
+    pageKey: "products",
+    group: "Main",
+  },
+  {
+    key: "customers",
+    label: "Customers",
+    icon: Users,
+    href: "/portal/customers",
+    pageKey: "customers",
+    group: "Main",
+  },
+  {
+    key: "whatsapp-inbox",
+    label: "WhatsApp Inbox",
+    icon: MessageCircle,
+    href: "/portal/whatsapp-inbox",
+    pageKey: "whatsapp",
+    group: "Main",
+  },
+  {
+    key: "whatsapp-automation",
+    label: "WhatsApp Automation",
+    icon: Zap,
+    href: "/portal/whatsapp-automation",
+    pageKey: "whatsapp",
+    group: "Main",
+  },
+  {
+    key: "discounts",
+    label: "Discounts",
+    icon: Tag,
+    href: "/portal/discounts",
+    pageKey: "discounts",
+    group: "Main",
+  },
+  {
+    key: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    href: "/portal/analytics",
+    pageKey: "reports",
+    group: "Main",
+  },
+  {
+    key: "feedback",
+    label: "Feedback",
+    icon: MessageSquareText,
+    href: "/portal/feedback",
+    pageKey: "feedback",
+    group: "Main",
+  },
+  {
+    key: "growth",
+    label: "Growth",
+    icon: TrendingUp,
+    href: "/portal/growth",
+    pageKey: "dashboard",
+    group: "Main",
+    disabled: true,
+  },
 
-  { key: "channel-online", label: "Online", icon: Globe, href: "/portal/channels/online", pageKey: "orders", group: "Sales Channels" },
-  { key: "channel-pos", label: "POS", icon: Store, href: "/portal/channels/pos", pageKey: "orders", group: "Sales Channels" },
-  { key: "channel-whatsapp", label: "WhatsApp", icon: WhatsAppIcon, href: "/portal/channels/whatsapp", pageKey: "orders", group: "Sales Channels" },
+  {
+    key: "channel-online",
+    label: "Online",
+    icon: Globe,
+    href: "/portal/channels/online",
+    pageKey: "orders",
+    group: "Sales Channels",
+  },
+  {
+    key: "channel-pos",
+    label: "POS",
+    icon: Store,
+    href: "/portal/channels/pos",
+    pageKey: "orders",
+    group: "Sales Channels",
+  },
+  {
+    key: "channel-whatsapp",
+    label: "WhatsApp",
+    icon: WhatsAppIcon,
+    href: "/portal/channels/whatsapp",
+    pageKey: "orders",
+    group: "Sales Channels",
+  },
 
-  { key: "procurement", label: "Procurement", icon: Truck, href: "/portal/procurement", pageKey: "procurement", group: "Back Office" },
-  { key: "inventory", label: "Inventory", icon: InventoryNavIcon, href: "/portal/inventory", pageKey: "inventory", group: "Back Office" },
-  { key: "transfers", label: "Transfers", icon: TransfersNavIcon, href: "/portal/transfers", pageKey: "transfers", group: "Back Office" },
-  { key: "recommerce", label: "ReCommerce", icon: Recycle, href: "/portal/recommerce", pageKey: "recommerce", group: "Back Office" },
-  { key: "finance", label: "Finance", icon: Banknote, href: "/portal/finance", pageKey: "finance", group: "Back Office" },
+  {
+    key: "procurement",
+    label: "Procurement",
+    icon: Truck,
+    href: "/portal/procurement",
+    pageKey: "procurement",
+    group: "Back Office",
+  },
+  {
+    key: "inventory",
+    label: "Inventory",
+    icon: InventoryNavIcon,
+    href: "/portal/inventory",
+    pageKey: "inventory",
+    group: "Back Office",
+  },
+  {
+    key: "transfers",
+    label: "Transfers",
+    icon: TransfersNavIcon,
+    href: "/portal/transfers",
+    pageKey: "transfers",
+    group: "Back Office",
+  },
+  {
+    key: "recommerce",
+    label: "ReCommerce",
+    icon: Recycle,
+    href: "/portal/recommerce",
+    pageKey: "recommerce",
+    group: "Back Office",
+  },
+  {
+    key: "finance",
+    label: "Finance",
+    icon: Banknote,
+    href: "/portal/finance",
+    pageKey: "finance",
+    group: "Back Office",
+  },
 
-  { key: "my-attendance", label: "Attendance", icon: Clock, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
-  { key: "check-in-out", label: "Check-in / Check-out", icon: LogIn, href: "/portal/check-in-out", pageKey: "check_in_out", group: "Workforce" },
-  { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
-  { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
-  { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
+  {
+    key: "my-attendance",
+    label: "Attendance",
+    icon: Clock,
+    href: "/portal/attendance",
+    pageKey: "check_in_out",
+    group: "Workforce",
+  },
+  {
+    key: "check-in-out",
+    label: "Check-in / Check-out",
+    icon: LogIn,
+    href: "/portal/check-in-out",
+    pageKey: "check_in_out",
+    group: "Workforce",
+  },
+  {
+    key: "leave",
+    label: "My Leave",
+    icon: CalendarOff,
+    href: "/portal/leave",
+    pageKey: "my_leave",
+    group: "Workforce",
+  },
+  {
+    key: "team-attendance",
+    label: "Team Attendance",
+    icon: UserCheck,
+    href: "/portal/attendance-overview",
+    pageKey: "attendance",
+    group: "Workforce",
+  },
+  {
+    key: "leave-requests",
+    label: "Leave Requests",
+    icon: CalendarDays,
+    href: "/portal/leave-requests",
+    pageKey: "leave_requests",
+    group: "Workforce",
+  },
 ];
 
 /** Pinned at the bottom of the sidebar (where Log out used to be); Log out lives in the header's account menu. Everything else that was
  * under "Admin" (storefront, team, roles, billing) is inside Settings now. */
-const SETTINGS_ITEM: NavItem = { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" };
+const SETTINGS_ITEM: NavItem = {
+  key: "settings",
+  label: "Settings",
+  icon: Settings,
+  href: "/portal/settings",
+  pageKey: "settings",
+  group: "Admin",
+};
 
 type Props = {
   tenant: PortalTenant | null;
@@ -93,15 +281,26 @@ type Props = {
 };
 
 /** A sidebar item whose key names an access module ("whatsapp-inbox" -> whatsapp_inbox) is hidden when that module is off; the rest are unaffected. */
-function moduleOn(modules: Record<string, boolean> | undefined, itemKey: string): boolean {
+function moduleOn(
+  modules: Record<string, boolean> | undefined,
+  itemKey: string,
+): boolean {
   return modules?.[itemKey.replace(/-/g, "_")] !== false;
 }
 
-export function PortalSidebar({ tenant, active, open = false, onClose }: Props) {
+export function PortalSidebar({
+  tenant,
+  active,
+  open = false,
+  onClose,
+}: Props) {
   const session = useStaffSession();
 
   // Nothing until the session has loaded (before it, hasPermission fails open and would flash items the person can't use).
-  const allowed = (item: NavItem) => !!session && hasPermission(session, item.pageKey, "view") && moduleOn(session.modules, item.key);
+  const allowed = (item: NavItem) =>
+    !!session &&
+    hasPermission(session, item.pageKey, "view") &&
+    moduleOn(session.modules, item.key);
   const visible = NAV_ITEMS.filter(allowed);
   const showSettings = allowed(SETTINGS_ITEM);
 
@@ -112,7 +311,9 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
         onClick={onClose}
         className={cn(
           "fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 lg:hidden",
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+          open
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
         )}
       />
 
@@ -128,7 +329,9 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
             <LogoMark size={28} />
           </div>
           <div className="min-w-0 leading-tight">
-            <span className="block truncate text-[15px] font-bold">{tenant?.name || "ERP"}</span>
+            <span className="block truncate text-[15px] font-bold">
+              {tenant?.name || "ERP"}
+            </span>
             <span className="block text-[11.5px] text-white/60">ERP</span>
           </div>
           <button
@@ -142,15 +345,24 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
         </div>
         <div className="mx-space-4 mb-space-2 border-t border-white/10" />
 
-        <nav className="scrollbar-dark flex-1 overflow-y-auto px-space-3" aria-label="Main navigation">
+        <nav
+          className="scrollbar-dark flex-1 overflow-y-auto px-space-3"
+          aria-label="Main navigation"
+        >
           {visible.map((item, index) => {
             const { key, label, icon: Icon, href, group, disabled } = item;
             const isActive = key === active;
-            const startsGroup = index === 0 || visible[index - 1].group !== group;
+            const startsGroup =
+              index === 0 || visible[index - 1].group !== group;
             return (
               <div key={key}>
                 {startsGroup && (
-                  <p className={cn("px-space-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-white/50 uppercase", index === 0 ? "pt-space-2" : "pt-space-3")}>
+                  <p
+                    className={cn(
+                      "px-space-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-white/50 uppercase",
+                      index === 0 ? "pt-space-2" : "pt-space-3",
+                    )}
+                  >
                     {group}
                   </p>
                 )}
@@ -162,7 +374,9 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
                   >
                     <Icon size={18} strokeWidth={2} className="shrink-0" />
                     {label}
-                    <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/60 uppercase">Soon</span>
+                    <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/60 uppercase">
+                      Soon
+                    </span>
                   </span>
                 ) : (
                   <Link
@@ -171,7 +385,9 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
-                      isActive ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]" : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
+                      isActive
+                        ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]"
+                        : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
                     )}
                   >
                     <Icon size={18} strokeWidth={2} className="shrink-0" />
@@ -192,14 +408,18 @@ export function PortalSidebar({ tenant, active, open = false, onClose }: Props) 
               aria-current={active === "settings" ? "page" : undefined}
               className={cn(
                 "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
-                active === "settings" ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]" : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white",
+                active === "settings"
+                  ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]"
+                  : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white",
               )}
             >
               <Settings size={18} strokeWidth={2} className="shrink-0" />
               Settings
             </Link>
           )}
-          <p className="px-space-3 pt-space-2 text-[11.5px] leading-snug text-white/55">One company. Many branches. One source of truth.</p>
+          <p className="px-space-3 pt-space-2 text-[11.5px] leading-snug text-white/55">
+            One company. Many branches. One source of truth.
+          </p>
         </div>
       </aside>
     </>

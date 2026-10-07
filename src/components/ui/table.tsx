@@ -14,25 +14,50 @@ function Table({
   ...props
 }: React.ComponentProps<"table"> & { containerClassName?: string }) {
   return (
-    <div data-slot="table-container" className={cn("relative w-full no-scrollbar overflow-x-auto", containerClassName)}>
-      <table data-slot="table" className={cn("w-full text-left text-[13px]", className)} {...props} />
+    <div
+      data-slot="table-container"
+      className={cn(
+        "relative w-full no-scrollbar overflow-x-auto",
+        containerClassName,
+      )}
+    >
+      <table
+        data-slot="table"
+        className={cn("w-full text-left text-[13px]", className)}
+        {...props}
+      />
     </div>
   );
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead data-slot="table-header" className={cn("[&_tr]:border-b [&_tr]:border-line", className)} {...props} />;
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn("[&_tr]:border-b [&_tr]:border-line", className)}
+      {...props}
+    />
+  );
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
-  return <tbody data-slot="table-body" className={cn("[&_tr:last-child]:border-0", className)} {...props} />;
+  return (
+    <tbody
+      data-slot="table-body"
+      className={cn("[&_tr:last-child]:border-0", className)}
+      {...props}
+    />
+  );
 }
 
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn("border-t border-line bg-paper font-semibold [&>tr]:last:border-b-0", className)}
+      className={cn(
+        "border-t border-line bg-paper font-semibold [&>tr]:last:border-b-0",
+        className,
+      )}
       {...props}
     />
   );
@@ -68,14 +93,35 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
-      className={cn("min-w-25 px-space-2 py-space-2 align-middle first:pl-0 [&:has([role=checkbox])]:pr-0", className)}
+      className={cn(
+        "min-w-25 px-space-2 py-space-2 align-middle first:pl-0 [&:has([role=checkbox])]:pr-0",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {
-  return <caption data-slot="table-caption" className={cn("mt-space-4 text-[12px] text-ink-400", className)} {...props} />;
+function TableCaption({
+  className,
+  ...props
+}: React.ComponentProps<"caption">) {
+  return (
+    <caption
+      data-slot="table-caption"
+      className={cn("mt-space-4 text-[12px] text-ink-400", className)}
+      {...props}
+    />
+  );
 }
 
-export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption };
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+};

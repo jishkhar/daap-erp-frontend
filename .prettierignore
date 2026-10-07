@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+coverage
+public
+package-lock.json
+tsconfig.tsbuildinfo
+next-env.d.ts
+# markdown: AGENTS.md is re-written by `next dev`, the rest is prose
+*.md

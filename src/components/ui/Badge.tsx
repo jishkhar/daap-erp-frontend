@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn";
 
-type BadgeTone = "brand" | "clay" | "success" | "neutral" | "warning" | "violet";
+type BadgeTone =
+  "brand" | "clay" | "success" | "neutral" | "warning" | "violet";
 
 const tones: Record<BadgeTone, string> = {
   brand: "bg-brand-50 text-brand-700",

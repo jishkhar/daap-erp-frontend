@@ -10,7 +10,15 @@ type FieldProps = {
   children: React.ReactNode;
 };
 
-export function Field({ label, htmlFor, hint, error, required, className, children }: FieldProps) {
+export function Field({
+  label,
+  htmlFor,
+  hint,
+  error,
+  required,
+  className,
+  children,
+}: FieldProps) {
   return (
     <div className={cn("mb-space-4", className)}>
       {label && (
@@ -21,7 +29,9 @@ export function Field({ label, htmlFor, hint, error, required, className, childr
       )}
       {children}
       {error ? (
-        <p className="mt-space-1 text-[12.5px] font-medium text-error">{error}</p>
+        <p className="mt-space-1 text-[12.5px] font-medium text-error">
+          {error}
+        </p>
       ) : hint ? (
         <p className="text-hint mt-space-1">{hint}</p>
       ) : null}

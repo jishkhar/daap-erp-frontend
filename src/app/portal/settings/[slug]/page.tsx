@@ -9,7 +9,11 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 
-export default function ComingSoonPage({ params }: { params: Promise<{ slug: string }> }) {
+export default function ComingSoonPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = use(params);
   const { tenant, ready } = usePortalGuard();
   const item = SETTINGS_NAV.find((i) => i.slug === slug && i.soon);
@@ -23,7 +27,9 @@ export default function ComingSoonPage({ params }: { params: Promise<{ slug: str
       <Card className="flex flex-col items-center gap-space-2 p-space-6 text-center">
         <Construction size={28} className="text-ink-400" />
         <p className="text-[15px] font-bold text-ink-900">Coming soon</p>
-        <p className="text-[13px] text-ink-600">{item.label} settings aren&apos;t available yet.</p>
+        <p className="text-[13px] text-ink-600">
+          {item.label} settings aren&apos;t available yet.
+        </p>
       </Card>
     </PortalShell>
   );

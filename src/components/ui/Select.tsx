@@ -2,7 +2,10 @@ import { forwardRef } from "react";
 import { cn } from "@/lib/cn";
 
 /** A native <select> styled like <Input>. */
-export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, children, ...props }, ref) {
+export const Select = forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement>
+>(function Select({ className, children, ...props }, ref) {
   return (
     <select
       ref={ref}

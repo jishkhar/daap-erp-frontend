@@ -24,7 +24,9 @@ export default function AuthPage() {
       setBusy(false);
       return setError(outcome.message);
     }
-    router.push(outcome.kind === "signup" ? "/onboarding" : "/portal/dashboard");
+    router.push(
+      outcome.kind === "signup" ? "/onboarding" : "/portal/dashboard",
+    );
   }
 
   return (
@@ -33,17 +35,33 @@ export default function AuthPage() {
         <Logo className="mb-space-5" />
 
         <h1 className="text-display mb-space-1 !text-[22px]">Sign in</h1>
-        <p className="text-body mb-space-5">Continue with Google to set up a new business or get to a workspace you already own.</p>
+        <p className="text-body mb-space-5">
+          Continue with Google to set up a new business or get to a workspace
+          you already own.
+        </p>
 
-        {error && <p className="mb-space-4 rounded-md bg-error-tint p-space-3 text-[13px] font-medium text-error">{error}</p>}
+        {error && (
+          <p className="mb-space-4 rounded-md bg-error-tint p-space-3 text-[13px] font-medium text-error">
+            {error}
+          </p>
+        )}
 
         <div className={busy ? "pointer-events-none opacity-60" : undefined}>
-          <GoogleSignInButton onCredential={handleGoogle} width={336} divider={false} />
+          <GoogleSignInButton
+            onCredential={handleGoogle}
+            width={336}
+            divider={false}
+          />
         </div>
 
         <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
           Prefer a password instead?{" "}
-          <Link href="/portal/login" className="font-semibold text-brand-600 hover:underline">Staff login</Link>
+          <Link
+            href="/portal/login"
+            className="font-semibold text-brand-600 hover:underline"
+          >
+            Staff login
+          </Link>
         </p>
       </Card>
     </div>

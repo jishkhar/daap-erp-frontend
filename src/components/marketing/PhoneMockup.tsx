@@ -38,18 +38,34 @@ export function PhoneMockup() {
 
         {/* Chat header */}
         <div className="flex items-center gap-space-2 bg-brand-600 px-space-3 pb-space-2 text-white">
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={18} strokeWidth={2} className="shrink-0 text-white/90" />
+          <HugeiconsIcon
+            icon={ArrowLeft01Icon}
+            size={18}
+            strokeWidth={2}
+            className="shrink-0 text-white/90"
+          />
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-extrabold text-brand-600">
             A
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <span className="flex items-center gap-1">
               <strong className="truncate text-[13.5px]">ABC Store</strong>
-              <HugeiconsIcon icon={CheckmarkBadge01Icon} size={13} className="shrink-0 text-white" />
+              <HugeiconsIcon
+                icon={CheckmarkBadge01Icon}
+                size={13}
+                className="shrink-0 text-white"
+              />
             </span>
-            <span className="block text-[10px] tracking-wide text-white/75 uppercase">Business Account</span>
+            <span className="block text-[10px] tracking-wide text-white/75 uppercase">
+              Business Account
+            </span>
           </div>
-          <HugeiconsIcon icon={MoreVerticalIcon} size={18} strokeWidth={2} className="shrink-0 text-white/90" />
+          <HugeiconsIcon
+            icon={MoreVerticalIcon}
+            size={18}
+            strokeWidth={2}
+            className="shrink-0 text-white/90"
+          />
         </div>
 
         <div className="flex-1 overflow-hidden p-space-3">
@@ -64,14 +80,21 @@ export function PhoneMockup() {
                 <li key={item}>{item}</li>
               ))}
             </ol>
-            <span className="mt-space-1 block text-right text-[10px] font-normal text-ink-400">10:30 AM</span>
+            <span className="mt-space-1 block text-right text-[10px] font-normal text-ink-400">
+              10:30 AM
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-space-2 border-t border-line bg-[#F7F5F0] px-space-3 py-space-2">
           <div className="flex flex-1 items-center justify-between rounded-full bg-white px-space-3 py-1.5 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
             <span className="text-[12.5px] text-ink-400">Type a message</span>
-            <HugeiconsIcon icon={Camera01Icon} size={16} strokeWidth={2} className="shrink-0 text-ink-400" />
+            <HugeiconsIcon
+              icon={Camera01Icon}
+              size={16}
+              strokeWidth={2}
+              className="shrink-0 text-ink-400"
+            />
           </div>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
             <HugeiconsIcon icon={Mic01Icon} size={14} strokeWidth={2} />

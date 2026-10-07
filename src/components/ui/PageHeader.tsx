@@ -16,9 +16,21 @@ type PageHeaderProps = {
   className?: string;
 };
 
-export function PageHeader({ title, description, icon, actions, scopedToBranch, className }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  icon,
+  actions,
+  scopedToBranch,
+  className,
+}: PageHeaderProps) {
   return (
-    <div className={cn("mb-space-5 flex flex-wrap items-center justify-between gap-space-3", className)}>
+    <div
+      className={cn(
+        "mb-space-5 flex flex-wrap items-center justify-between gap-space-3",
+        className,
+      )}
+    >
       <div className="flex min-w-0 items-center gap-space-3">
         {icon && (
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
@@ -27,11 +39,15 @@ export function PageHeader({ title, description, icon, actions, scopedToBranch, 
         )}
         <div className="min-w-0">
           <h1 className="text-display">{title}</h1>
-          {description && <p className="mt-0.5 text-[13.5px] text-ink-600">{description}</p>}
+          {description && (
+            <p className="mt-0.5 text-[13.5px] text-ink-600">{description}</p>
+          )}
           {scopedToBranch && <BranchScopeChip />}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-space-2">{actions}</div>}
+      {actions && (
+        <div className="flex flex-wrap items-center gap-space-2">{actions}</div>
+      )}
     </div>
   );
 }
