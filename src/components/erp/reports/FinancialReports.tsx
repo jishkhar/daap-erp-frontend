@@ -8,18 +8,33 @@ import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
 import { GstReturnReport } from "@/components/erp/reports/GstReturnReport";
-import { CHANNELS, formatMoney, humanize, monthRange, qs, useErpQuery, type Channel } from "@/lib/erp";
-import { SkeletonLines , CardSkeleton } from "@/components/ui/Skeleton";
+import {
+  CHANNELS,
+  formatMoney,
+  humanize,
+  monthRange,
+  qs,
+  useErpQuery,
+  type Channel,
+} from "@/lib/erp";
+import { SkeletonLines, CardSkeleton } from "@/components/ui/Skeleton";
 import { InfoTip } from "@/components/ui/InfoTip";
 import { Help } from "@/components/erp/finance/Help";
 
 type Sub = "pl" | "matrix" | "bs" | "gst" | "gstr1" | "products" | "aging";
 
 const GST_HELP: Record<string, string> = {
-  "Taxable sales (net of credit notes)": "Taxable sales", "CGST collected": "CGST", "SGST collected": "SGST", "IGST collected": "IGST", "Output tax": "Output tax",
-  "Input credit: CGST": "Input credit", "Input credit: SGST": "Input credit", "Input credit: IGST": "Input credit",
+  "Taxable sales (net of credit notes)": "Taxable sales",
+  "CGST collected": "CGST",
+  "SGST collected": "SGST",
+  "IGST collected": "IGST",
+  "Output tax": "Output tax",
+  "Input credit: CGST": "Input credit",
+  "Input credit: SGST": "Input credit",
+  "Input credit: IGST": "Input credit",
 };
-const th = "p-space-3 text-left text-[12px] tracking-wide text-ink-400 uppercase";
+const th =
+  "p-space-3 text-left text-[12px] tracking-wide text-ink-400 uppercase";
 const num = "p-space-3 text-right tabular-nums";
 const pct = (v: number | null) => (v === null ? "—" : `${v}%`);
 
@@ -108,7 +123,44 @@ function ProfitAndLoss({ currency }: { currency: string }) {
     ["Other income", (r) => m(r.other_income_minor)],
     ["Net profit", (r) => m(r.net_profit_minor), true],
   ];
-<<<<<<< HEAD
+  const INFO: Record<string, [string, string]> = {
+    "Gross sales": [
+      "Gross sales",
+      "Total value of all orders in this period, before returns, excluding cancelled orders.",
+    ],
+    Returns: [
+      "Returns",
+      "Value of goods customers sent back and were credited or refunded for.",
+    ],
+    "Net revenue": [
+      "Net revenue",
+      "Gross sales minus returns: what you actually earned from selling.",
+    ],
+    "Cost of goods sold": [
+      "Cost of goods sold (COGS)",
+      "What the items you sold cost you to buy, taken from your stock cost at the time of sale.",
+    ],
+    "Gross profit": [
+      "Gross profit",
+      "Net revenue minus cost of goods sold. The percentage is the margin: gross profit as a share of net revenue.",
+    ],
+    "Stock write-offs": [
+      "Stock write-offs",
+      "Value of stock lost, damaged or expired and written off the books.",
+    ],
+    "Operating expenses": [
+      "Operating expenses",
+      "Running costs for the period such as rent, salaries and utilities (approved and paid expenses).",
+    ],
+    "Other income": [
+      "Other income",
+      "Money earned outside of sales, for example supplier rebates or miscellaneous income.",
+    ],
+    "Net profit": [
+      "Net profit",
+      "Gross profit minus write-offs and operating expenses, plus other income. What is left after all costs.",
+    ],
+  };
   const rows = pl.data
     ? group === "none"
       ? [pl.data.total]
@@ -144,7 +196,7 @@ function ProfitAndLoss({ currency }: { currency: string }) {
           {pl.error}
         </p>
       )}
-      <Card className="overflow-x-auto p-space-2">
+      <Card className="no-scrollbar overflow-x-auto p-space-2">
         <table className="w-full min-w-[640px] text-[14px]">
           <thead>
             <tr>
@@ -160,12 +212,19 @@ function ProfitAndLoss({ currency }: { currency: string }) {
             </tr>
           </thead>
           <tbody>
-            {lines.map(([name, fmt, bold]) => (
+            {lines.map(([name, fmt, bold], li) => (
               <tr
                 key={name}
                 className={`border-t border-line ${bold ? "bg-black/[0.02] font-semibold text-ink-900" : "text-ink-700"}`}
               >
-                <td className="p-space-3">{name}</td>
+                <td className="p-space-3">
+                  {name}
+                  {INFO[name] && (
+                    <InfoTip above={li >= 4} title={INFO[name][0]}>
+                      {INFO[name][1]}
+                    </InfoTip>
+                  )}
+                </td>
                 {rows.map((r, i) => (
                   <td key={i} className={num}>
                     {fmt(r)}
@@ -178,36 +237,7 @@ function ProfitAndLoss({ currency }: { currency: string }) {
             ))}
           </tbody>
         </table>
-        {!pl.data && !pl.error && (
-          <p className="p-space-3 text-ink-400">Loading…</p>
-        )}
-=======
-  const INFO: Record<string, [string, string]> = {
-    "Gross sales": ["Gross sales", "Total value of all orders in this period, before returns, excluding cancelled orders."],
-    "Returns": ["Returns", "Value of goods customers sent back and were credited or refunded for."],
-    "Net revenue": ["Net revenue", "Gross sales minus returns: what you actually earned from selling."],
-    "Cost of goods sold": ["Cost of goods sold (COGS)", "What the items you sold cost you to buy, taken from your stock cost at the time of sale."],
-    "Gross profit": ["Gross profit", "Net revenue minus cost of goods sold. The percentage is the margin: gross profit as a share of net revenue."],
-    "Stock write-offs": ["Stock write-offs", "Value of stock lost, damaged or expired and written off the books."],
-    "Operating expenses": ["Operating expenses", "Running costs for the period such as rent, salaries and utilities (approved and paid expenses)."],
-    "Other income": ["Other income", "Money earned outside of sales, for example supplier rebates or miscellaneous income."],
-    "Net profit": ["Net profit", "Gross profit minus write-offs and operating expenses, plus other income. What is left after all costs."],
-  };
-  const rows = pl.data ? (group === "none" ? [pl.data.total] : [...pl.data.rows]) : [];
-  return (
-    <>
-      <div className="flex flex-wrap items-end gap-space-3"><DateRange from={from} to={to} onChange={(a, b) => { setFrom(a); setTo(b); }} />
-        <Field label="Break down by" htmlFor="r_group" className="mb-space-4"><Select id="r_group" value={group} onChange={(e) => setGroup(e.target.value)} className="w-52"><option value="none">Whole company</option><option value="branch">Branch</option><option value="channel">Channel</option><option value="branch_channel">Branch × channel</option></Select></Field></div>
-      {pl.error && <p className="mb-space-3 text-[13px] font-medium text-error">{pl.error}</p>}
-      <Card className="no-scrollbar overflow-x-auto p-space-2">
-        <table className="w-full min-w-[640px] text-[14px]">
-          <thead><tr><th className={th}>&nbsp;</th>{rows.map((r, i) => <th key={i} className={`${th} text-right`}>{label(r)}</th>)}{group !== "none" && pl.data && <th className={`${th} text-right`}>Total</th>}</tr></thead>
-          <tbody>{lines.map(([name, fmt, bold], li) => (
-            <tr key={name} className={`border-t border-line ${bold ? "bg-black/[0.02] font-semibold text-ink-900" : "text-ink-700"}`}><td className="p-space-3">{name}{INFO[name] && <InfoTip above={li >= 4} title={INFO[name][0]}>{INFO[name][1]}</InfoTip>}</td>{rows.map((r, i) => <td key={i} className={num}>{fmt(r)}</td>)}{group !== "none" && pl.data && <td className={num}>{fmt(pl.data.total)}</td>}</tr>
-          ))}</tbody>
-        </table>
         {!pl.data && !pl.error && <SkeletonLines rows={3} />}
->>>>>>> main
       </Card>
     </>
   );
@@ -233,7 +263,6 @@ function SalesMatrix({ currency }: { currency: string }) {
   const m = (v: unknown) => formatMoney(Number(v) || 0, currency);
   return (
     <>
-<<<<<<< HEAD
       <DateRange
         from={from}
         to={to}
@@ -247,8 +276,9 @@ function SalesMatrix({ currency }: { currency: string }) {
           {mx.error}
         </p>
       )}
+      {!mx.data && !mx.error && <CardSkeleton rows={5} />}
       {mx.data && (
-        <Card className="overflow-x-auto p-space-2">
+        <Card className="no-scrollbar overflow-x-auto p-space-2">
           <table className="w-full min-w-[560px] text-[14px]">
             <thead>
               <tr>
@@ -287,17 +317,6 @@ function SalesMatrix({ currency }: { currency: string }) {
             </tbody>
           </table>
         </Card>
-=======
-      <DateRange from={from} to={to} onChange={(a, b) => { setFrom(a); setTo(b); }} />
-      {mx.error && <p className="mb-space-3 text-[13px] font-medium text-error">{mx.error}</p>}
-      {!mx.data && !mx.error && <CardSkeleton rows={5} />}
-      {mx.data && (
-        <Card className="no-scrollbar overflow-x-auto p-space-2"><table className="w-full min-w-[560px] text-[14px]">
-          <thead><tr><th className={th}>Branch</th>{mx.data.channels.map((c) => <th key={c} className={`${th} text-right`}>{channelLabel(c)}</th>)}<th className={`${th} text-right`}>Total</th></tr></thead>
-          <tbody>{mx.data.rows.map((r) => <tr key={r.branch} className="border-t border-line"><td className="p-space-3 font-medium text-ink-900">{r.branch}</td>{mx.data!.channels.map((c) => <td key={c} className={num}>{m(r[c])}</td>)}<td className={`${num} font-semibold`}>{m(r.total_minor)}</td></tr>)}
-            <tr className="border-t-2 border-line bg-black/[0.02] font-semibold"><td className="p-space-3">Company</td>{mx.data.channels.map((c) => <td key={c} className={num}>{m(mx.data!.totals[c])}</td>)}<td className={num}>{m(mx.data.totals.total_minor)}</td></tr></tbody>
-        </table></Card>
->>>>>>> main
       )}
     </>
   );
@@ -332,9 +351,11 @@ function BsSection({
 }) {
   const m = (v: number) => formatMoney(v, currency);
   return (
-<<<<<<< HEAD
     <Card className="p-space-4">
-      <h3 className="mb-space-2 text-[15px] font-bold text-ink-900">{title}</h3>
+      <h3 className="mb-space-2 text-[15px] font-bold text-ink-900">
+        {title}
+        <Help term={title} />
+      </h3>
       <ul className="divide-y divide-line text-[14px]">
         {lines.map((l) => (
           <li key={l.code} className="flex justify-between py-1.5">
@@ -346,7 +367,12 @@ function BsSection({
         ))}
         {(extra ?? []).map(([k, v]) => (
           <li key={k} className="flex justify-between py-1.5">
-            <span>{k}</span>
+            <span>
+              {k}
+              {k.startsWith("Retained earnings") && (
+                <Help term="Retained earnings" />
+              )}
+            </span>
             <span className="tabular-nums">{m(v)}</span>
           </li>
         ))}
@@ -356,11 +382,6 @@ function BsSection({
         <span className="tabular-nums">{m(total)}</span>
       </div>
     </Card>
-=======
-    <Card className="p-space-4"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">{title}<Help term={title} /></h3>
-      <ul className="divide-y divide-line text-[14px]">{lines.map((l) => <li key={l.code} className="flex justify-between py-1.5"><span>{l.code} · {l.name}</span><span className="tabular-nums">{m(l.amount_minor)}</span></li>)}{(extra ?? []).map(([k, v]) => <li key={k} className="flex justify-between py-1.5"><span>{k}{k.startsWith("Retained earnings") && <Help term="Retained earnings" />}</span><span className="tabular-nums">{m(v)}</span></li>)}</ul>
-      <div className="mt-space-2 flex justify-between border-t border-line pt-space-2 font-bold"><span>Total {title.toLowerCase()}</span><span className="tabular-nums">{m(total)}</span></div></Card>
->>>>>>> main
   );
 }
 
@@ -372,16 +393,17 @@ function BalanceSheet({ currency }: { currency: string }) {
   const d = bs.data;
   return (
     <>
-<<<<<<< HEAD
       {bs.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
           {bs.error}
         </p>
       )}
-=======
-      {bs.error && <p className="mb-space-3 text-[13px] font-medium text-error">{bs.error}</p>}
-      {!d && !bs.error && <div className="grid gap-space-4 lg:grid-cols-2"><CardSkeleton rows={5} /><CardSkeleton rows={5} /></div>}
->>>>>>> main
+      {!d && !bs.error && (
+        <div className="grid gap-space-4 lg:grid-cols-2">
+          <CardSkeleton rows={5} />
+          <CardSkeleton rows={5} />
+        </div>
+      )}
       {d && (
         <>
           <p
@@ -474,16 +496,15 @@ function GstReport({ currency }: { currency: string }) {
   );
   const m = (v: number) => formatMoney(v, currency);
   const d = g.data;
-<<<<<<< HEAD
   const line = (k: string, v: number) => (
     <div key={k} className="flex justify-between py-1.5 text-[14px]">
-      <span className="text-ink-600">{k}</span>
+      <span className="text-ink-600">
+        {k}
+        {GST_HELP[k] && <Help term={GST_HELP[k]} />}
+      </span>
       <span className="tabular-nums">{m(v)}</span>
     </div>
   );
-=======
-  const line = (k: string, v: number) => <div key={k} className="flex justify-between py-1.5 text-[14px]"><span className="text-ink-600">{k}{GST_HELP[k] && <Help term={GST_HELP[k]} />}</span><span className="tabular-nums">{m(v)}</span></div>;
->>>>>>> main
   return (
     <>
       <div className="flex flex-wrap items-end gap-space-3">
@@ -526,11 +547,16 @@ function GstReport({ currency }: { currency: string }) {
           </Select>
         </Field>
       </div>
-<<<<<<< HEAD
       {g.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
           {g.error}
         </p>
+      )}
+      {!d && !g.error && (
+        <div className="grid gap-space-4 lg:grid-cols-2">
+          <CardSkeleton rows={5} />
+          <CardSkeleton rows={5} />
+        </div>
       )}
       {d && (
         <div className="grid gap-space-4 lg:grid-cols-2">
@@ -552,13 +578,17 @@ function GstReport({ currency }: { currency: string }) {
             {line("Input credit: SGST", -d.input_credit.sgst)}
             {line("Input credit: IGST", -d.input_credit.igst)}
             <div className="mt-space-2 flex justify-between border-t border-line pt-space-2 text-[16px] font-bold">
-              <span>Net GST payable</span>
+              <span>
+                Net GST payable
+                <Help term="Net GST payable" above />
+              </span>
               <span className="tabular-nums">{m(d.net_payable_minor)}</span>
             </div>
           </Card>
           <Card className="p-space-4">
             <h3 className="mb-space-2 text-[15px] font-bold text-ink-900">
               By tax rate
+              <Help term="By tax rate" />
             </h3>
             <table className="w-full text-[14px]">
               <thead>
@@ -597,6 +627,7 @@ function GstReport({ currency }: { currency: string }) {
           <Card className="p-space-4 lg:col-span-2">
             <h3 className="mb-space-2 text-[15px] font-bold text-ink-900">
               By GST registration
+              <Help term="By GST registration" />
             </h3>
             <p className="mb-space-2 text-[12.5px] text-ink-400">
               GST returns are filed per GSTIN, so each registration has its own
@@ -666,25 +697,6 @@ function GstReport({ currency }: { currency: string }) {
               </table>
             </div>
           </Card>
-=======
-      {g.error && <p className="mb-space-3 text-[13px] font-medium text-error">{g.error}</p>}
-      {!d && !g.error && <div className="grid gap-space-4 lg:grid-cols-2"><CardSkeleton rows={5} /><CardSkeleton rows={5} /></div>}
-      {d && (
-        <div className="grid gap-space-4 lg:grid-cols-2">
-          <Card className="p-space-4"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">GST summary</h3>
-            {line("Taxable sales (net of credit notes)", d.outward_taxable_minor)}
-            {line("CGST collected", d.output_tax.cgst)}{line("SGST collected", d.output_tax.sgst)}{line("IGST collected", d.output_tax.igst)}
-            <div className="border-t border-line">{line("Output tax", d.output_tax.total_minor)}</div>
-            {line("Input credit: CGST", -d.input_credit.cgst)}{line("Input credit: SGST", -d.input_credit.sgst)}{line("Input credit: IGST", -d.input_credit.igst)}
-            <div className="mt-space-2 flex justify-between border-t border-line pt-space-2 text-[16px] font-bold"><span>Net GST payable<Help term="Net GST payable" above /></span><span className="tabular-nums">{m(d.net_payable_minor)}</span></div></Card>
-          <Card className="p-space-4"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">By tax rate<Help term="By tax rate" /></h3>
-            <table className="w-full text-[14px]"><thead><tr><th className={`${th} !p-1`}>Rate</th><th className={`${th} !p-1`}>Document</th><th className={`${th} !p-1 text-right`}>Taxable</th><th className={`${th} !p-1 text-right`}>Tax</th></tr></thead>
-              <tbody>{d.by_rate.map((r, i) => <tr key={i} className="border-t border-line"><td className="py-1.5">{r.rate_bps / 100}%</td><td>{r.doc_type === "INVOICE" ? "Invoices" : "Credit notes"}</td><td className="text-right tabular-nums">{m(r.taxable_minor)}</td><td className="text-right tabular-nums">{m(r.tax_minor)}</td></tr>)}{d.by_rate.length === 0 && <tr><td colSpan={4} className="py-3 text-center text-ink-400">No tax documents in this period.</td></tr>}</tbody></table></Card>
-          <Card className="p-space-4 lg:col-span-2"><h3 className="mb-space-2 text-[15px] font-bold text-ink-900">By GST registration<Help term="By GST registration" /></h3>
-            <p className="mb-space-2 text-[12.5px] text-ink-400">GST returns are filed per GSTIN, so each registration has its own payable. Input credit set off only within the same GSTIN.</p>
-            <div className="overflow-x-auto"><table className="w-full text-[14px]"><thead><tr><th className={`${th} !p-1`}>GSTIN</th><th className={`${th} !p-1 text-right`}>Taxable sales</th><th className={`${th} !p-1 text-right`}>CGST</th><th className={`${th} !p-1 text-right`}>SGST</th><th className={`${th} !p-1 text-right`}>IGST</th><th className={`${th} !p-1 text-right`}>Input credit</th><th className={`${th} !p-1 text-right`}>Net payable</th></tr></thead>
-              <tbody>{d.by_registration.map((r) => <tr key={r.registration_id ?? "none"} className="border-t border-line"><td className="py-1.5">{r.gstin ? <>{r.gstin}<span className="block text-[11.5px] text-ink-400">{r.state_name}</span></> : <span className="text-ink-400">Unassigned (no GSTIN on the document)</span>}</td><td className="text-right tabular-nums">{m(r.outward_taxable_minor)}</td><td className="text-right tabular-nums">{m(r.output_tax.cgst)}</td><td className="text-right tabular-nums">{m(r.output_tax.sgst)}</td><td className="text-right tabular-nums">{m(r.output_tax.igst)}</td><td className="text-right tabular-nums">{m(r.input_credit.total_minor)}</td><td className="text-right font-semibold tabular-nums">{m(r.net_payable_minor)}</td></tr>)}{d.by_registration.length === 0 && <tr><td colSpan={7} className="py-3 text-center text-ink-400">Nothing in this period.</td></tr>}</tbody></table></div></Card>
->>>>>>> main
         </div>
       )}
     </>
@@ -718,7 +730,6 @@ function ProductReport({ currency }: { currency: string }) {
   const m = (v: number) => formatMoney(v, currency);
   return (
     <>
-<<<<<<< HEAD
       <div className="flex flex-wrap items-end gap-space-3">
         <DateRange
           from={from}
@@ -745,7 +756,7 @@ function ProductReport({ currency }: { currency: string }) {
           {r.error}
         </p>
       )}
-      <Card className="overflow-x-auto p-space-2">
+      <Card className="no-scrollbar overflow-x-auto p-space-2">
         <table className="w-full min-w-[820px] text-[13.5px]">
           <thead>
             <tr>
@@ -800,15 +811,6 @@ function ProductReport({ currency }: { currency: string }) {
           </tbody>
         </table>
       </Card>
-=======
-      <div className="flex flex-wrap items-end gap-space-3"><DateRange from={from} to={to} onChange={(a, b) => { setFrom(a); setTo(b); }} />
-        <Field label="Group by" htmlFor="p_group" className="mb-space-4"><Select id="p_group" value={group} onChange={(e) => setGroup(e.target.value)} className="w-44"><option value="product">Product</option><option value="category">Category</option></Select></Field></div>
-      {r.error && <p className="mb-space-3 text-[13px] font-medium text-error">{r.error}</p>}
-      <Card className="no-scrollbar overflow-x-auto p-space-2"><table className="w-full min-w-[820px] text-[13.5px]">
-        <thead><tr><th className={th}>{group === "product" ? "Product" : "Category"}</th><th className={`${th} text-right`}>Sold</th><th className={`${th} text-right`}>Revenue</th><th className={`${th} text-right`}>Margin</th><th className={`${th} text-right`}>Returns</th><th className={`${th} text-right`}>In stock</th><th className={`${th} text-right`}>Stock value</th><th className={`${th} text-right`}>Turn</th><th className={`${th} text-right`}>Last receipt</th></tr></thead>
-        <tbody>{(r.data?.rows ?? []).map((p) => <tr key={`${p.key_id}`} className="border-t border-line"><td className="p-space-3"><span className="font-medium text-ink-900">{p.name}</span><span className="block text-[11.5px] text-ink-400">{p.code}</span></td><td className={num}>{p.units_sold}</td><td className={num}>{m(p.revenue_minor)}</td><td className={num}>{m(p.gross_margin_minor)} <span className="text-ink-400">({pct(p.gross_margin_pct)})</span></td><td className={num}>{pct(p.return_rate_pct)}</td><td className={num}>{p.units_in_stock}</td><td className={num}>{m(p.stock_value_minor)}</td><td className={num}>{p.stock_turn ?? "—"}</td><td className={num}>{p.days_since_last_receipt !== null ? `${p.days_since_last_receipt}d ago` : "—"}</td></tr>)}
-          {r.data?.rows.length === 0 && <tr><td colSpan={9} className="p-space-4 text-center text-ink-400">No sales or stock in this period.</td></tr>}</tbody></table></Card>
->>>>>>> main
     </>
   );
 }
@@ -833,11 +835,14 @@ function Buckets({
 }) {
   const m = (v: number) => formatMoney(v, currency);
   return (
-<<<<<<< HEAD
     <Card className="p-space-4">
-      <h3 className="text-[15px] font-bold text-ink-900">{title}</h3>
+      <h3 className="text-[15px] font-bold text-ink-900">
+        {title}
+        <Help term={title} />
+      </h3>
       <p className="mb-space-3 text-[12.5px] text-ink-600">{hint}</p>
       {error && <p className="text-[13px] text-error">{error}</p>}
+      {!a && !error && <SkeletonLines rows={2} />}
       {a && (
         <>
           <div className="grid grid-cols-5 gap-space-2 text-center">
@@ -858,12 +863,6 @@ function Buckets({
         </>
       )}
     </Card>
-=======
-    <Card className="p-space-4"><h3 className="text-[15px] font-bold text-ink-900">{title}<Help term={title} /></h3><p className="mb-space-3 text-[12.5px] text-ink-600">{hint}</p>
-      {error && <p className="text-[13px] text-error">{error}</p>}
-      {!a && !error && <SkeletonLines rows={2} />}
-      {a && <><div className="grid grid-cols-5 gap-space-2 text-center">{AGING_ORDER.map((b) => <div key={b} className="rounded-md border border-line p-space-2"><p className="text-[11px] text-ink-400 uppercase">{b === "current" ? "Not due" : `${b} days`}</p><p className="text-[14px] font-semibold tabular-nums text-ink-900">{m(a.buckets[b] ?? 0)}</p></div>)}</div><p className="mt-space-2 text-right text-[14px] font-bold">Total {m(a.total_minor)}</p></>}</Card>
->>>>>>> main
   );
 }
 

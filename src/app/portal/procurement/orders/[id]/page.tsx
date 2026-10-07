@@ -139,8 +139,15 @@ export default function PurchaseOrderPage() {
 
   return (
     <PortalShell tenant={tenant} active="procurement">
-      <Link href="/portal/procurement" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> All purchase orders</Link>
-      {po.error && <p className="text-[14px] font-medium text-error">{po.error}</p>}
+      <Link
+        href="/portal/procurement"
+        className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"
+      >
+        <ArrowLeft size={14} /> All purchase orders
+      </Link>
+      {po.error && (
+        <p className="text-[14px] font-medium text-error">{po.error}</p>
+      )}
       {!o && !po.error && <SkeletonLines rows={3} />}
       {o && (
         <>

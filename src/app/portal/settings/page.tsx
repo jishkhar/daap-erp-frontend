@@ -401,10 +401,31 @@ export default function SettingsPage() {
 
   return (
     <PortalShell tenant={tenant} active="settings">
-      <PageHeader icon={<Settings size={20} />} title="Settings" description="Company-wide configuration." />
-      {view.error && <p className="mb-space-3 text-[13px] font-medium text-error">{view.error}</p>}
-      {!view.data && !view.error && <div className="flex flex-col gap-space-4"><CardSkeleton rows={5} /><CardSkeleton rows={3} /><CardSkeleton rows={2} /></div>}
-      {t && view.data && <GeneralSections t={t} contact={view.data.contact} canEdit={canEdit} onSaved={view.reload} />}
+      <PageHeader
+        icon={<Settings size={20} />}
+        title="Settings"
+        description="Company-wide configuration."
+      />
+      {view.error && (
+        <p className="mb-space-3 text-[13px] font-medium text-error">
+          {view.error}
+        </p>
+      )}
+      {!view.data && !view.error && (
+        <div className="flex flex-col gap-space-4">
+          <CardSkeleton rows={5} />
+          <CardSkeleton rows={3} />
+          <CardSkeleton rows={2} />
+        </div>
+      )}
+      {t && view.data && (
+        <GeneralSections
+          t={t}
+          contact={view.data.contact}
+          canEdit={canEdit}
+          onSaved={view.reload}
+        />
+      )}
       <div>
         {view.data && (
           <OperationsCard

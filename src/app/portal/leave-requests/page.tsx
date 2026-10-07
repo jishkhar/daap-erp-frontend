@@ -161,10 +161,46 @@ export default function LeaveRequestsPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <StatTile loading={!summary && !error} icon={<Hourglass size={22} />} label="Pending" value={summary?.pending ?? 0} deltaPct={null} hint="Awaiting a decision" tone="warning" filled />
-        <StatTile loading={!summary && !error} icon={<CalendarCheck size={22} />} label="Approved" value={summary?.approved ?? 0} deltaPct={null} hint="This period" tone="brand" filled />
-        <StatTile loading={!summary && !error} icon={<CalendarX size={22} />} label="Declined" value={summary?.rejected ?? 0} deltaPct={null} hint="This period" tone="clay" filled />
-        <StatTile loading={!summary && !error} icon={<CalendarOff size={22} />} label="On leave today" value={summary?.on_leave_today ?? 0} deltaPct={null} hint="Right now" tone="violet" filled />
+        <StatTile
+          loading={!summary && !error}
+          icon={<Hourglass size={22} />}
+          label="Pending"
+          value={summary?.pending ?? 0}
+          deltaPct={null}
+          hint="Awaiting a decision"
+          tone="warning"
+          filled
+        />
+        <StatTile
+          loading={!summary && !error}
+          icon={<CalendarCheck size={22} />}
+          label="Approved"
+          value={summary?.approved ?? 0}
+          deltaPct={null}
+          hint="This period"
+          tone="brand"
+          filled
+        />
+        <StatTile
+          loading={!summary && !error}
+          icon={<CalendarX size={22} />}
+          label="Declined"
+          value={summary?.rejected ?? 0}
+          deltaPct={null}
+          hint="This period"
+          tone="clay"
+          filled
+        />
+        <StatTile
+          loading={!summary && !error}
+          icon={<CalendarOff size={22} />}
+          label="On leave today"
+          value={summary?.on_leave_today ?? 0}
+          deltaPct={null}
+          hint="Right now"
+          tone="violet"
+          filled
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1fr)_320px]">

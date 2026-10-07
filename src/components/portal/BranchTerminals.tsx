@@ -377,26 +377,95 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         </div>
       )}
       {(list.data?.pairing_codes ?? []).length > 0 && (
-        <ul className="mb-space-4 divide-y divide-line rounded-lg border border-line">{list.data?.pairing_codes.map((c) => (
-          <li key={c.id} className="flex items-center justify-between gap-space-3 px-space-3 py-space-2 text-[13.5px]">
-            <span>Unused code{c.terminal_name ? ` for “${c.terminal_name}”` : ""} <span className="text-ink-400">· expires {formatDateTime(c.expires_at)}</span></span>
-            {canManage && <button type="button" className="text-[13px] font-semibold text-error" onClick={() => cancelCode(c.id)}>Cancel</button>}
-          </li>))}</ul>)}
-      {list.error && <p className="mb-space-3 text-[13px] text-error">{list.error}</p>}
-      {terminals.length === 0 && (list.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"No terminals paired to this branch yet. Generate a pairing code and enter it in the POS app."}</p>)}
-      <ul className="divide-y divide-line">{terminals.map((t) => (
-        <li key={t.id} className="flex flex-wrap items-center justify-between gap-space-3 py-space-3">
-          <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-ink-900">{t.name} <span className="font-normal text-ink-400">{t.code}</span> <Badge tone={t.status === "active" ? "success" : "neutral"}>{t.status}</Badge></p>
-            <p className="text-[12.5px] text-ink-600">{deviceLine(t)}{t.app_version ? ` · app ${t.app_version}` : ""}</p>
-            <p className="text-[12.5px] text-ink-400">{t.status === "active" ? `Last seen ${ago(t.last_seen_at)} · synced ${ago(t.last_sync_at)}` : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}</p>
-          </div>
-          <div className="flex gap-space-1">
-            <Button variant="ghost" onClick={() => setDetail(t.id)}>Details</Button>
-            {canManage && t.status === "active" && <Button variant="ghost" onClick={() => setRenaming({ t, name: t.name })}>Rename</Button>}
-            {canManage && t.status === "active" && <Button variant="ghost" className="text-error" onClick={() => { setRevoking(t); setReason(""); }}>Revoke</Button>}
-          </div>
-        </li>))}
+        <ul className="mb-space-4 divide-y divide-line rounded-lg border border-line">
+          {list.data?.pairing_codes.map((c) => (
+            <li
+              key={c.id}
+              className="flex items-center justify-between gap-space-3 px-space-3 py-space-2 text-[13.5px]"
+            >
+              <span>
+                Unused code{c.terminal_name ? ` for “${c.terminal_name}”` : ""}{" "}
+                <span className="text-ink-400">
+                  · expires {formatDateTime(c.expires_at)}
+                </span>
+              </span>
+              {canManage && (
+                <button
+                  type="button"
+                  className="text-[13px] font-semibold text-error"
+                  onClick={() => cancelCode(c.id)}
+                >
+                  Cancel
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {list.error && (
+        <p className="mb-space-3 text-[13px] text-error">{list.error}</p>
+      )}
+      {terminals.length === 0 &&
+        (list.loading ? (
+          <SkeletonLines rows={2} />
+        ) : (
+          <p className="text-[13.5px] text-ink-400">
+            {
+              "No terminals paired to this branch yet. Generate a pairing code and enter it in the POS app."
+            }
+          </p>
+        ))}
+      <ul className="divide-y divide-line">
+        {terminals.map((t) => (
+          <li
+            key={t.id}
+            className="flex flex-wrap items-center justify-between gap-space-3 py-space-3"
+          >
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-ink-900">
+                {t.name}{" "}
+                <span className="font-normal text-ink-400">{t.code}</span>{" "}
+                <Badge tone={t.status === "active" ? "success" : "neutral"}>
+                  {t.status}
+                </Badge>
+              </p>
+              <p className="text-[12.5px] text-ink-600">
+                {deviceLine(t)}
+                {t.app_version ? ` · app ${t.app_version}` : ""}
+              </p>
+              <p className="text-[12.5px] text-ink-400">
+                {t.status === "active"
+                  ? `Last seen ${ago(t.last_seen_at)} · synced ${ago(t.last_sync_at)}`
+                  : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}
+              </p>
+            </div>
+            <div className="flex gap-space-1">
+              <Button variant="ghost" onClick={() => setDetail(t.id)}>
+                Details
+              </Button>
+              {canManage && t.status === "active" && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setRenaming({ t, name: t.name })}
+                >
+                  Rename
+                </Button>
+              )}
+              {canManage && t.status === "active" && (
+                <Button
+                  variant="ghost"
+                  className="text-error"
+                  onClick={() => {
+                    setRevoking(t);
+                    setReason("");
+                  }}
+                >
+                  Revoke
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
       </ul>
       {issued && <CodeModal issued={issued} onClose={() => setIssued(null)} />}
       {detail && <Detail id={detail} onClose={() => setDetail(null)} />}
@@ -526,18 +595,80 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
   const cashiers = list.data ?? [];
   return (
     <div>
-      <p className="mb-space-3 text-[13px] text-ink-600">Cashiers are team members whose role lets them bill at this branch. Give each a 6-digit PIN to sign in at the POS terminal. Add people and roles under <Link className="underline" href="/portal/settings/staff">Team &amp; Access</Link>.</p>
-      {list.error && <p className="mb-space-3 text-[13px] text-error">{list.error}</p>}
-      {cashiers.length === 0 && (list.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"Nobody can bill at this branch yet."}</p>)}
-      <ul className="divide-y divide-line">{cashiers.map((c) => (
-        <li key={c.id} className="flex flex-wrap items-center justify-between gap-space-3 py-space-3 text-[14px]">
-          <span><strong className="text-ink-900">{c.name}</strong> <span className="text-ink-400">{c.email}</span><br /><span className="text-[12.5px] text-ink-600">{c.roles.map(humanize).join(", ")}</span></span>
-          <span className="flex items-center gap-space-2">
-            <Badge tone={c.status === "disabled" ? "neutral" : c.has_pin ? "success" : "warning"}>{c.status === "disabled" ? "disabled" : c.has_pin ? "PIN set" : "No PIN"}</Badge>
-            {canSetPin && c.status === "active" && <Button variant="ghost" onClick={() => { setTarget(c); setForm({ pin: "", again: "" }); setErrors({}); }}>{c.has_pin ? "Reset PIN" : "Set PIN"}</Button>}
-            {canSetPin && c.has_pin && <Button variant="ghost" className="text-error" onClick={() => clear(c)}>Remove</Button>}
-          </span>
-        </li>))}
+      <p className="mb-space-3 text-[13px] text-ink-600">
+        Cashiers are team members whose role lets them bill at this branch. Give
+        each a 6-digit PIN to sign in at the POS terminal. Add people and roles
+        under{" "}
+        <Link className="underline" href="/portal/settings/staff">
+          Team &amp; Access
+        </Link>
+        .
+      </p>
+      {list.error && (
+        <p className="mb-space-3 text-[13px] text-error">{list.error}</p>
+      )}
+      {cashiers.length === 0 &&
+        (list.loading ? (
+          <SkeletonLines rows={2} />
+        ) : (
+          <p className="text-[13.5px] text-ink-400">
+            {"Nobody can bill at this branch yet."}
+          </p>
+        ))}
+      <ul className="divide-y divide-line">
+        {cashiers.map((c) => (
+          <li
+            key={c.id}
+            className="flex flex-wrap items-center justify-between gap-space-3 py-space-3 text-[14px]"
+          >
+            <span>
+              <strong className="text-ink-900">{c.name}</strong>{" "}
+              <span className="text-ink-400">{c.email}</span>
+              <br />
+              <span className="text-[12.5px] text-ink-600">
+                {c.roles.map(humanize).join(", ")}
+              </span>
+            </span>
+            <span className="flex items-center gap-space-2">
+              <Badge
+                tone={
+                  c.status === "disabled"
+                    ? "neutral"
+                    : c.has_pin
+                      ? "success"
+                      : "warning"
+                }
+              >
+                {c.status === "disabled"
+                  ? "disabled"
+                  : c.has_pin
+                    ? "PIN set"
+                    : "No PIN"}
+              </Badge>
+              {canSetPin && c.status === "active" && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setTarget(c);
+                    setForm({ pin: "", again: "" });
+                    setErrors({});
+                  }}
+                >
+                  {c.has_pin ? "Reset PIN" : "Set PIN"}
+                </Button>
+              )}
+              {canSetPin && c.has_pin && (
+                <Button
+                  variant="ghost"
+                  className="text-error"
+                  onClick={() => clear(c)}
+                >
+                  Remove
+                </Button>
+              )}
+            </span>
+          </li>
+        ))}
       </ul>
       {!canSetPin && cashiers.length > 0 && (
         <p className="mt-space-3 text-[12.5px] text-ink-400">

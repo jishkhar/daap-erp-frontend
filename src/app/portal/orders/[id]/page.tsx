@@ -113,7 +113,9 @@ export default function OrderDetailPage() {
       >
         <ArrowLeft size={14} /> All orders
       </Link>
-      {order.error && <p className="text-[14px] font-medium text-error">{order.error}</p>}
+      {order.error && (
+        <p className="text-[14px] font-medium text-error">{order.error}</p>
+      )}
       {!o && !order.error && <SkeletonLines rows={3} />}
       {o && (
         <>

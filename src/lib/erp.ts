@@ -115,6 +115,7 @@ export type Product = {
   mrp_minor: number | null;
   cost_minor: number | null;
   barcode: string | null;
+  images?: string[]; // public image URLs, first = cover
   lifecycle_status: "draft" | "active" | "discontinued" | "archived";
 };
 

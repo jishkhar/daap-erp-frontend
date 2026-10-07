@@ -1,10 +1,21 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Copy, PackagePlus, Package, Pencil, PackageOpen } from "lucide-react";
+import {
+  Copy,
+  ImageIcon,
+  PackagePlus,
+  Package,
+  Pencil,
+  PackageOpen,
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
+import {
+  ProductImagesModal,
+  ProductThumb,
+} from "@/components/erp/ProductImagesModal";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -107,6 +118,7 @@ export default function ProductsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [receiving, setReceiving] = useState<Product | null>(null);
   const [variantOf, setVariantOf] = useState<Product | null>(null);
+  const [imagesOf, setImagesOf] = useState<string | null>(null);
   const [variant, setVariant] = useState({ sku: "", name: "", price: "" });
   const [recvBranch, setRecvBranch] = useState("");
   const [recvQty, setRecvQty] = useState("");
@@ -130,20 +142,23 @@ export default function ProductsPage() {
       {
         header: "Product",
         cell: ({ row }) => (
-          <div>
-            <p className="font-semibold text-ink-900">{row.original.name}</p>
-            <p className="text-[12px] text-ink-400">
-              {row.original.sku}
-              {row.original.serialization_type !== "NONE" && (
-                <>
-                  {" "}
-                  · tracked by{" "}
-                  {row.original.serialization_type === "IMEI"
-                    ? "IMEI"
-                    : "serial no."}
-                </>
-              )}
-            </p>
+          <div className="flex items-center gap-space-2">
+            <ProductThumb url={row.original.images?.[0]} />
+            <div>
+              <p className="font-semibold text-ink-900">{row.original.name}</p>
+              <p className="text-[12px] text-ink-400">
+                {row.original.sku}
+                {row.original.serialization_type !== "NONE" && (
+                  <>
+                    {" "}
+                    · tracked by{" "}
+                    {row.original.serialization_type === "IMEI"
+                      ? "IMEI"
+                      : "serial no."}
+                  </>
+                )}
+              </p>
+            </div>
           </div>
         ),
       },
@@ -220,6 +235,15 @@ export default function ProductsPage() {
                 }}
               >
                 <Copy size={15} /> Variant
+              </Button>
+            )}
+            {canWrite && (
+              <Button
+                variant="ghost"
+                aria-label={`Images of ${row.original.name}`}
+                onClick={() => setImagesOf(row.original.id)}
+              >
+                <ImageIcon size={15} /> Images
               </Button>
             )}
             {canWrite && (
@@ -370,16 +394,61 @@ export default function ProductsPage() {
 
   return (
     <PortalShell tenant={tenant} active="products">
-      <PageHeader scopedToBranch icon={<Package size={20} />} title="Products" description="The product master shared by every branch and every channel."
-        actions={canWrite && (
-          <div className="flex gap-space-2">
-            <input ref={fileInput} type="file" accept=".csv,.xlsx" hidden onChange={(e) => importFile(e.target.files?.[0])} />
-            <Button variant="ghost" disabled={importing} onClick={() => fileInput.current?.click()}><HugeiconsIcon icon={FileUploadIcon} size={16} /> {importing ? "Importing…" : "Import CSV / Excel"}</Button>
-            <Button onClick={() => setDraft({ ...EMPTY })}><PackagePlus size={16} /> Add product</Button>
-          </div>)} />
-      <Card className="mb-space-4 p-space-3"><Input placeholder="Search by name, SKU or barcode…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" aria-label="Search products" /></Card>
-      {products.error && <p className="mb-space-3 text-[13px] font-medium text-error">{products.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={products.data ?? []} getRowId={(p) => String(p.id)} loading={products.loading} emptyMessage={products.loading ? "Loading products…" : "No products yet."} /></Card>
+      <PageHeader
+        scopedToBranch
+        icon={<Package size={20} />}
+        title="Products"
+        description="The product master shared by every branch and every channel."
+        actions={
+          canWrite && (
+            <div className="flex gap-space-2">
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".csv,.xlsx"
+                hidden
+                onChange={(e) => importFile(e.target.files?.[0])}
+              />
+              <Button
+                variant="ghost"
+                disabled={importing}
+                onClick={() => fileInput.current?.click()}
+              >
+                <HugeiconsIcon icon={FileUploadIcon} size={16} />{" "}
+                {importing ? "Importing…" : "Import CSV / Excel"}
+              </Button>
+              <Button onClick={() => setDraft({ ...EMPTY })}>
+                <PackagePlus size={16} /> Add product
+              </Button>
+            </div>
+          )
+        }
+      />
+      <Card className="mb-space-4 p-space-3">
+        <Input
+          placeholder="Search by name, SKU or barcode…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-md"
+          aria-label="Search products"
+        />
+      </Card>
+      {products.error && (
+        <p className="mb-space-3 text-[13px] font-medium text-error">
+          {products.error}
+        </p>
+      )}
+      <Card className="p-space-2">
+        <DataTable
+          columns={columns}
+          data={products.data ?? []}
+          getRowId={(p) => String(p.id)}
+          loading={products.loading}
+          emptyMessage={
+            products.loading ? "Loading products…" : "No products yet."
+          }
+        />
+      </Card>
 
       <Modal
         open={draft !== null}
@@ -572,6 +641,12 @@ export default function ProductsPage() {
           </div>
         )}
       </Modal>
+
+      <ProductImagesModal
+        product={(products.data ?? []).find((p) => p.id === imagesOf) ?? null}
+        onClose={() => setImagesOf(null)}
+        onChanged={products.reload}
+      />
 
       <Modal
         open={importResult !== null}

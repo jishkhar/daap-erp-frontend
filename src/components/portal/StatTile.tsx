@@ -65,7 +65,19 @@ type Props = {
   info?: ReactNode;
 };
 
-export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand", filled = false, upIsGood = true, hint = "vs last week", loading = false, info }: Props) {
+export function StatTile({
+  label,
+  value,
+  deltaPct,
+  prefix,
+  icon,
+  tone = "brand",
+  filled = false,
+  upIsGood = true,
+  hint = "vs last week",
+  loading = false,
+  info,
+}: Props) {
   const isUp = deltaPct !== null && deltaPct > 0;
   const isDown = deltaPct !== null && deltaPct < 0;
   const isGoodDirection = (isUp && upIsGood) || (isDown && !upIsGood);
@@ -87,9 +99,27 @@ export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand",
         </span>
       )}
       <div className="min-w-0">
-        <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}{info}</p>
+        <p className="text-[13px] leading-snug font-semibold text-ink-600">
+          {label}
+          {info}
+        </p>
         <div className="mt-1 flex items-baseline gap-space-2">
-          {loading ? <Skeleton className="h-[30px] w-24" /> : <span className={cn("leading-none font-bold text-ink-900", typeof value === "string" && value.length + (prefix?.length ?? 0) > 9 ? "text-[24px]" : "text-[30px]")}>{prefix}{typeof value === "number" ? value.toLocaleString() : value}</span>}
+          {loading ? (
+            <Skeleton className="h-[30px] w-24" />
+          ) : (
+            <span
+              className={cn(
+                "leading-none font-bold text-ink-900",
+                typeof value === "string" &&
+                  value.length + (prefix?.length ?? 0) > 9
+                  ? "text-[24px]"
+                  : "text-[30px]",
+              )}
+            >
+              {prefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
+            </span>
+          )}
           {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
           {!loading && deltaPct !== null && (
             <span

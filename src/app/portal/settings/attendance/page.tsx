@@ -239,7 +239,11 @@ export default function AttendanceSettingsPage() {
         description="The shift, the lateness grace, and where staff may clock in from."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
-      {!settings ? <SkeletonLines rows={3} /> : <SettingsForm initial={settings} onSave={save} />}
+      {!settings ? (
+        <SkeletonLines rows={3} />
+      ) : (
+        <SettingsForm initial={settings} onSave={save} />
+      )}
     </PortalShell>
   );
 }

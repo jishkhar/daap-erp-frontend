@@ -81,9 +81,32 @@ export default function ChannelPage() {
         }
       />
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
-        <StatTile loading={stats.loading && !stats.data} label="Orders" value={summary.count} deltaPct={null} hint="excluding cancelled" icon={<ShoppingCart size={22} />} />
-        <StatTile loading={stats.loading && !stats.data} label="Revenue" value={formatMoney(summary.revenue, tenant?.currency)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<Icon size={22} />} />
-        <StatTile loading={stats.loading && !stats.data} label="Open orders" value={summary.open} deltaPct={null} hint="awaiting payment or fulfilment" tone="warning" icon={<ShoppingCart size={22} />} />
+        <StatTile
+          loading={stats.loading && !stats.data}
+          label="Orders"
+          value={summary.count}
+          deltaPct={null}
+          hint="excluding cancelled"
+          icon={<ShoppingCart size={22} />}
+        />
+        <StatTile
+          loading={stats.loading && !stats.data}
+          label="Revenue"
+          value={formatMoney(summary.revenue, tenant?.currency)}
+          deltaPct={null}
+          hint="excluding cancelled"
+          tone="success"
+          icon={<Icon size={22} />}
+        />
+        <StatTile
+          loading={stats.loading && !stats.data}
+          label="Open orders"
+          value={summary.open}
+          deltaPct={null}
+          hint="awaiting payment or fulfilment"
+          tone="warning"
+          icon={<ShoppingCart size={22} />}
+        />
       </div>
       <OrdersView channel={channel} />
       {channel !== "pos" && <ChannelConnections channel={channel} />}{" "}

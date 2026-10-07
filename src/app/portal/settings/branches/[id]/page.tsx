@@ -94,8 +94,15 @@ export default function BranchDetailPage() {
 
   return (
     <PortalShell tenant={tenant} active="settings">
-      <Link href="/portal/settings/branches" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> All branches</Link>
-      {branch.error && <p className="text-[14px] font-medium text-error">{branch.error}</p>}
+      <Link
+        href="/portal/settings/branches"
+        className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"
+      >
+        <ArrowLeft size={14} /> All branches
+      </Link>
+      {branch.error && (
+        <p className="text-[14px] font-medium text-error">{branch.error}</p>
+      )}
       {!b && !branch.error && <SkeletonLines rows={3} />}
       {b && (
         <>

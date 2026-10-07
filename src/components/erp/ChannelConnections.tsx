@@ -86,7 +86,13 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
         )}
       </div>
       {mine.length === 0 ? (
-        <>{clients.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"No API keys yet."}</p>}</>
+        <>
+          {clients.loading ? (
+            <SkeletonLines rows={2} />
+          ) : (
+            <p className="text-[13.5px] text-ink-400">{"No API keys yet."}</p>
+          )}
+        </>
       ) : (
         <ul className="divide-y divide-line">
           {mine.map((c) => (

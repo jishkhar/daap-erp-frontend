@@ -81,10 +81,46 @@ export default function MyLeavePage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <StatTile loading={!balance && !error} icon={<CalendarDays size={22} />} label="Yearly allowance" value={balance?.allowance ?? 0} deltaPct={null} hint={balance ? `${balance.year} · in days` : "In days"} tone="brand" filled />
-        <StatTile loading={!balance && !error} icon={<Hourglass size={22} />} label="Used" value={balance?.used ?? 0} deltaPct={null} hint="In days" tone="warning" filled />
-        <StatTile loading={!balance && !error} icon={<CalendarClock size={22} />} label="Waiting for approval" value={balance?.pending ?? 0} deltaPct={null} hint="In days" tone="info" filled />
-        <StatTile loading={!balance && !error} icon={<CircleCheck size={22} />} label="Remaining" value={balance?.remaining ?? 0} deltaPct={null} hint="In days" tone="violet" filled />
+        <StatTile
+          loading={!balance && !error}
+          icon={<CalendarDays size={22} />}
+          label="Yearly allowance"
+          value={balance?.allowance ?? 0}
+          deltaPct={null}
+          hint={balance ? `${balance.year} · in days` : "In days"}
+          tone="brand"
+          filled
+        />
+        <StatTile
+          loading={!balance && !error}
+          icon={<Hourglass size={22} />}
+          label="Used"
+          value={balance?.used ?? 0}
+          deltaPct={null}
+          hint="In days"
+          tone="warning"
+          filled
+        />
+        <StatTile
+          loading={!balance && !error}
+          icon={<CalendarClock size={22} />}
+          label="Waiting for approval"
+          value={balance?.pending ?? 0}
+          deltaPct={null}
+          hint="In days"
+          tone="info"
+          filled
+        />
+        <StatTile
+          loading={!balance && !error}
+          icon={<CircleCheck size={22} />}
+          label="Remaining"
+          value={balance?.remaining ?? 0}
+          deltaPct={null}
+          hint="In days"
+          tone="violet"
+          filled
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[380px_minmax(0,1fr)]">

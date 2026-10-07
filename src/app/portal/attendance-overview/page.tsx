@@ -200,11 +200,58 @@ export default function TeamAttendancePage() {
       {tab === "day" ? (
         <>
           <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
-            <StatTile loading={!rows && !error} icon={<CircleCheck size={22} />} label="On time" value={counts.on_time ?? 0} deltaPct={null} hint="Today" tone="brand" filled />
-            <StatTile loading={!rows && !error} icon={<TriangleAlert size={22} />} label="Late" value={counts.late ?? 0} deltaPct={null} hint="Today" tone="warning" filled upIsGood={false} />
-            <StatTile loading={!rows && !error} icon={<Clock size={22} />} label="Clocked in now" value={counts.clocked_in ?? 0} deltaPct={null} hint="Right now" tone="info" filled />
-            <StatTile loading={!rows && !error} icon={<UserX size={22} />} label="Absent / not in" value={(counts.absent ?? 0) + (counts.not_in ?? 0)} deltaPct={null} hint="Today" tone="clay" filled upIsGood={false} />
-            <StatTile loading={!rows && !error} icon={<CalendarOff size={22} />} label="On leave" value={counts.on_leave ?? 0} deltaPct={null} hint="Today" tone="violet" filled />
+            <StatTile
+              loading={!rows && !error}
+              icon={<CircleCheck size={22} />}
+              label="On time"
+              value={counts.on_time ?? 0}
+              deltaPct={null}
+              hint="Today"
+              tone="brand"
+              filled
+            />
+            <StatTile
+              loading={!rows && !error}
+              icon={<TriangleAlert size={22} />}
+              label="Late"
+              value={counts.late ?? 0}
+              deltaPct={null}
+              hint="Today"
+              tone="warning"
+              filled
+              upIsGood={false}
+            />
+            <StatTile
+              loading={!rows && !error}
+              icon={<Clock size={22} />}
+              label="Clocked in now"
+              value={counts.clocked_in ?? 0}
+              deltaPct={null}
+              hint="Right now"
+              tone="info"
+              filled
+            />
+            <StatTile
+              loading={!rows && !error}
+              icon={<UserX size={22} />}
+              label="Absent / not in"
+              value={(counts.absent ?? 0) + (counts.not_in ?? 0)}
+              deltaPct={null}
+              hint="Today"
+              tone="clay"
+              filled
+              upIsGood={false}
+            />
+            <StatTile
+              loading={!rows && !error}
+              icon={<CalendarOff size={22} />}
+              label="On leave"
+              value={counts.on_leave ?? 0}
+              deltaPct={null}
+              hint="Today"
+              tone="violet"
+              filled
+            />
           </div>
           <Card className="no-scrollbar overflow-x-auto p-space-2">
             {!rows ? (

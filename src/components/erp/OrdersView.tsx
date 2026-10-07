@@ -204,7 +204,12 @@ export function OrdersView({ channel }: Props) {
           data={orders.data ?? []}
           getRowId={(o) => String(o.id)}
           onRowClick={(o) => router.push(`/portal/orders/${o.id}`)}
-          loading={orders.loading} emptyMessage={orders.loading ? "Loading orders…" : "No orders match these filters."}
+          loading={orders.loading}
+          emptyMessage={
+            orders.loading
+              ? "Loading orders…"
+              : "No orders match these filters."
+          }
         />
       </Card>
     </>
