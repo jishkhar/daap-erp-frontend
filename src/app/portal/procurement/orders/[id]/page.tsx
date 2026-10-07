@@ -15,6 +15,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PO_STATUS_TONE, erp, formatDateTime, formatMoney, humanize, toMinor, useErpQuery, type PoItem, type PurchaseOrder, type Supplier } from "@/lib/erp";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type GrnItem = { id: string; variant_id: string; sku: string; product_name: string; quantity: number; returned_quantity: number; landed_unit_cost_minor: number; serial_numbers: string[] };
 type Grn = { id: string; grn_number: string; total_minor: number; items: GrnItem[] };
@@ -81,7 +82,7 @@ export default function PurchaseOrderPage() {
     <PortalShell tenant={tenant} active="procurement">
       <Link href="/portal/procurement" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> All purchase orders</Link>
       {po.error && <p className="text-[14px] font-medium text-error">{po.error}</p>}
-      {!o && !po.error && <p className="text-ink-400">Loading…</p>}
+      {!o && !po.error && <SkeletonLines rows={3} />}
       {o && (
         <>
           <div className="mb-space-5 flex flex-wrap items-start justify-between gap-space-3">

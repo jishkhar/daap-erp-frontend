@@ -69,7 +69,7 @@ export default function RecommercePage() {
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search IMEI or asset no." className="w-64" aria-label="Search" />
           </Card>
           {assets.error && <p className="mb-space-3 text-[13px] font-medium text-error">{assets.error}</p>}
-          <Card className="p-space-2"><DataTable columns={columns} data={assets.data ?? []} getRowId={(a) => String(a.id)} onRowClick={(a) => router.push(`/portal/recommerce/${a.id}`)} emptyMessage={assets.loading ? "Loading…" : "No devices in the pipeline."} /></Card>
+          <Card className="p-space-2"><DataTable columns={columns} data={assets.data ?? []} getRowId={(a) => String(a.id)} onRowClick={(a) => router.push(`/portal/recommerce/${a.id}`)} loading={assets.loading} emptyMessage={assets.loading ? "Loading…" : "No devices in the pipeline."} /></Card>
         </>
       )}
       {tab === "intake" && <IntakeForm branchId={branchId} onDone={(a) => router.push(`/portal/recommerce/${a.id}`)} />}
@@ -111,7 +111,7 @@ function PriceGuides({ currency, canEdit }: { currency: string; canEdit: boolean
           { header: "Model", cell: ({ row }) => names.get(row.original.variant_id) ?? `#${row.original.variant_id}` },
           { header: "Grade", cell: ({ row }) => row.original.grade },
           { header: "Most we pay", cell: ({ row }) => `${formatMoney(row.original.max_price_minor, currency)}` },
-        ]} data={rows} getRowId={(g) => String(g.id)} emptyMessage={guides.loading ? "Loading…" : "No price guides yet — set one before buying devices."} />
+        ]} data={rows} getRowId={(g) => String(g.id)} loading={guides.loading} emptyMessage={guides.loading ? "Loading…" : "No price guides yet — set one before buying devices."} />
       </Card>
       {!canEdit && <p className="mt-space-2 text-[12.5px] text-ink-400">Price guides are set by a tenant-wide manager.</p>}
     </>

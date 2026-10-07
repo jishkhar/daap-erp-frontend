@@ -128,10 +128,10 @@ export default function InventoryPage() {
             <label className="flex items-center gap-space-2 text-[14px] text-ink-900"><input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} /> Low stock only</label>
           </Card>
           {levels.error && <p className="mb-space-3 text-[13px] font-medium text-error">{levels.error}</p>}
-          <Card className="p-space-2"><DataTable columns={columns} data={rows} getRowId={(l) => `${l.branch_id}-${l.variant_id}`} emptyMessage={levels.loading ? "Loading stock…" : "No stock recorded yet. Use Receive stock to add some."} /></Card>
+          <Card className="p-space-2"><DataTable columns={columns} data={rows} getRowId={(l) => `${l.branch_id}-${l.variant_id}`} loading={levels.loading} emptyMessage={levels.loading ? "Loading stock…" : "No stock recorded yet. Use Receive stock to add some."} /></Card>
         </>
       ) : (
-        <Card className="p-space-2"><DataTable columns={ledgerColumns} data={ledger.data ?? []} getRowId={(r) => String(r.id)} emptyMessage={ledger.loading ? "Loading movements…" : "No stock movements yet."} /></Card>
+        <Card className="p-space-2"><DataTable columns={ledgerColumns} data={ledger.data ?? []} getRowId={(r) => String(r.id)} loading={ledger.loading} emptyMessage={ledger.loading ? "Loading movements…" : "No stock movements yet."} /></Card>
       )}
 
       <Modal open={receive !== null} onClose={() => setReceive(null)} title="Receive stock"

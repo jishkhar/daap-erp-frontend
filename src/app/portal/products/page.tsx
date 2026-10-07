@@ -145,7 +145,7 @@ export default function ProductsPage() {
           </div>)} />
       <Card className="mb-space-4 p-space-3"><Input placeholder="Search by name, SKU or barcode…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" aria-label="Search products" /></Card>
       {products.error && <p className="mb-space-3 text-[13px] font-medium text-error">{products.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={products.data ?? []} getRowId={(p) => String(p.id)} emptyMessage={products.loading ? "Loading products…" : "No products yet."} /></Card>
+      <Card className="p-space-2"><DataTable columns={columns} data={products.data ?? []} getRowId={(p) => String(p.id)} loading={products.loading} emptyMessage={products.loading ? "Loading products…" : "No products yet."} /></Card>
 
       <Modal open={draft !== null} onClose={() => setDraft(null)} width="lg" title={draft?.id ? "Edit product" : "Add product"}
         footer={<><Button variant="ghost" onClick={() => setDraft(null)}>Cancel</Button><Button disabled={busy || !draft?.name.trim() || !draft?.price || (!draft?.id && !draft?.sku.trim())} onClick={save}>{draft?.id ? "Save changes" : "Create product"}</Button></>}>

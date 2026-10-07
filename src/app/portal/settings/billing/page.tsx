@@ -17,6 +17,7 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import type { BillingPlan, BillingView } from "./_components/billing-types";
 import { createPaymentColumns } from "./_components/payment-columns";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 const STATUS_TONE = { active: "success", trialing: "violet", authorization_pending: "warning", past_due: "warning", cancelled: "neutral", expired: "neutral" } as const;
 
@@ -121,10 +122,11 @@ export default function BillingPage() {
                     </button>)}
                 </>)}
             </div>
-          ) : <p className="text-ink-400">{view.loading ? "Loading…" : ""}</p>}
+          ) : (view.loading ? <SkeletonLines rows={2} /> : null)}
         </Card>
         <Card className="p-space-4">
           <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Usage</h2>
+          {!data && view.loading && <SkeletonLines rows={3} />}
           {data && <div className="space-y-space-3 rounded-md border border-line p-space-3"><Meter label="Branches" used={data.usage.branches} max={data.usage.max_branches} /><Meter label="Users" used={data.usage.users} max={data.usage.max_users} /></div>}
         </Card>
       </div>
@@ -165,7 +167,7 @@ export default function BillingPage() {
 
       <h2 className="mt-space-5 mb-space-3 text-[15px] font-bold text-ink-900">Payment history</h2>
       <Card className="p-space-2">
-        <DataTable columns={columns} data={data?.payments ?? []} getRowId={(p) => p.id} pageSize={10} emptyMessage={view.loading ? "Loading…" : "No payments yet."} />
+        <DataTable columns={columns} data={data?.payments ?? []} getRowId={(p) => p.id} pageSize={10} loading={view.loading} emptyMessage={view.loading ? "Loading…" : "No payments yet."} />
       </Card>
 
       <ConfirmDialog open={confirmCancel} destructive busy={busy === "cancel"} title="Cancel subscription?" confirmLabel="Cancel at period end"

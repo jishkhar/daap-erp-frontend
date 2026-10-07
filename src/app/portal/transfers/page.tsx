@@ -62,7 +62,7 @@ export default function TransfersPage() {
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-48" aria-label="Status"><option value="">Any status</option>{STATUSES.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}</Select>
       </Card>
       {transfers.error && <p className="mb-space-3 text-[13px] font-medium text-error">{transfers.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={rows} getRowId={(t) => t.id} onRowClick={(t) => setOpen(t.id)} emptyMessage={transfers.loading ? "Loading transfers…" : "No transfers yet."} /></Card>
+      <Card className="p-space-2"><DataTable columns={columns} data={rows} getRowId={(t) => t.id} onRowClick={(t) => setOpen(t.id)} loading={transfers.loading} emptyMessage={transfers.loading ? "Loading transfers…" : "No transfers yet."} /></Card>
       {creating && <NewTransfer branches={branches} defaultFrom={branchId ?? ""} onClose={() => setCreating(false)} onDone={(id) => { setCreating(false); transfers.reload(); setOpen(id); }} />}
       {open && <TransferDetail id={open} nameOf={nameOf} currency={cur} onClose={() => setOpen(null)} onChanged={transfers.reload} />}
     </PortalShell>

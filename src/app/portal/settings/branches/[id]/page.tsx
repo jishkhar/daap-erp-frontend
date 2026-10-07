@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/Card";
 import { displayPhone, type BranchRow } from "@/lib/branchSchema";
 import { formatMoney, useErpQuery } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 /** One full-width card per topic, like Settings > General: a bold title with its action on the right, then the facts in a bordered box. */
 function Section({ title, onEdit, children }: { title: string; onEdit?: () => void; children: ReactNode }) {
@@ -65,7 +66,7 @@ export default function BranchDetailPage() {
     <PortalShell tenant={tenant} active="settings">
       <Link href="/portal/settings/branches" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> All branches</Link>
       {branch.error && <p className="text-[14px] font-medium text-error">{branch.error}</p>}
-      {!b && !branch.error && <p className="text-ink-400">Loading branch…</p>}
+      {!b && !branch.error && <SkeletonLines rows={3} />}
       {b && (
         <>
           <PageHeader icon={<HugeiconsIcon icon={Building03Icon} size={20} />} title={b.branch_name}

@@ -7,6 +7,8 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { formatMoney, monthRange, qs, useErpQuery } from "@/lib/erp";
+import { CardSkeleton } from "@/components/ui/Skeleton";
+import { Help } from "@/components/erp/finance/Help";
 
 type Rate = { rate_bps: number; taxable_minor: number; cgst_minor: number; sgst_minor: number; igst_minor: number };
 type Doc = { doc_number: string; date: string; customer_gstin: string | null; customer_name: string | null; place_of_supply: string | null; supply_type: string; taxable_minor: number; cgst_minor: number; sgst_minor: number; igst_minor: number; total_minor: number; rates: Rate[] };
@@ -45,7 +47,7 @@ export function GstReturnReport({ currency }: { currency: string }) {
   const section = (title: string, hint: string, csv: (() => void) | null, body: React.ReactNode) => (
     <Card className="p-space-4">
       <div className="mb-space-2 flex items-start justify-between gap-space-3">
-        <div><h3 className="text-[15px] font-bold text-ink-900">{title}</h3><p className="text-[12.5px] text-ink-600">{hint}</p></div>
+        <div><h3 className="text-[15px] font-bold text-ink-900">{title}<Help term={title} /></h3><p className="text-[12.5px] text-ink-600">{hint}</p></div>
         {csv && <Button variant="secondary" onClick={csv}>Download CSV</Button>}
       </div>
       <div className="overflow-x-auto">{body}</div>
@@ -70,6 +72,7 @@ export function GstReturnReport({ currency }: { currency: string }) {
       </div>
       <p className="mb-space-3 text-[12.5px] text-ink-400">Returns are filed per GSTIN, so pick one registration to get a return&apos;s figures. Credit notes are shown as negatives. These are working tables and CSV exports, not the GST portal&apos;s own upload format.</p>
       {g.error && <p className="mb-space-3 text-[13px] font-medium text-error">{g.error}</p>}
+      {!d && !g.error && <div className="flex flex-col gap-space-4"><CardSkeleton rows={4} /><CardSkeleton rows={4} /></div>}
       {d && (
         <div className="flex flex-col gap-space-4">
           {section("B2B invoices", "Sales to buyers with a GSTIN, listed one by one.", () => csvDownload("gstr1-b2b.csv", docHeader, docRows(d.b2b)), docTable(d.b2b))}

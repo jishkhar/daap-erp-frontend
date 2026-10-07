@@ -12,6 +12,7 @@ import { erp, formatDateTime, humanize, useErpQuery } from "@/lib/erp";
 import { hasGrantAt, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type TerminalEvent = { id: number; event: string; actor_type: string; ip: string | null; detail: Record<string, unknown>; created_at: string };
 type Terminal = {
@@ -146,7 +147,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
             {canManage && <button type="button" className="text-[13px] font-semibold text-error" onClick={() => cancelCode(c.id)}>Cancel</button>}
           </li>))}</ul>)}
       {list.error && <p className="mb-space-3 text-[13px] text-error">{list.error}</p>}
-      {terminals.length === 0 && <p className="text-[13.5px] text-ink-400">{list.loading ? "Loading…" : "No terminals paired to this branch yet. Generate a pairing code and enter it in the POS app."}</p>}
+      {terminals.length === 0 && (list.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"No terminals paired to this branch yet. Generate a pairing code and enter it in the POS app."}</p>)}
       <ul className="divide-y divide-line">{terminals.map((t) => (
         <li key={t.id} className="flex flex-wrap items-center justify-between gap-space-3 py-space-3">
           <div className="min-w-0">
@@ -214,7 +215,7 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
     <div>
       <p className="mb-space-3 text-[13px] text-ink-600">Cashiers are team members whose role lets them bill at this branch. Give each a 6-digit PIN to sign in at the POS terminal. Add people and roles under <Link className="underline" href="/portal/settings/staff">Team &amp; Access</Link>.</p>
       {list.error && <p className="mb-space-3 text-[13px] text-error">{list.error}</p>}
-      {cashiers.length === 0 && <p className="text-[13.5px] text-ink-400">{list.loading ? "Loading…" : "Nobody can bill at this branch yet."}</p>}
+      {cashiers.length === 0 && (list.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"Nobody can bill at this branch yet."}</p>)}
       <ul className="divide-y divide-line">{cashiers.map((c) => (
         <li key={c.id} className="flex flex-wrap items-center justify-between gap-space-3 py-space-3 text-[14px]">
           <span><strong className="text-ink-900">{c.name}</strong> <span className="text-ink-400">{c.email}</span><br /><span className="text-[12.5px] text-ink-600">{c.roles.map(humanize).join(", ")}</span></span>

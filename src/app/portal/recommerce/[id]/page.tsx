@@ -16,6 +16,7 @@ import { Select } from "@/components/ui/Select";
 import { ASSET_STATUS_TONE, QC_CHECKS, erp, formatDateTime, formatMoney, humanize, toMinor, useErpQuery, type Product, type RecommerceAssetDetail } from "@/lib/erp";
 import { activeBranches, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Dialog = null | "acquire" | "reject" | "grade" | "part" | "labour" | "move" | "qc" | "scrap";
 
@@ -57,7 +58,7 @@ export default function AssetPage() {
     <PortalShell tenant={tenant} active="recommerce">
       <Link href="/portal/recommerce" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> ReCommerce</Link>
       {asset.error && <p className="text-[14px] font-medium text-error">{asset.error}</p>}
-      {!a && !asset.error && <p className="text-ink-400">Loading…</p>}
+      {!a && !asset.error && <SkeletonLines rows={3} />}
       {a && (
         <>
           <div className="mb-space-4 flex flex-wrap items-start justify-between gap-space-3">

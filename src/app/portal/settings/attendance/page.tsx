@@ -11,6 +11,7 @@ import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useAttendanceSettings, type AttendanceSettings } from "@/hooks/useHr";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Form = { shift_start: string; shift_end: string; grace: string; latitude: string; longitude: string; radius: string; ips: string };
 
@@ -108,7 +109,7 @@ export default function AttendanceSettingsPage() {
     <PortalShell tenant={session?.tenant ?? null} active="settings">
       <PageHeader title="Attendance rules" description="The shift, the lateness grace, and where staff may clock in from." />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
-      {!settings ? <p className="text-[13px] text-ink-400">Loading…</p> : <SettingsForm initial={settings} onSave={save} />}
+      {!settings ? <SkeletonLines rows={3} /> : <SettingsForm initial={settings} onSave={save} />}
     </PortalShell>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/Button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 type DataTableProps<TData> = {
@@ -48,6 +49,8 @@ type DataTableProps<TData> = {
    * container (only useful together with a max-height containerClassName --
    * a page-level table has nothing shorter than the viewport to stick to). */
   stickyHeader?: boolean;
+  /** Pass the query's `loading` flag: while true and there are no rows yet, skeleton rows replace the empty message. */
+  loading?: boolean;
 };
 
 /** Shared, reusable table for portal list pages -- headless via
@@ -71,6 +74,7 @@ export function DataTable<TData>({
   emptyMessage = "No results.",
   containerClassName,
   stickyHeader = false,
+  loading = false,
 }: DataTableProps<TData>) {
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table can't be safely memoized (file opts out via "use no memo")
   const table = useReactTable({
@@ -100,7 +104,17 @@ export function DataTable<TData>({
             </TableRow>
           ))}
         </TableHeader>
-        {rows.length === 0 ? (
+        {rows.length === 0 && loading ? (
+          <TableBody>
+            {Array.from({ length: 5 }, (_, r) => (
+              <TableRow key={r} className="hover:bg-transparent">
+                {columns.map((_c, c) => (
+                  <TableCell key={c}><Skeleton className="h-4 w-full max-w-[160px]" /></TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        ) : rows.length === 0 ? (
           <TableBody>
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={columns.length} className="py-space-4 text-center text-ink-400">

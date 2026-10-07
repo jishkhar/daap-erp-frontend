@@ -56,7 +56,7 @@ export default function CustomersPage() {
         actions={canCreate && <Button onClick={() => setOpen(true)}><UserPlus size={16} /> Add customer</Button>} />
       <Card className="mb-space-4 p-space-3"><Input placeholder="Search name, phone or email…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" aria-label="Search customers" /></Card>
       {customers.error && <p className="mb-space-3 text-[13px] font-medium text-error">{customers.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={customers.data ?? []} getRowId={(c) => String(c.id)} onRowClick={(c) => router.push(`/portal/customers/${c.id}`)} emptyMessage={customers.loading ? "Loading customers…" : "No customers yet."} /></Card>
+      <Card className="p-space-2"><DataTable columns={columns} data={customers.data ?? []} getRowId={(c) => String(c.id)} onRowClick={(c) => router.push(`/portal/customers/${c.id}`)} loading={customers.loading} emptyMessage={customers.loading ? "Loading customers…" : "No customers yet."} /></Card>
       <Modal open={open} onClose={() => setOpen(false)} title="Add customer" description="A phone number or an email is required."
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={busy || !form.name.trim() || (!form.phone.trim() && !form.email.trim())} onClick={create}>Add customer</Button></>}>
         <Field label="Name" htmlFor="c_name" required><Input id="c_name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>

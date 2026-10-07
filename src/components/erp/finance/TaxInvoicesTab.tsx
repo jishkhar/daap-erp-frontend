@@ -20,11 +20,11 @@ export function TaxInvoicesTab({ currency }: { currency: string }) {
 
   const columns = useMemo<ColumnDef<TaxDocument, unknown>[]>(() => [
     { header: "Number", cell: ({ row }) => <span className="font-semibold text-ink-900">{row.original.doc_number}</span> },
-    { header: "Type", cell: ({ row }) => <Badge tone={row.original.doc_type === "INVOICE" ? "success" : "clay"}>{row.original.doc_type === "INVOICE" ? "Invoice" : "Credit note"}</Badge> },
+    { id: "type", header: "Type", cell: ({ row }) => <Badge tone={row.original.doc_type === "INVOICE" ? "success" : "clay"}>{row.original.doc_type === "INVOICE" ? "Invoice" : "Credit note"}</Badge> },
     { header: "Order", cell: ({ row }) => row.original.order_number ?? `#${row.original.order_id}` },
     { header: "Customer", cell: ({ row }) => row.original.customer_name ?? <span className="text-ink-400">Walk-in</span> },
-    { header: "Taxable", cell: ({ row }) => m(row.original.taxable_minor) },
-    { header: "GST", cell: ({ row }) => m(row.original.cgst_minor + row.original.sgst_minor + row.original.igst_minor) },
+    { id: "taxable", header: "Taxable", cell: ({ row }) => m(row.original.taxable_minor) },
+    { id: "gst", header: "GST", cell: ({ row }) => m(row.original.cgst_minor + row.original.sgst_minor + row.original.igst_minor) },
     { header: "Total", cell: ({ row }) => <span className="font-medium">{m(row.original.total_minor)}</span> },
     { header: "Issued", cell: ({ row }) => <span className="text-ink-600">{formatDateTime(row.original.issued_at)}</span> },
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -33,7 +33,7 @@ export function TaxInvoicesTab({ currency }: { currency: string }) {
   return (
     <>
       {docs.error && <p className="mb-space-3 text-[13px] font-medium text-error">{docs.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={docs.data ?? []} getRowId={(d) => String(d.id)} onRowClick={setOpen} emptyMessage={docs.loading ? "Loading…" : "No tax documents yet — one is issued when goods are delivered."} /></Card>
+      <Card className="p-space-2"><DataTable columns={columns} data={docs.data ?? []} getRowId={(d) => String(d.id)} onRowClick={setOpen} loading={docs.loading} emptyMessage={docs.loading ? "Loading…" : "No tax documents yet — one is issued when goods are delivered."} /></Card>
       <Modal open={open !== null} onClose={() => setOpen(null)} width="lg" title={open ? `${open.doc_type === "INVOICE" ? "Tax invoice" : "Credit note"} ${open.doc_number}` : ""}
         footer={<Button variant="secondary" onClick={() => window.print()}><Printer size={15} /> Print</Button>}>
         {open && (
