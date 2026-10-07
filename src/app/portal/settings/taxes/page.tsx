@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/Switch";
 import { erp, formatMoney, fromMinor, toMinor, useErpQuery, type TaxRule } from "@/lib/erp";
 import { hasPermission, refreshStaffSession, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Registration = {
   id: string; gstin: string; state_code: string; state_name: string | null; pan: string; legal_name: string; trade_name: string | null;
@@ -132,14 +133,14 @@ export default function TaxesPage() {
                 );
               })}
             </div>
-          ) : <p className="text-[13.5px] text-ink-400">{tenantView.loading ? "Loading…" : ""}</p>}
+          ) : (tenantView.loading ? <SkeletonLines rows={2} /> : null)}
         </Card>
 
         <Card className="p-space-4">
           <h2 className="text-[15px] font-bold text-ink-900">GST registrations</h2>
           <p className="mb-space-3 mt-0.5 text-[13px] text-ink-600">A GSTIN is issued per state. Each branch trades under one registration; invoices show it as the seller.</p>
           {regs.length === 0 ? (
-            <p className="rounded-md border border-line px-space-3 py-space-4 text-[13.5px] text-ink-400">{listing.loading ? "Loading…" : "No GST registration yet. Add your GSTIN so invoices show the seller's details."}</p>
+            <>{listing.loading ? <SkeletonLines rows={2} /> : <p className="rounded-md border border-line px-space-3 py-space-4 text-[13.5px] text-ink-400">{"No GST registration yet. Add your GSTIN so invoices show the seller's details."}</p>}</>
           ) : (
             <div className="divide-y divide-line rounded-md border border-line">
               {regs.map((r) => (
@@ -197,7 +198,7 @@ export default function TaxesPage() {
 
         <Card className="p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Tax rates</h2>
-          {(rules.data ?? []).length === 0 ? <p className="text-[13.5px] text-ink-400">{rules.loading ? "Loading…" : "No tax rates defined."}</p> : (
+          {(rules.data ?? []).length === 0 ? (rules.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"No tax rates defined."}</p>) : (
             <table className="w-full text-[14px]">
               <thead><tr className="text-left text-[12px] text-ink-400"><th className="py-1">Code</th><th>Name</th><th className="text-right">Rate</th><th>Price bands</th></tr></thead>
               <tbody>{(rules.data ?? []).map((t) => {

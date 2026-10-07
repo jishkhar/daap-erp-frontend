@@ -36,9 +36,9 @@ export function JournalTab({ currency }: { currency: string }) {
   const setRow = (i: number, patch: Partial<Row>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const columns = useMemo<ColumnDef<JournalEntry, unknown>[]>(() => [
-    { header: "Entry", cell: ({ row }) => <span className="font-semibold text-ink-900">{row.original.entry_number}</span> },
+    { id: "entry", header: "Entry", cell: ({ row }) => <span className="font-semibold text-ink-900">{row.original.entry_number}</span> },
     { header: "Date", cell: ({ row }) => row.original.entry_date },
-    { header: "Source", cell: ({ row }) => humanize(row.original.source_type) },
+    { id: "source", header: "Source", cell: ({ row }) => humanize(row.original.source_type) },
     { header: "Memo", cell: ({ row }) => <span className="text-ink-600">{row.original.memo ?? "—"}</span> },
   ], []);
 
@@ -73,7 +73,7 @@ export function JournalTab({ currency }: { currency: string }) {
         {canManage && <Button onClick={() => setOpen(true)}><Plus size={16} /> Manual entry</Button>}
       </Card>
       {entries.error && <p className="mb-space-3 text-[13px] font-medium text-error">{entries.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={entries.data ?? []} getRowId={(e) => String(e.id)} onRowClick={openEntry} emptyMessage={entries.loading ? "Loading…" : "No journal entries yet."} /></Card>
+      <Card className="p-space-2"><DataTable columns={columns} data={entries.data ?? []} getRowId={(e) => String(e.id)} onRowClick={openEntry} loading={entries.loading} emptyMessage={entries.loading ? "Loading…" : "No journal entries yet."} /></Card>
 
       <Modal open={view !== null} onClose={() => setView(null)} width="lg" title={view?.entry_number ?? ""} description={view?.memo ?? undefined}
         footer={view && canManage && !view.reversal_of ? <Button variant="secondary" onClick={() => reverse(view)}><Undo2 size={15} /> Reverse entry</Button> : undefined}>

@@ -14,7 +14,7 @@ function Table({
   ...props
 }: React.ComponentProps<"table"> & { containerClassName?: string }) {
   return (
-    <div data-slot="table-container" className={cn("relative w-full overflow-x-auto", containerClassName)}>
+    <div data-slot="table-container" className={cn("relative w-full no-scrollbar overflow-x-auto", containerClassName)}>
       <table data-slot="table" className={cn("w-full text-left text-[13px]", className)} {...props} />
     </div>
   );

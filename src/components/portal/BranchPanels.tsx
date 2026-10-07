@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/Select";
 import type { BranchRow } from "@/lib/branchSchema";
 import { erp, fromMinor, humanize, toMinor, useErpQuery } from "@/lib/erp";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Hour = { weekday: number; opens_at: string; closes_at: string; channel: string | null };
 type Area = { pincode: string; delivery_fee_minor: number | null };
@@ -72,7 +73,7 @@ export function BranchPanels({ branch, canWrite, currency }: { branch: BranchRow
     <div className="flex flex-col gap-space-4">
       {schedule.error && <p className="mb-space-3 text-[13px] text-error">{schedule.error}</p>}
       <Card className="p-space-4"><h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Opening hours</h2>
-        {shownHours.length === 0 && <p className="mb-space-3 text-[13.5px] text-ink-400">{schedule.loading ? "Loading…" : "No opening hours set yet."}</p>}
+        {shownHours.length === 0 && (schedule.loading ? <SkeletonLines rows={2} /> : <p className="mb-space-3 text-[13.5px] text-ink-400">{"No opening hours set yet."}</p>)}
         <ul className="mb-space-3 divide-y divide-line">{shownHours.map((h, i) => (
           <li key={`${h.weekday}-${h.opens_at}-${i}`} className="flex items-center justify-between py-space-2 text-[14px]">
             <span><strong className="text-ink-900">{DAYS[h.weekday]}</strong> {h.opens_at} – {h.closes_at}{h.channel && <span className="text-ink-400"> · {humanize(h.channel)} only</span>}</span>
@@ -99,7 +100,7 @@ export function BranchPanels({ branch, canWrite, currency }: { branch: BranchRow
       <Card className="p-space-4"><h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Cashiers</h2><CashiersPanel branchId={branch.id} /></Card>
       <Card className="p-space-4"><h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Staff</h2>
         {staff.error && <p className="text-[13px] text-error">{staff.error}</p>}
-        {(staff.data ?? []).length === 0 && <p className="text-[13.5px] text-ink-400">{staff.loading ? "Loading…" : "Nobody is assigned to this branch yet."}</p>}
+        {(staff.data ?? []).length === 0 && (staff.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"Nobody is assigned to this branch yet."}</p>)}
         <ul className="divide-y divide-line">{(staff.data ?? []).map((m, i) => (
           <li key={`${m.user_id}-${i}`} className="flex items-center justify-between gap-space-3 py-space-2 text-[14px]">
             <span><strong className="text-ink-900">{m.name}</strong> <span className="text-ink-400">{m.email}</span></span>

@@ -7,7 +7,7 @@ type Tab<T extends string> = { key: T; label: string };
 /** A simple controlled tab bar. */
 export function Tabs<T extends string>({ tabs, value, onChange, className }: { tabs: Tab<T>[]; value: T; onChange: (key: T) => void; className?: string }) {
   return (
-    <div role="tablist" className={cn("mb-space-4 flex gap-space-1 overflow-x-auto border-b border-line", className)}>
+    <div role="tablist" className={cn("mb-space-4 flex gap-space-1 no-scrollbar overflow-x-auto border-b border-line", className)}>
       {tabs.map((t) => (
         <button
           key={t.key}

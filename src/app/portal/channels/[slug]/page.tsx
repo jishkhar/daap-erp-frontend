@@ -46,9 +46,9 @@ export default function ChannelPage() {
     <PortalShell tenant={tenant} active={`channel-${slug}`}>
       <PageHeader scopedToBranch icon={<Icon size={20} />} title={`${info.label} sales`} description={info.blurb} actions={<Button href={`/portal/orders/new?channel=${channel}`}>New order</Button>} />
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
-        <StatTile label="Orders" value={summary.count} deltaPct={null} hint="excluding cancelled" icon={<ShoppingCart size={22} />} />
-        <StatTile label="Revenue" value={formatMoney(summary.revenue, tenant?.currency)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<Icon size={22} />} />
-        <StatTile label="Open orders" value={summary.open} deltaPct={null} hint="awaiting payment or fulfilment" tone="warning" icon={<ShoppingCart size={22} />} />
+        <StatTile loading={stats.loading && !stats.data} label="Orders" value={summary.count} deltaPct={null} hint="excluding cancelled" icon={<ShoppingCart size={22} />} />
+        <StatTile loading={stats.loading && !stats.data} label="Revenue" value={formatMoney(summary.revenue, tenant?.currency)} deltaPct={null} hint="excluding cancelled" tone="success" icon={<Icon size={22} />} />
+        <StatTile loading={stats.loading && !stats.data} label="Open orders" value={summary.open} deltaPct={null} hint="awaiting payment or fulfilment" tone="warning" icon={<ShoppingCart size={22} />} />
       </div>
       <OrdersView channel={channel} />
       <ChannelConnections channel={channel} />

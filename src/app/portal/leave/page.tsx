@@ -14,6 +14,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyLeave, type LeaveForm } from "@/hooks/useHr";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 const SELECT_CLASS = "h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 const blank = (): LeaveForm => ({ leave_type: "casual", from_date: "", to_date: "", is_half_day: false, reason: "" });
@@ -54,10 +55,10 @@ export default function MyLeavePage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <StatTile icon={<CalendarDays size={22} />} label="Yearly allowance" value={balance?.allowance ?? 0} deltaPct={null} hint={balance ? `${balance.year} · in days` : "In days"} tone="brand" filled />
-        <StatTile icon={<Hourglass size={22} />} label="Used" value={balance?.used ?? 0} deltaPct={null} hint="In days" tone="warning" filled />
-        <StatTile icon={<CalendarClock size={22} />} label="Waiting for approval" value={balance?.pending ?? 0} deltaPct={null} hint="In days" tone="info" filled />
-        <StatTile icon={<CircleCheck size={22} />} label="Remaining" value={balance?.remaining ?? 0} deltaPct={null} hint="In days" tone="violet" filled />
+        <StatTile loading={!balance && !error} icon={<CalendarDays size={22} />} label="Yearly allowance" value={balance?.allowance ?? 0} deltaPct={null} hint={balance ? `${balance.year} · in days` : "In days"} tone="brand" filled />
+        <StatTile loading={!balance && !error} icon={<Hourglass size={22} />} label="Used" value={balance?.used ?? 0} deltaPct={null} hint="In days" tone="warning" filled />
+        <StatTile loading={!balance && !error} icon={<CalendarClock size={22} />} label="Waiting for approval" value={balance?.pending ?? 0} deltaPct={null} hint="In days" tone="info" filled />
+        <StatTile loading={!balance && !error} icon={<CircleCheck size={22} />} label="Remaining" value={balance?.remaining ?? 0} deltaPct={null} hint="In days" tone="violet" filled />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[380px_minmax(0,1fr)]">
@@ -95,7 +96,7 @@ export default function MyLeavePage() {
         <Card className="p-space-5">
           <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">My requests</h2>
           {!requests ? (
-            <p className="text-[13px] text-ink-400">Loading…</p>
+            <SkeletonLines rows={3} />
           ) : requests.length === 0 ? (
             <p className="text-[13px] text-ink-400">You haven&apos;t asked for any leave yet.</p>
           ) : (

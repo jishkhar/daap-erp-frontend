@@ -72,7 +72,7 @@ export default function TeamAccessPage() {
       <PageHeader icon={<Users size={20} />} title="Team & Access" description="Who can sign in, and what they can do in which branch."
         actions={canManage && <Button onClick={() => setAdding(true)}><UserPlus size={16} /> Add person</Button>} />
       {(users.error || roles.error) && <p className="mb-space-3 text-[13px] font-medium text-error">{users.error ?? roles.error}</p>}
-      <Card className="p-space-2"><DataTable columns={columns} data={users.data ?? []} getRowId={(u) => String(u.id)} onRowClick={(u) => { setSelectedId(u.id); setGrant({ role_id: "", branch_id: "" }); setNewPassword(""); }} emptyMessage={users.loading ? "Loading…" : "No people yet."} /></Card>
+      <Card className="p-space-2"><DataTable columns={columns} data={users.data ?? []} getRowId={(u) => String(u.id)} onRowClick={(u) => { setSelectedId(u.id); setGrant({ role_id: "", branch_id: "" }); setNewPassword(""); }} loading={users.loading} emptyMessage={users.loading ? "Loading…" : "No people yet."} /></Card>
 
       <Modal open={adding} onClose={() => setAdding(false)} width="lg" title="Add a person" description="They sign in with your company code and this email."
         footer={<><Button variant="ghost" onClick={() => setAdding(false)}>Cancel</Button><Button disabled={busy || !form.name.trim() || !form.email.trim() || form.password.length < 10} onClick={createUser}>Add person</Button></>}>

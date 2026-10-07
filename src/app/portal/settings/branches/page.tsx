@@ -59,7 +59,7 @@ export default function BranchesPage() {
         </Card>)}
       {branches.error && <p className="mb-space-3 text-[13px] font-medium text-error">{branches.error}</p>}
       <Card className="p-space-2">
-        <DataTable columns={columns} data={branches.data ?? []} getRowId={(b) => b.id} onRowClick={(b) => router.push(`/portal/settings/branches/${b.id}`)} emptyMessage={branches.loading ? "Loading branches…" : "No branches yet."} />
+        <DataTable columns={columns} data={branches.data ?? []} getRowId={(b) => b.id} onRowClick={(b) => router.push(`/portal/settings/branches/${b.id}`)} loading={branches.loading} emptyMessage={branches.loading ? "Loading branches…" : "No branches yet."} />
       </Card>
       <p className="mt-space-3 text-[12.5px] text-ink-400">Branches are never deleted, because orders, stock and the books refer to them. Deactivate a branch to retire it.</p>
 

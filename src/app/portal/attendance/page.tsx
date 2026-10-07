@@ -13,6 +13,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { DAY_STATE, fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyMonthlyAttendance } from "@/hooks/useHr";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 // CSV cells are escaped inline here -- not extracted to a shared
 // helper since that page keeps its own local copy too.
@@ -100,10 +101,10 @@ export default function MyAttendancePage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <StatTile icon={<CalendarCheck size={22} />} label="Present days" value={stats?.present_days ?? 0} deltaPct={null} hint={month} tone="success" filled />
-        <StatTile icon={<UserX size={22} />} label="Absent days" value={stats?.absent_days ?? 0} deltaPct={null} hint={month} tone="clay" filled upIsGood={false} />
-        <StatTile icon={<TriangleAlert size={22} />} label="Late check-ins" value={stats?.late_days ?? 0} deltaPct={null} hint={month} tone="warning" filled upIsGood={false} />
-        <StatTile icon={<TrendingUp size={22} />} label="Overtime hours" value={fmtMinutes(stats?.overtime_minutes ?? 0)} deltaPct={null} hint={month} tone="violet" filled />
+        <StatTile loading={!stats && !error} icon={<CalendarCheck size={22} />} label="Present days" value={stats?.present_days ?? 0} deltaPct={null} hint={month} tone="success" filled />
+        <StatTile loading={!stats && !error} icon={<UserX size={22} />} label="Absent days" value={stats?.absent_days ?? 0} deltaPct={null} hint={month} tone="clay" filled upIsGood={false} />
+        <StatTile loading={!stats && !error} icon={<TriangleAlert size={22} />} label="Late check-ins" value={stats?.late_days ?? 0} deltaPct={null} hint={month} tone="warning" filled upIsGood={false} />
+        <StatTile loading={!stats && !error} icon={<TrendingUp size={22} />} label="Overtime hours" value={fmtMinutes(stats?.overtime_minutes ?? 0)} deltaPct={null} hint={month} tone="violet" filled />
       </div>
 
       <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-[1.4fr_1fr]">
@@ -141,9 +142,9 @@ export default function MyAttendancePage() {
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="no-scrollbar overflow-x-auto">
           {!records ? (
-            <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+            <SkeletonLines rows={3} />
           ) : filtered.length === 0 ? (
             <p className="p-space-4 text-[13px] text-ink-400">No attendance in this period.</p>
           ) : (

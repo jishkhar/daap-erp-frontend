@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { erp, formatMoney, fromMinor, toMinor, useErpQuery } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { CardSkeleton } from "@/components/ui/Skeleton";
 
 type Contact = { email: string | null; phone: string | null; website: string | null; registered_address: string | null; city: string | null; state: string | null; pincode: string | null };
 type TenantView = {
@@ -165,6 +166,7 @@ export default function SettingsPage() {
     <PortalShell tenant={tenant} active="settings">
       <PageHeader icon={<Settings size={20} />} title="Settings" description="Company-wide configuration." />
       {view.error && <p className="mb-space-3 text-[13px] font-medium text-error">{view.error}</p>}
+      {!view.data && !view.error && <div className="flex flex-col gap-space-4"><CardSkeleton rows={5} /><CardSkeleton rows={3} /><CardSkeleton rows={2} /></div>}
       {t && view.data && <GeneralSections t={t} contact={view.data.contact} canEdit={canEdit} onSaved={view.reload} />}
       <div>
         {view.data && <OperationsCard key={JSON.stringify(view.data.settings)} settings={view.data.settings} currency={view.data.tenant.currency} canEdit={canEdit} onSaved={view.reload} />}

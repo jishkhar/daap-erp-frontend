@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 type Tone = "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
@@ -57,9 +58,13 @@ type Props = {
    * "vs last week" doesn't mean anything for it, so callers without a real
    * comparison can override the footer text (or hide it with ""). */
   hint?: string;
+  /** While the numbers are still loading from the backend: shows a skeleton instead of a misleading 0. */
+  loading?: boolean;
+  /** Optional explanation shown from an info icon next to the label. */
+  info?: ReactNode;
 };
 
-export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand", filled = false, upIsGood = true, hint = "vs last week" }: Props) {
+export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand", filled = false, upIsGood = true, hint = "vs last week", loading = false, info }: Props) {
   const isUp = deltaPct !== null && deltaPct > 0;
   const isDown = deltaPct !== null && deltaPct < 0;
   const isGoodDirection = (isUp && upIsGood) || (isDown && !upIsGood);
@@ -75,11 +80,11 @@ export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand",
         </span>
       )}
       <div className="min-w-0">
-        <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}</p>
+        <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}{info}</p>
         <div className="mt-1 flex items-baseline gap-space-2">
-          <span className={cn("leading-none font-bold text-ink-900", typeof value === "string" && value.length + (prefix?.length ?? 0) > 9 ? "text-[24px]" : "text-[30px]")}>{prefix}{typeof value === "number" ? value.toLocaleString() : value}</span>
+          {loading ? <Skeleton className="h-[30px] w-24" /> : <span className={cn("leading-none font-bold text-ink-900", typeof value === "string" && value.length + (prefix?.length ?? 0) > 9 ? "text-[24px]" : "text-[30px]")}>{prefix}{typeof value === "number" ? value.toLocaleString() : value}</span>}
           {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
-          {deltaPct !== null && (
+          {!loading && deltaPct !== null && (
             <span
               className={cn(
                 "flex items-center gap-0.5 text-[12.5px] font-semibold",
@@ -95,7 +100,7 @@ export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand",
             </span>
           )}
         </div>
-        {showHint && <p className="text-hint mt-1">{hint}</p>}
+        {showHint && !loading && <p className="text-hint mt-1">{hint}</p>}
       </div>
     </Card>
   );
