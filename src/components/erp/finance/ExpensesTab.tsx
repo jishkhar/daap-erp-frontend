@@ -71,117 +71,19 @@ export function ExpensesTab({ currency }: { currency: string }) {
     expenses.reload();
   }
 
-  const columns = useMemo<ColumnDef<Expense, unknown>[]>(
-    () => [
-      {
-        header: "Expense",
-        cell: ({ row }) => (
-          <div>
-            <p className="font-semibold text-ink-900">
-              {row.original.description}
-            </p>
-            <p className="text-[12px] text-ink-400">
-              {row.original.expense_number} · {row.original.category_name}
-              {row.original.vendor ? ` · ${row.original.vendor}` : ""}
-            </p>
-          </div>
-        ),
-      },
-      {
-        header: "Branch",
-        cell: ({ row }) => branchCode(row.original.branch_id),
-      },
-      { header: "Date", cell: ({ row }) => row.original.expense_date },
-      {
-        header: "Amount",
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {formatMoney(row.original.amount_minor, currency)}
-          </span>
-        ),
-      },
-      {
-        header: "Status",
-        cell: ({ row }) => (
-          <Badge tone={EXPENSE_STATUS_TONE[row.original.status]}>
-            {humanize(row.original.status)}
-          </Badge>
-        ),
-      },
-      {
-        header: "",
-        id: "a",
-        cell: ({ row }) => (
-          <div className="flex justify-end gap-space-1">
-            {row.original.status === "SUBMITTED" && canApprove && (
-              <>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    act(
-                      row.original.id,
-                      "approve",
-                      undefined,
-                      "Expense approved",
-                    )
-                  }
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    const reason = window.prompt("Reason for rejecting?");
-                    if (reason)
-                      void act(
-                        row.original.id,
-                        "reject",
-                        { reason },
-                        "Expense rejected",
-                      );
-                  }}
-                >
-                  Reject
-                </Button>
-              </>
-            )}
-            {row.original.status === "APPROVED" && canPay && (
-              <>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    act(
-                      row.original.id,
-                      "pay",
-                      { paid_via: "BANK" },
-                      "Paid from bank",
-                    )
-                  }
-                >
-                  Pay (bank)
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    act(
-                      row.original.id,
-                      "pay",
-                      { paid_via: "CASH" },
-                      "Paid in cash",
-                    )
-                  }
-                >
-                  Pay (cash)
-                </Button>
-              </>
-            )}
-          </div>
-        ),
-      },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    ],
-    [branches, currency, canApprove, canPay],
-  );
+  const columns = useMemo<ColumnDef<Expense, unknown>[]>(() => [
+    { header: "Expense", cell: ({ row }) => (<div><p className="font-semibold text-ink-900">{row.original.description}</p><p className="text-[12px] text-ink-400">{row.original.expense_number} · {row.original.category_name}{row.original.vendor ? ` · ${row.original.vendor}` : ""}</p></div>) },
+    { header: "Branch", cell: ({ row }) => branchCode(row.original.branch_id) },
+    { header: "Date", cell: ({ row }) => row.original.expense_date },
+    { header: "Amount", cell: ({ row }) => <span className="font-medium">{formatMoney(row.original.amount_minor, currency)}</span> },
+    { id: "status", header: "Status", cell: ({ row }) => <Badge tone={EXPENSE_STATUS_TONE[row.original.status]}>{humanize(row.original.status)}</Badge> },
+    { header: "", id: "a", cell: ({ row }) => (
+      <div className="flex justify-end gap-space-1">
+        {row.original.status === "SUBMITTED" && canApprove && <><Button variant="ghost" onClick={() => act(row.original.id, "approve", undefined, "Expense approved")}>Approve</Button><Button variant="ghost" onClick={() => { const reason = window.prompt("Reason for rejecting?"); if (reason) void act(row.original.id, "reject", { reason }, "Expense rejected"); }}>Reject</Button></>}
+        {row.original.status === "APPROVED" && canPay && <><Button variant="ghost" onClick={() => act(row.original.id, "pay", { paid_via: "BANK" }, "Paid from bank")}>Pay (bank)</Button><Button variant="ghost" onClick={() => act(row.original.id, "pay", { paid_via: "CASH" }, "Paid in cash")}>Pay (cash)</Button></>}
+      </div>) },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [branches, currency, canApprove, canPay]);
 
   async function submit() {
     const amount = toMinor(form.amount);
@@ -232,43 +134,10 @@ export function ExpensesTab({ currency }: { currency: string }) {
           </Button>
         )}
       </Card>
-      {expenses.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {expenses.error}
-        </p>
-      )}
-      <Card className="p-space-2">
-        <DataTable
-          columns={columns}
-          data={expenses.data ?? []}
-          getRowId={(e) => String(e.id)}
-          emptyMessage={expenses.loading ? "Loading…" : "No expenses."}
-        />
-      </Card>
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="New expense"
-        description="Approved by someone other than you, then paid. The cost is booked when it is approved."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={
-                busy ||
-                !form.category_id ||
-                !form.amount ||
-                !form.description.trim()
-              }
-              onClick={submit}
-            >
-              Submit
-            </Button>
-          </>
-        }
-      >
+      {expenses.error && <p className="mb-space-3 text-[13px] font-medium text-error">{expenses.error}</p>}
+      <Card className="p-space-2"><DataTable columns={columns} data={expenses.data ?? []} getRowId={(e) => String(e.id)} loading={expenses.loading} emptyMessage={expenses.loading ? "Loading…" : "No expenses."} /></Card>
+      <Modal open={open} onClose={() => setOpen(false)} title="New expense" description="Approved by someone other than you, then paid. The cost is booked when it is approved."
+        footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={busy || !form.category_id || !form.amount || !form.description.trim()} onClick={submit}>Submit</Button></>}>
         <div className="grid gap-x-space-4 sm:grid-cols-2">
           <Field label="Branch" htmlFor="x_branch">
             <Select

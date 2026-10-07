@@ -294,3 +294,12 @@ body {
 .text-hint.is-note {
   font-style: italic;
 }
+
+/* Hide scrollbars while keeping scrolling (tab bars, table wrappers) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

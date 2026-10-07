@@ -28,6 +28,7 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Registration = {
   id: string;
@@ -267,11 +268,7 @@ export default function TaxesPage() {
                 );
               })}
             </div>
-          ) : (
-            <p className="text-[13.5px] text-ink-400">
-              {tenantView.loading ? "Loading…" : ""}
-            </p>
-          )}
+          ) : (tenantView.loading ? <SkeletonLines rows={2} /> : null)}
         </Card>
 
         <Card className="p-space-4">
@@ -283,11 +280,7 @@ export default function TaxesPage() {
             registration; invoices show it as the seller.
           </p>
           {regs.length === 0 ? (
-            <p className="rounded-md border border-line px-space-3 py-space-4 text-[13.5px] text-ink-400">
-              {listing.loading
-                ? "Loading…"
-                : "No GST registration yet. Add your GSTIN so invoices show the seller's details."}
-            </p>
+            <>{listing.loading ? <SkeletonLines rows={2} /> : <p className="rounded-md border border-line px-space-3 py-space-4 text-[13.5px] text-ink-400">{"No GST registration yet. Add your GSTIN so invoices show the seller's details."}</p>}</>
           ) : (
             <div className="divide-y divide-line rounded-md border border-line">
               {regs.map((r) => (
@@ -425,14 +418,8 @@ export default function TaxesPage() {
         )}
 
         <Card className="p-space-4">
-          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
-            Tax rates
-          </h2>
-          {(rules.data ?? []).length === 0 ? (
-            <p className="text-[13.5px] text-ink-400">
-              {rules.loading ? "Loading…" : "No tax rates defined."}
-            </p>
-          ) : (
+          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Tax rates</h2>
+          {(rules.data ?? []).length === 0 ? (rules.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"No tax rates defined."}</p>) : (
             <table className="w-full text-[14px]">
               <thead>
                 <tr className="text-left text-[12px] text-ink-400">

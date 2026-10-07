@@ -320,78 +320,18 @@ export default function ProcurementPage() {
 
       {tab === "orders" && (
         <>
-          <Card className="mb-space-4 p-space-3">
-            <Select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-52"
-              aria-label="Status"
-            >
-              <option value="">Any status</option>
-              {[
-                "DRAFT",
-                "APPROVED",
-                "PARTIALLY_RECEIVED",
-                "RECEIVED",
-                "CLOSED",
-                "CANCELLED",
-              ].map((s) => (
-                <option key={s} value={s}>
-                  {humanize(s)}
-                </option>
-              ))}
-            </Select>
-          </Card>
-          {pos.error && (
-            <p className="mb-space-3 text-[13px] font-medium text-error">
-              {pos.error}
-            </p>
-          )}
-          <Card className="p-space-2">
-            <DataTable
-              columns={poColumns}
-              data={pos.data ?? []}
-              getRowId={(o) => String(o.id)}
-              onRowClick={(o) =>
-                router.push(`/portal/procurement/orders/${o.id}`)
-              }
-              emptyMessage={
-                pos.loading ? "Loading…" : "No purchase orders yet."
-              }
-            />
-          </Card>
+          <Card className="mb-space-4 p-space-3"><Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-52" aria-label="Status"><option value="">Any status</option>{["DRAFT", "APPROVED", "PARTIALLY_RECEIVED", "RECEIVED", "CLOSED", "CANCELLED"].map((s) => <option key={s} value={s}>{humanize(s)}</option>)}</Select></Card>
+          {pos.error && <p className="mb-space-3 text-[13px] font-medium text-error">{pos.error}</p>}
+          <Card className="p-space-2"><DataTable columns={poColumns} data={pos.data ?? []} getRowId={(o) => String(o.id)} onRowClick={(o) => router.push(`/portal/procurement/orders/${o.id}`)} loading={pos.loading} emptyMessage={pos.loading ? "Loading…" : "No purchase orders yet."} /></Card>
         </>
       )}
       {tab === "requests" && (
-        <Card className="p-space-2">
-          <DataTable
-            columns={requestColumns}
-            data={requests.data ?? []}
-            getRowId={(o) => String(o.id)}
-            emptyMessage={
-              requests.loading ? "Loading…" : "No purchase requests."
-            }
-          />
-        </Card>
+        <Card className="p-space-2"><DataTable columns={requestColumns} data={requests.data ?? []} getRowId={(o) => String(o.id)} loading={requests.loading} emptyMessage={requests.loading ? "Loading…" : "No purchase requests."} /></Card>
       )}
       {tab === "suppliers" && (
         <>
-          {suppliers.error && (
-            <p className="mb-space-3 text-[13px] font-medium text-error">
-              {suppliers.error}
-            </p>
-          )}
-          <Card className="p-space-2">
-            <DataTable
-              columns={supplierColumns}
-              data={suppliers.data ?? []}
-              getRowId={(o) => String(o.id)}
-              onRowClick={(s) => setOpenSupplier(s.id)}
-              emptyMessage={
-                suppliers.loading ? "Loading…" : "No suppliers yet."
-              }
-            />
-          </Card>
+          {suppliers.error && <p className="mb-space-3 text-[13px] font-medium text-error">{suppliers.error}</p>}
+          <Card className="p-space-2"><DataTable columns={supplierColumns} data={suppliers.data ?? []} getRowId={(o) => String(o.id)} onRowClick={(s) => setOpenSupplier(s.id)} loading={suppliers.loading} emptyMessage={suppliers.loading ? "Loading…" : "No suppliers yet."} /></Card>
         </>
       )}
 

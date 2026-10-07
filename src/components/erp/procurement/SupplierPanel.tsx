@@ -16,6 +16,7 @@ import {
 } from "@/lib/erp";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Statement = {
   supplier: Supplier;
@@ -74,20 +75,9 @@ export function SupplierPanel({
   }
 
   return (
-    <Modal
-      open={supplierId !== null}
-      onClose={onClose}
-      width="lg"
-      title={d?.supplier.name ?? "Supplier"}
-      description={
-        d
-          ? `${d.supplier.supplier_code}${d.supplier.gstin ? ` · GSTIN ${d.supplier.gstin}` : ""} · ${d.supplier.payment_terms_days}-day terms`
-          : undefined
-      }
-    >
-      {statement.error && (
-        <p className="text-[13px] font-medium text-error">{statement.error}</p>
-      )}
+    <Modal open={supplierId !== null} onClose={onClose} width="lg" title={d?.supplier.name ?? "Supplier"} description={d ? `${d.supplier.supplier_code}${d.supplier.gstin ? ` · GSTIN ${d.supplier.gstin}` : ""} · ${d.supplier.payment_terms_days}-day terms` : undefined}>
+      {statement.error && <p className="text-[13px] font-medium text-error">{statement.error}</p>}
+      {!d && !statement.error && <SkeletonLines rows={5} />}
       {d && (
         <>
           <div className="mb-space-4 grid grid-cols-3 gap-space-3 text-center">

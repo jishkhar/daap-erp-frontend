@@ -31,6 +31,7 @@ import {
 } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 // The schema's single order status runs from payment to delivery; only `completed` takes the stock out and books the sale.
 const NEXT_STEP: Record<string, { to: string; label: string }[]> = {
@@ -112,10 +113,8 @@ export default function OrderDetailPage() {
       >
         <ArrowLeft size={14} /> All orders
       </Link>
-      {order.error && (
-        <p className="text-[14px] font-medium text-error">{order.error}</p>
-      )}
-      {!o && !order.error && <p className="text-ink-400">Loading order…</p>}
+      {order.error && <p className="text-[14px] font-medium text-error">{order.error}</p>}
+      {!o && !order.error && <SkeletonLines rows={3} />}
       {o && (
         <>
           <div className="mb-space-5 flex flex-wrap items-start justify-between gap-space-3">

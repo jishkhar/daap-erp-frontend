@@ -325,42 +325,13 @@ export default function CheckInOutPage() {
       )}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <StatTile
-          icon={<LogIn size={22} />}
-          label="Current status"
-          value={STATE_TEXT[state]}
-          deltaPct={null}
-          hint={rec ? `Since ${rec.check_in_local}` : ""}
-          tone="success"
-          filled
+        <StatTile loading={!today && !clockError}
+          icon={<LogIn size={22} />} label="Current status" value={STATE_TEXT[state]} deltaPct={null}
+          hint={rec ? `Since ${rec.check_in_local}` : ""} tone="success" filled
         />
-        <StatTile
-          icon={<Clock size={22} />}
-          label="Check-in time"
-          value={rec?.check_in_local ?? "—"}
-          deltaPct={null}
-          hint=""
-          tone="info"
-          filled
-        />
-        <StatTile
-          icon={<Coffee size={22} />}
-          label="Break taken"
-          value={fmtMinutes(rec?.break_minutes ?? 0)}
-          deltaPct={null}
-          hint=""
-          tone="warning"
-          filled
-        />
-        <StatTile
-          icon={<Briefcase size={22} />}
-          label="Working hours"
-          value={fmtMinutes(working)}
-          deltaPct={null}
-          hint=""
-          tone="violet"
-          filled
-        />
+        <StatTile loading={!today && !clockError} icon={<Clock size={22} />} label="Check-in time" value={rec?.check_in_local ?? "—"} deltaPct={null} hint="" tone="info" filled />
+        <StatTile loading={!today && !clockError} icon={<Coffee size={22} />} label="Break taken" value={fmtMinutes(rec?.break_minutes ?? 0)} deltaPct={null} hint="" tone="warning" filled />
+        <StatTile loading={!today && !clockError} icon={<Briefcase size={22} />} label="Working hours" value={fmtMinutes(working)} deltaPct={null} hint="" tone="violet" filled />
       </div>
 
       <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">

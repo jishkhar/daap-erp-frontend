@@ -7,6 +7,8 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { formatMoney, monthRange, qs, useErpQuery } from "@/lib/erp";
+import { CardSkeleton } from "@/components/ui/Skeleton";
+import { Help } from "@/components/erp/finance/Help";
 
 type Rate = {
   rate_bps: number;
@@ -165,15 +167,8 @@ export function GstReturnReport({ currency }: { currency: string }) {
   ) => (
     <Card className="p-space-4">
       <div className="mb-space-2 flex items-start justify-between gap-space-3">
-        <div>
-          <h3 className="text-[15px] font-bold text-ink-900">{title}</h3>
-          <p className="text-[12.5px] text-ink-600">{hint}</p>
-        </div>
-        {csv && (
-          <Button variant="secondary" onClick={csv}>
-            Download CSV
-          </Button>
-        )}
+        <div><h3 className="text-[15px] font-bold text-ink-900">{title}<Help term={title} /></h3><p className="text-[12.5px] text-ink-600">{hint}</p></div>
+        {csv && <Button variant="secondary" onClick={csv}>Download CSV</Button>}
       </div>
       <div className="overflow-x-auto">{body}</div>
     </Card>
@@ -285,17 +280,9 @@ export function GstReturnReport({ currency }: { currency: string }) {
           </Select>
         </Field>
       </div>
-      <p className="mb-space-3 text-[12.5px] text-ink-400">
-        Returns are filed per GSTIN, so pick one registration to get a
-        return&apos;s figures. Credit notes are shown as negatives. These are
-        working tables and CSV exports, not the GST portal&apos;s own upload
-        format.
-      </p>
-      {g.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {g.error}
-        </p>
-      )}
+      <p className="mb-space-3 text-[12.5px] text-ink-400">Returns are filed per GSTIN, so pick one registration to get a return&apos;s figures. Credit notes are shown as negatives. These are working tables and CSV exports, not the GST portal&apos;s own upload format.</p>
+      {g.error && <p className="mb-space-3 text-[13px] font-medium text-error">{g.error}</p>}
+      {!d && !g.error && <div className="flex flex-col gap-space-4"><CardSkeleton rows={4} /><CardSkeleton rows={4} /></div>}
       {d && (
         <div className="flex flex-col gap-space-4">
           {section(

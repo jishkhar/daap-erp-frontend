@@ -370,60 +370,16 @@ export default function ProductsPage() {
 
   return (
     <PortalShell tenant={tenant} active="products">
-      <PageHeader
-        scopedToBranch
-        icon={<Package size={20} />}
-        title="Products"
-        description="The product master shared by every branch and every channel."
-        actions={
-          canWrite && (
-            <div className="flex gap-space-2">
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".csv,.xlsx"
-                hidden
-                onChange={(e) => importFile(e.target.files?.[0])}
-              />
-              <Button
-                variant="ghost"
-                disabled={importing}
-                onClick={() => fileInput.current?.click()}
-              >
-                <HugeiconsIcon icon={FileUploadIcon} size={16} />{" "}
-                {importing ? "Importing…" : "Import CSV / Excel"}
-              </Button>
-              <Button onClick={() => setDraft({ ...EMPTY })}>
-                <PackagePlus size={16} /> Add product
-              </Button>
-            </div>
-          )
-        }
-      />
-      <Card className="mb-space-4 p-space-3">
-        <Input
-          placeholder="Search by name, SKU or barcode…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-md"
-          aria-label="Search products"
-        />
-      </Card>
-      {products.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {products.error}
-        </p>
-      )}
-      <Card className="p-space-2">
-        <DataTable
-          columns={columns}
-          data={products.data ?? []}
-          getRowId={(p) => String(p.id)}
-          emptyMessage={
-            products.loading ? "Loading products…" : "No products yet."
-          }
-        />
-      </Card>
+      <PageHeader scopedToBranch icon={<Package size={20} />} title="Products" description="The product master shared by every branch and every channel."
+        actions={canWrite && (
+          <div className="flex gap-space-2">
+            <input ref={fileInput} type="file" accept=".csv,.xlsx" hidden onChange={(e) => importFile(e.target.files?.[0])} />
+            <Button variant="ghost" disabled={importing} onClick={() => fileInput.current?.click()}><HugeiconsIcon icon={FileUploadIcon} size={16} /> {importing ? "Importing…" : "Import CSV / Excel"}</Button>
+            <Button onClick={() => setDraft({ ...EMPTY })}><PackagePlus size={16} /> Add product</Button>
+          </div>)} />
+      <Card className="mb-space-4 p-space-3"><Input placeholder="Search by name, SKU or barcode…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" aria-label="Search products" /></Card>
+      {products.error && <p className="mb-space-3 text-[13px] font-medium text-error">{products.error}</p>}
+      <Card className="p-space-2"><DataTable columns={columns} data={products.data ?? []} getRowId={(p) => String(p.id)} loading={products.loading} emptyMessage={products.loading ? "Loading products…" : "No products yet."} /></Card>
 
       <Modal
         open={draft !== null}

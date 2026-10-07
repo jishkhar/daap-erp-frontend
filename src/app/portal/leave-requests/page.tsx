@@ -16,6 +16,7 @@ import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { roleLabel } from "@/lib/staffRoles";
 import { useLeaveRequests, type LeaveRequest } from "@/hooks/useHr";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 const TABS = [
   { value: "pending", label: "Pending" },
@@ -160,42 +161,10 @@ export default function LeaveRequestsPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <StatTile
-          icon={<Hourglass size={22} />}
-          label="Pending"
-          value={summary?.pending ?? 0}
-          deltaPct={null}
-          hint="Awaiting a decision"
-          tone="warning"
-          filled
-        />
-        <StatTile
-          icon={<CalendarCheck size={22} />}
-          label="Approved"
-          value={summary?.approved ?? 0}
-          deltaPct={null}
-          hint="This period"
-          tone="brand"
-          filled
-        />
-        <StatTile
-          icon={<CalendarX size={22} />}
-          label="Declined"
-          value={summary?.rejected ?? 0}
-          deltaPct={null}
-          hint="This period"
-          tone="clay"
-          filled
-        />
-        <StatTile
-          icon={<CalendarOff size={22} />}
-          label="On leave today"
-          value={summary?.on_leave_today ?? 0}
-          deltaPct={null}
-          hint="Right now"
-          tone="violet"
-          filled
-        />
+        <StatTile loading={!summary && !error} icon={<Hourglass size={22} />} label="Pending" value={summary?.pending ?? 0} deltaPct={null} hint="Awaiting a decision" tone="warning" filled />
+        <StatTile loading={!summary && !error} icon={<CalendarCheck size={22} />} label="Approved" value={summary?.approved ?? 0} deltaPct={null} hint="This period" tone="brand" filled />
+        <StatTile loading={!summary && !error} icon={<CalendarX size={22} />} label="Declined" value={summary?.rejected ?? 0} deltaPct={null} hint="This period" tone="clay" filled />
+        <StatTile loading={!summary && !error} icon={<CalendarOff size={22} />} label="On leave today" value={summary?.on_leave_today ?? 0} deltaPct={null} hint="Right now" tone="violet" filled />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -218,7 +187,7 @@ export default function LeaveRequestsPage() {
             ))}
           </div>
           {!requests ? (
-            <p className="text-[13px] text-ink-400">Loading…</p>
+            <SkeletonLines rows={3} />
           ) : requests.length === 0 ? (
             <p className="text-[13px] text-ink-400">Nothing here.</p>
           ) : (

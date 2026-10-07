@@ -15,6 +15,7 @@ import { Select } from "@/components/ui/Select";
 import type { BranchRow } from "@/lib/branchSchema";
 import { erp, fromMinor, humanize, toMinor, useErpQuery } from "@/lib/erp";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type Hour = {
   weekday: number;
@@ -142,48 +143,14 @@ export function BranchPanels({
 
   return (
     <div className="flex flex-col gap-space-4">
-      {schedule.error && (
-        <p className="mb-space-3 text-[13px] text-error">{schedule.error}</p>
-      )}
-      <Card className="p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-          Opening hours
-        </h2>
-        {shownHours.length === 0 && (
-          <p className="mb-space-3 text-[13.5px] text-ink-400">
-            {schedule.loading ? "Loading…" : "No opening hours set yet."}
-          </p>
-        )}
-        <ul className="mb-space-3 divide-y divide-line">
-          {shownHours.map((h, i) => (
-            <li
-              key={`${h.weekday}-${h.opens_at}-${i}`}
-              className="flex items-center justify-between py-space-2 text-[14px]"
-            >
-              <span>
-                <strong className="text-ink-900">{DAYS[h.weekday]}</strong>{" "}
-                {h.opens_at} – {h.closes_at}
-                {h.channel && (
-                  <span className="text-ink-400">
-                    {" "}
-                    · {humanize(h.channel)} only
-                  </span>
-                )}
-              </span>
-              {canWrite && (
-                <button
-                  type="button"
-                  className="text-[13px] font-semibold text-error"
-                  onClick={() => {
-                    setDirtyHours(true);
-                    setHours(shownHours.filter((_, j) => j !== i));
-                  }}
-                >
-                  Remove
-                </button>
-              )}
-            </li>
-          ))}
+      {schedule.error && <p className="mb-space-3 text-[13px] text-error">{schedule.error}</p>}
+      <Card className="p-space-4"><h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Opening hours</h2>
+        {shownHours.length === 0 && (schedule.loading ? <SkeletonLines rows={2} /> : <p className="mb-space-3 text-[13.5px] text-ink-400">{"No opening hours set yet."}</p>)}
+        <ul className="mb-space-3 divide-y divide-line">{shownHours.map((h, i) => (
+          <li key={`${h.weekday}-${h.opens_at}-${i}`} className="flex items-center justify-between py-space-2 text-[14px]">
+            <span><strong className="text-ink-900">{DAYS[h.weekday]}</strong> {h.opens_at} – {h.closes_at}{h.channel && <span className="text-ink-400"> · {humanize(h.channel)} only</span>}</span>
+            {canWrite && <button type="button" className="text-[13px] font-semibold text-error" onClick={() => { setDirtyHours(true); setHours(shownHours.filter((_, j) => j !== i)); }}>Remove</button>}
+          </li>))}
         </ul>
         {canWrite && (
           <>
@@ -268,31 +235,12 @@ export function BranchPanels({
       <Card className="p-space-4">
         <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Staff</h2>
         {staff.error && <p className="text-[13px] text-error">{staff.error}</p>}
-        {(staff.data ?? []).length === 0 && (
-          <p className="text-[13.5px] text-ink-400">
-            {staff.loading
-              ? "Loading…"
-              : "Nobody is assigned to this branch yet."}
-          </p>
-        )}
-        <ul className="divide-y divide-line">
-          {(staff.data ?? []).map((m, i) => (
-            <li
-              key={`${m.user_id}-${i}`}
-              className="flex items-center justify-between gap-space-3 py-space-2 text-[14px]"
-            >
-              <span>
-                <strong className="text-ink-900">{m.name}</strong>{" "}
-                <span className="text-ink-400">{m.email}</span>
-              </span>
-              <span className="flex items-center gap-space-2">
-                <Badge tone="neutral">{humanize(m.role_name)}</Badge>
-                <Badge tone={m.scope === "all" ? "violet" : "brand"}>
-                  {m.scope === "all" ? "all branches" : "this branch"}
-                </Badge>
-              </span>
-            </li>
-          ))}
+        {(staff.data ?? []).length === 0 && (staff.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"Nobody is assigned to this branch yet."}</p>)}
+        <ul className="divide-y divide-line">{(staff.data ?? []).map((m, i) => (
+          <li key={`${m.user_id}-${i}`} className="flex items-center justify-between gap-space-3 py-space-2 text-[14px]">
+            <span><strong className="text-ink-900">{m.name}</strong> <span className="text-ink-400">{m.email}</span></span>
+            <span className="flex items-center gap-space-2"><Badge tone="neutral">{humanize(m.role_name)}</Badge><Badge tone={m.scope === "all" ? "violet" : "brand"}>{m.scope === "all" ? "all branches" : "this branch"}</Badge></span>
+          </li>))}
         </ul>
         <p className="mt-space-3 text-[12.5px] text-ink-400">
           Change assignments under{" "}

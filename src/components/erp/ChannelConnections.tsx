@@ -23,6 +23,7 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 /** The credentials a sales channel uses to talk to the ERP (an API key per backend/terminal). The key fixes the
  * channel and, optionally, the branch, so a channel can never claim a different source. */
@@ -85,9 +86,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
         )}
       </div>
       {mine.length === 0 ? (
-        <p className="text-[13.5px] text-ink-400">
-          {clients.loading ? "Loading…" : "No API keys yet."}
-        </p>
+        <>{clients.loading ? <SkeletonLines rows={2} /> : <p className="text-[13.5px] text-ink-400">{"No API keys yet."}</p>}</>
       ) : (
         <ul className="divide-y divide-line">
           {mine.map((c) => (

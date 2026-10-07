@@ -168,36 +168,10 @@ export default function TeamAccessPage() {
 
   return (
     <PortalShell tenant={tenant} active="staff">
-      <PageHeader
-        icon={<Users size={20} />}
-        title="Team & Access"
-        description="Who can sign in, and what they can do in which branch."
-        actions={
-          canManage && (
-            <Button onClick={() => setAdding(true)}>
-              <UserPlus size={16} /> Add person
-            </Button>
-          )
-        }
-      />
-      {(users.error || roles.error) && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {users.error ?? roles.error}
-        </p>
-      )}
-      <Card className="p-space-2">
-        <DataTable
-          columns={columns}
-          data={users.data ?? []}
-          getRowId={(u) => String(u.id)}
-          onRowClick={(u) => {
-            setSelectedId(u.id);
-            setGrant({ role_id: "", branch_id: "" });
-            setNewPassword("");
-          }}
-          emptyMessage={users.loading ? "Loading…" : "No people yet."}
-        />
-      </Card>
+      <PageHeader icon={<Users size={20} />} title="Team & Access" description="Who can sign in, and what they can do in which branch."
+        actions={canManage && <Button onClick={() => setAdding(true)}><UserPlus size={16} /> Add person</Button>} />
+      {(users.error || roles.error) && <p className="mb-space-3 text-[13px] font-medium text-error">{users.error ?? roles.error}</p>}
+      <Card className="p-space-2"><DataTable columns={columns} data={users.data ?? []} getRowId={(u) => String(u.id)} onRowClick={(u) => { setSelectedId(u.id); setGrant({ role_id: "", branch_id: "" }); setNewPassword(""); }} loading={users.loading} emptyMessage={users.loading ? "Loading…" : "No people yet."} /></Card>
 
       <Modal
         open={adding}

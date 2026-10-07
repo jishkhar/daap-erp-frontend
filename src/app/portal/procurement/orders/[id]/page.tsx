@@ -32,6 +32,7 @@ import {
 } from "@/lib/erp";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 type GrnItem = {
   id: string;
@@ -138,16 +139,9 @@ export default function PurchaseOrderPage() {
 
   return (
     <PortalShell tenant={tenant} active="procurement">
-      <Link
-        href="/portal/procurement"
-        className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"
-      >
-        <ArrowLeft size={14} /> All purchase orders
-      </Link>
-      {po.error && (
-        <p className="text-[14px] font-medium text-error">{po.error}</p>
-      )}
-      {!o && !po.error && <p className="text-ink-400">Loading…</p>}
+      <Link href="/portal/procurement" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> All purchase orders</Link>
+      {po.error && <p className="text-[14px] font-medium text-error">{po.error}</p>}
+      {!o && !po.error && <SkeletonLines rows={3} />}
       {o && (
         <>
           <div className="mb-space-5 flex flex-wrap items-start justify-between gap-space-3">

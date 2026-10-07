@@ -13,16 +13,8 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
-import {
-  formatDateTime,
-  formatMoney,
-  humanize,
-  useErpQuery,
-  type Customer,
-  type Interaction,
-  type Order,
-  type StoreCredit,
-} from "@/lib/erp";
+import { formatDateTime, formatMoney, humanize, useErpQuery, type Customer, type Interaction, type Order, type StoreCredit } from "@/lib/erp";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,18 +34,9 @@ export default function CustomerDetailPage() {
 
   return (
     <PortalShell tenant={tenant} active="customers">
-      <Link
-        href="/portal/customers"
-        className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"
-      >
-        <ArrowLeft size={14} /> All customers
-      </Link>
-      {customer.error && (
-        <p className="text-[14px] font-medium text-error">{customer.error}</p>
-      )}
-      {!c && !customer.error && (
-        <p className="text-ink-400">Loading customer…</p>
-      )}
+      <Link href="/portal/customers" className="mb-space-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"><ArrowLeft size={14} /> All customers</Link>
+      {customer.error && <p className="text-[14px] font-medium text-error">{customer.error}</p>}
+      {!c && !customer.error && <SkeletonLines rows={3} />}
       {c && (
         <>
           <div className="mb-space-5">
@@ -116,12 +99,17 @@ export default function CustomerDetailPage() {
                     cell: ({ row }) => formatDateTime(row.original.placed_at),
                   },
                 ]}
+<<<<<<< HEAD
                 data={orders.data ?? []}
                 getRowId={(o) => String(o.id)}
                 onRowClick={(o) => router.push(`/portal/orders/${o.id}`)}
                 pageSize={10}
                 emptyMessage={orders.loading ? "Loading…" : "No orders yet."}
               />
+=======
+                data={orders.data ?? []} getRowId={(o) => String(o.id)} onRowClick={(o) => router.push(`/portal/orders/${o.id}`)} pageSize={10}
+                loading={orders.loading} emptyMessage={orders.loading ? "Loading…" : "No orders yet."} />
+>>>>>>> main
             </Card>
             <div className="space-y-space-4">
               {credit.data &&

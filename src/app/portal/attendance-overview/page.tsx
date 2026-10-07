@@ -22,6 +22,7 @@ import { DAY_STATE, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { roleLabel } from "@/lib/staffRoles";
 import { useTeamAttendance, type OverviewRow } from "@/hooks/useHr";
+import { SkeletonLines } from "@/components/ui/Skeleton";
 
 const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the browser's zone
 
@@ -199,57 +200,15 @@ export default function TeamAttendancePage() {
       {tab === "day" ? (
         <>
           <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
-            <StatTile
-              icon={<CircleCheck size={22} />}
-              label="On time"
-              value={counts.on_time ?? 0}
-              deltaPct={null}
-              hint="Today"
-              tone="brand"
-              filled
-            />
-            <StatTile
-              icon={<TriangleAlert size={22} />}
-              label="Late"
-              value={counts.late ?? 0}
-              deltaPct={null}
-              hint="Today"
-              tone="warning"
-              filled
-              upIsGood={false}
-            />
-            <StatTile
-              icon={<Clock size={22} />}
-              label="Clocked in now"
-              value={counts.clocked_in ?? 0}
-              deltaPct={null}
-              hint="Right now"
-              tone="info"
-              filled
-            />
-            <StatTile
-              icon={<UserX size={22} />}
-              label="Absent / not in"
-              value={(counts.absent ?? 0) + (counts.not_in ?? 0)}
-              deltaPct={null}
-              hint="Today"
-              tone="clay"
-              filled
-              upIsGood={false}
-            />
-            <StatTile
-              icon={<CalendarOff size={22} />}
-              label="On leave"
-              value={counts.on_leave ?? 0}
-              deltaPct={null}
-              hint="Today"
-              tone="violet"
-              filled
-            />
+            <StatTile loading={!rows && !error} icon={<CircleCheck size={22} />} label="On time" value={counts.on_time ?? 0} deltaPct={null} hint="Today" tone="brand" filled />
+            <StatTile loading={!rows && !error} icon={<TriangleAlert size={22} />} label="Late" value={counts.late ?? 0} deltaPct={null} hint="Today" tone="warning" filled upIsGood={false} />
+            <StatTile loading={!rows && !error} icon={<Clock size={22} />} label="Clocked in now" value={counts.clocked_in ?? 0} deltaPct={null} hint="Right now" tone="info" filled />
+            <StatTile loading={!rows && !error} icon={<UserX size={22} />} label="Absent / not in" value={(counts.absent ?? 0) + (counts.not_in ?? 0)} deltaPct={null} hint="Today" tone="clay" filled upIsGood={false} />
+            <StatTile loading={!rows && !error} icon={<CalendarOff size={22} />} label="On leave" value={counts.on_leave ?? 0} deltaPct={null} hint="Today" tone="violet" filled />
           </div>
-          <Card className="overflow-x-auto p-space-2">
+          <Card className="no-scrollbar overflow-x-auto p-space-2">
             {!rows ? (
-              <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+              <SkeletonLines rows={3} />
             ) : rows.length === 0 ? (
               <p className="p-space-4 text-[13px] text-ink-400">No staff.</p>
             ) : (
@@ -345,9 +304,9 @@ export default function TeamAttendancePage() {
           </Card>
         </>
       ) : (
-        <Card className="overflow-x-auto p-space-2">
+        <Card className="no-scrollbar overflow-x-auto p-space-2">
           {!summary ? (
-            <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+            <SkeletonLines rows={3} />
           ) : (
             <table className="w-full text-left text-[13px]">
               <thead>
