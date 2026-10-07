@@ -1,10 +1,11 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Copy, PackagePlus, Package, Pencil, PackageOpen } from "lucide-react";
+import { Copy, ImageIcon, PackagePlus, Package, Pencil, PackageOpen } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
+import { ProductImagesModal, ProductThumb } from "@/components/erp/ProductImagesModal";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -41,6 +42,7 @@ export default function ProductsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [receiving, setReceiving] = useState<Product | null>(null);
   const [variantOf, setVariantOf] = useState<Product | null>(null);
+  const [imagesOf, setImagesOf] = useState<string | null>(null);
   const [variant, setVariant] = useState({ sku: "", name: "", price: "" });
   const [recvBranch, setRecvBranch] = useState("");
   const [recvQty, setRecvQty] = useState("");
@@ -56,7 +58,7 @@ export default function ProductsPage() {
   const cur = tenant?.currency ?? "INR";
 
   const columns = useMemo<ColumnDef<Product, unknown>[]>(() => [
-    { header: "Product", cell: ({ row }) => (<div><p className="font-semibold text-ink-900">{row.original.name}</p><p className="text-[12px] text-ink-400">{row.original.sku}{row.original.serialization_type !== "NONE" && <> · tracked by {row.original.serialization_type === "IMEI" ? "IMEI" : "serial no."}</>}</p></div>) },
+    { header: "Product", cell: ({ row }) => (<div className="flex items-center gap-space-2"><ProductThumb url={row.original.images?.[0]} /><div><p className="font-semibold text-ink-900">{row.original.name}</p><p className="text-[12px] text-ink-400">{row.original.sku}{row.original.serialization_type !== "NONE" && <> · tracked by {row.original.serialization_type === "IMEI" ? "IMEI" : "serial no."}</>}</p></div></div>) },
     { header: "Price", cell: ({ row }) => <span className="font-medium">{formatMoney(row.original.price_minor, cur)}</span> },
     { header: "Tax", cell: ({ row }) => row.original.tax_code ?? <span className="text-ink-400">—</span> },
     { header: "In stock", cell: ({ row }) => { const s = stockBy.get(row.original.id); return s ? <span><strong>{s.available_qty}</strong>{s.reserved_qty > 0 && <span className="text-ink-400"> (+{s.reserved_qty} reserved)</span>}</span> : <span className="text-ink-400">0</span>; } },
@@ -65,6 +67,7 @@ export default function ProductsPage() {
       <div className="flex justify-end gap-space-1">
         {canReceive && row.original.lifecycle_status !== "archived" && <Button variant="ghost" aria-label={`Receive stock for ${row.original.name}`} onClick={() => { setReceiving(row.original); setRecvBranch(String(activeBranches(session)[0]?.id ?? "")); setRecvQty(""); setRecvSerials(""); }}><PackageOpen size={16} /> Receive</Button>}
         {canWrite && row.original.lifecycle_status !== "archived" && <Button variant="ghost" aria-label={`Add a variant of ${row.original.name}`} onClick={() => { setVariantOf(row.original); setVariant({ sku: "", name: "", price: fromMinor(row.original.price_minor) }); }}><Copy size={15} /> Variant</Button>}
+        {canWrite && <Button variant="ghost" aria-label={`Images of ${row.original.name}`} onClick={() => setImagesOf(row.original.id)}><ImageIcon size={15} /> Images</Button>}
         {canWrite && <Button variant="ghost" aria-label={`Edit ${row.original.name}`} onClick={() => setDraft({ id: row.original.id, sku: row.original.sku, name: row.original.product_name, variant_name: row.original.variant_name === "Default" ? "" : row.original.variant_name, description: row.original.description ?? "", price: fromMinor(row.original.price_minor), mrp: fromMinor(row.original.mrp_minor), cost: fromMinor(row.original.cost_minor), tax_code: row.original.tax_code ?? "", serialization_type: row.original.serialization_type, barcode: row.original.barcode ?? "", barcode_type: inferBarcodeType(row.original.barcode), lifecycle_status: row.original.lifecycle_status })}><Pencil size={15} /> Edit</Button>}
       </div>) },
   ], [cur, stockBy, canReceive, canWrite, session]);
@@ -166,6 +169,8 @@ export default function ProductsPage() {
           </div>
         )}
       </Modal>
+
+      <ProductImagesModal product={(products.data ?? []).find((p) => p.id === imagesOf) ?? null} onClose={() => setImagesOf(null)} onChanged={products.reload} />
 
       <Modal open={importResult !== null} onClose={() => setImportResult(null)} width="lg" title="Import results"
         description={importResult ? `${importResult.created} of ${importResult.total} products imported${importResult.failed ? `, ${importResult.failed} skipped` : ""}.` : undefined}
