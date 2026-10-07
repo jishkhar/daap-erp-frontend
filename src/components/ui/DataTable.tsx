@@ -11,7 +11,14 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/Button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 
 type DataTableProps<TData> = {
@@ -89,12 +96,27 @@ export function DataTable<TData>({
   return (
     <div>
       <Table containerClassName={containerClassName}>
-        <TableHeader className={cn(stickyHeader && "sticky top-0 z-10 bg-card")}>
+        <TableHeader
+          className={cn(stickyHeader && "sticky top-0 z-10 bg-card")}
+        >
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className={(header.column.columnDef.meta as { className?: string } | undefined)?.className}>
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                <TableHead
+                  key={header.id}
+                  className={
+                    (
+                      header.column.columnDef.meta as
+                        { className?: string } | undefined
+                    )?.className
+                  }
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                 </TableHead>
               ))}
             </TableRow>
@@ -103,7 +125,10 @@ export function DataTable<TData>({
         {rows.length === 0 ? (
           <TableBody>
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={columns.length} className="py-space-4 text-center text-ink-400">
+              <TableCell
+                colSpan={columns.length}
+                className="py-space-4 text-center text-ink-400"
+              >
                 {emptyMessage}
               </TableCell>
             </TableRow>
@@ -115,18 +140,38 @@ export function DataTable<TData>({
               return (
                 <Fragment key={row.id}>
                   <TableRow
-                    className={cn(onRowClick && "cursor-pointer", expanded && "border-b-0", rowClassName?.(row.original))}
-                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                    className={cn(
+                      onRowClick && "cursor-pointer",
+                      expanded && "border-b-0",
+                      rowClassName?.(row.original),
+                    )}
+                    onClick={
+                      onRowClick ? () => onRowClick(row.original) : undefined
+                    }
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className={(cell.column.columnDef.meta as { className?: string } | undefined)?.className}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <TableCell
+                        key={cell.id}
+                        className={
+                          (
+                            cell.column.columnDef.meta as
+                              { className?: string } | undefined
+                          )?.className
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
                   {expanded && renderRowDetail && (
                     <TableRow>
-                      <TableCell colSpan={row.getVisibleCells().length} className="pb-space-3">
+                      <TableCell
+                        colSpan={row.getVisibleCells().length}
+                        className="pb-space-3"
+                      >
                         {renderRowDetail(row.original)}
                       </TableCell>
                     </TableRow>
@@ -141,7 +186,9 @@ export function DataTable<TData>({
       {totalRows > currentPageSize && (
         <div className="mt-space-3 flex flex-col items-center justify-between gap-space-2 border-t border-line pt-space-3 sm:flex-row">
           <p className="text-[12px] text-ink-400">
-            Showing {pageIndex * currentPageSize + 1}–{Math.min((pageIndex + 1) * currentPageSize, totalRows)} of {totalRows}
+            Showing {pageIndex * currentPageSize + 1}–
+            {Math.min((pageIndex + 1) * currentPageSize, totalRows)} of{" "}
+            {totalRows}
           </p>
           <div className="flex items-center gap-space-2">
             <Button
@@ -155,7 +202,12 @@ export function DataTable<TData>({
             <span className="text-[12px] font-semibold text-ink-600">
               Page {pageIndex + 1} of {Math.max(1, table.getPageCount())}
             </span>
-            <Button size="md" variant="secondary" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            <Button
+              size="md"
+              variant="secondary"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
               Next <ArrowRight size={13} />
             </Button>
           </div>

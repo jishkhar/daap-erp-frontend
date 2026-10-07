@@ -37,7 +37,9 @@ export default function PortalLoginPage() {
     const outcome = await loginStaffWithGoogle(idToken);
     setSubmitting(false);
     if (outcome.kind === "error") return setError(outcome.message);
-    router.push(outcome.kind === "signup" ? "/onboarding" : "/portal/dashboard");
+    router.push(
+      outcome.kind === "signup" ? "/onboarding" : "/portal/dashboard",
+    );
   }
 
   return (
@@ -49,11 +51,26 @@ export default function PortalLoginPage() {
         <GoogleSignInButton onCredential={handleGoogle} width={336} />
         <form onSubmit={handleSubmit}>
           <Field label="Email" htmlFor="email">
-            <Input id="email" type="email" autoFocus autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              autoFocus
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </Field>
           <Field label="Password" htmlFor="password" error={error || undefined}>
             <div className="relative">
-              <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" className="pr-11" value={password} invalid={!!error} onChange={(e) => setPassword(e.target.value)} />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                className="pr-11"
+                value={password}
+                invalid={!!error}
+                onChange={(e) => setPassword(e.target.value)}
+              />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
@@ -61,17 +78,30 @@ export default function PortalLoginPage() {
                 aria-pressed={showPassword}
                 className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-400 transition-colors hover:text-ink-900 focus-visible:outline-none focus-visible:text-ink-900"
               >
-                <HugeiconsIcon icon={showPassword ? ViewOffSlashIcon : ViewIcon} size={18} />
+                <HugeiconsIcon
+                  icon={showPassword ? ViewOffSlashIcon : ViewIcon}
+                  size={18}
+                />
               </button>
             </div>
           </Field>
-          <Button type="submit" disabled={submitting || !email || !password} className="mt-space-2 w-full" size="lg">
+          <Button
+            type="submit"
+            disabled={submitting || !email || !password}
+            className="mt-space-2 w-full"
+            size="lg"
+          >
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
         <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
           Don&apos;t have an account yet?{" "}
-          <Link href="/auth" className="font-semibold text-brand-600 hover:underline">Set one up</Link>
+          <Link
+            href="/auth"
+            className="font-semibold text-brand-600 hover:underline"
+          >
+            Set one up
+          </Link>
         </p>
       </Card>
     </div>

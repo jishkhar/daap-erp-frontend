@@ -34,7 +34,15 @@ type SwitchProps = {
 /** Shared on/off toggle -- replaces the hand-rolled `role="switch"` button
  * that used to be copy-pasted (with tiny drifting inconsistencies) across
  * active-toggles and feature switches. */
-export function Switch({ checked, onChange, disabled, size = "md", tone = "brand", className, ...rest }: SwitchProps) {
+export function Switch({
+  checked,
+  onChange,
+  disabled,
+  size = "md",
+  tone = "brand",
+  className,
+  ...rest
+}: SwitchProps) {
   return (
     <button
       type="button"
@@ -47,7 +55,11 @@ export function Switch({ checked, onChange, disabled, size = "md", tone = "brand
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
         trackSizes[size],
-        checked ? (tone === "success" ? "bg-success hover:bg-success/90" : "bg-brand-600 hover:bg-brand-700") : "bg-line hover:bg-black/15",
+        checked
+          ? tone === "success"
+            ? "bg-success hover:bg-success/90"
+            : "bg-brand-600 hover:bg-brand-700"
+          : "bg-line hover:bg-black/15",
         className,
       )}
       {...rest}

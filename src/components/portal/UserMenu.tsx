@@ -2,7 +2,12 @@
 
 import { ChevronDown, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { logoutStaff, useStaffSession } from "@/lib/staffAuth";
 import { roleLabel } from "@/lib/staffRoles";
 
@@ -25,8 +30,12 @@ export function UserMenu() {
           {initial}
         </span>
         <span className="hidden text-left leading-tight sm:block">
-          <span className="block max-w-[160px] truncate text-[13px] font-semibold text-ink-900">{session.name}</span>
-          <span className="block text-[11.5px] text-ink-600">{roleLabel(session.roles[0] ?? "")}</span>
+          <span className="block max-w-[160px] truncate text-[13px] font-semibold text-ink-900">
+            {session.name}
+          </span>
+          <span className="block text-[11.5px] text-ink-600">
+            {roleLabel(session.roles[0] ?? "")}
+          </span>
         </span>
         <ChevronDown size={15} className="hidden text-ink-400 sm:block" />
       </DropdownMenuTrigger>

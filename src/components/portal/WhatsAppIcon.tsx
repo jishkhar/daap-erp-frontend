@@ -2,9 +2,22 @@
  * data genuinely is a WhatsApp-sourced order/booking/conversation, never as a stand-in for a
  * channel this app doesn't actually have (see: Swiggy/Zomato, deliberately not rendered anywhere
  * in this codebase since no such integration exists). */
-export function WhatsAppIcon({ size = 16, className }: { size?: number; className?: string }) {
+export function WhatsAppIcon({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" className={className} aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <circle cx="16" cy="16" r="16" fill="#25D366" />
       <path
         d="M23.47 8.52A9.8 9.8 0 0 0 16.06 5.5c-5.42 0-9.83 4.4-9.83 9.83 0 1.73.45 3.42 1.31 4.91L6.15 26.5l6.42-1.68a9.8 9.8 0 0 0 3.49.85h.01c5.42 0 9.83-4.4 9.83-9.83a9.8 9.8 0 0 0-2.43-6.82Z"

@@ -6,7 +6,10 @@ import { cn } from "@/lib/cn";
 import { toastManager } from "@/lib/toast";
 
 const TYPE_ICON = { success: CheckCircle2, error: XCircle } as const;
-const TYPE_ICON_CLASS: Record<string, string> = { success: "text-success", error: "text-error" };
+const TYPE_ICON_CLASS: Record<string, string> = {
+  success: "text-success",
+  error: "text-error",
+};
 
 function ToastItem({ toast }: { toast: ToastPrimitive.Root.ToastObject }) {
   const Icon = TYPE_ICON[toast.type as keyof typeof TYPE_ICON] ?? CheckCircle2;
@@ -20,10 +23,20 @@ function ToastItem({ toast }: { toast: ToastPrimitive.Root.ToastObject }) {
         "data-[ending-style]:translate-y-2 data-[ending-style]:opacity-0",
       )}
     >
-      <Icon size={18} className={cn("mt-0.5 shrink-0", TYPE_ICON_CLASS[toast.type ?? ""] ?? "text-ink-600")} />
+      <Icon
+        size={18}
+        className={cn(
+          "mt-0.5 shrink-0",
+          TYPE_ICON_CLASS[toast.type ?? ""] ?? "text-ink-600",
+        )}
+      />
       <ToastPrimitive.Content className="min-w-0 flex-1">
-        {toast.title && <ToastPrimitive.Title className="text-[13.5px] font-semibold text-ink-900" />}
-        {toast.description && <ToastPrimitive.Description className="mt-0.5 text-[12.5px] text-ink-600" />}
+        {toast.title && (
+          <ToastPrimitive.Title className="text-[13.5px] font-semibold text-ink-900" />
+        )}
+        {toast.description && (
+          <ToastPrimitive.Description className="mt-0.5 text-[12.5px] text-ink-600" />
+        )}
       </ToastPrimitive.Content>
       <ToastPrimitive.Close
         aria-label="Dismiss"

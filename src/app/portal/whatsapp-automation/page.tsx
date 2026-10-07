@@ -11,11 +11,19 @@ export default function Page() {
   if (!ready) return null;
   return (
     <PortalShell tenant={tenant} active="whatsapp-automation">
-      <PageHeader icon={<Zap size={20} />} title="WhatsApp Automation" description="Automated WhatsApp messages triggered by order events." />
+      <PageHeader
+        icon={<Zap size={20} />}
+        title="WhatsApp Automation"
+        description="Automated WhatsApp messages triggered by order events."
+      />
       <ModulePlaceholder
         title="WhatsApp Automation"
         summary="Rules that send WhatsApp messages automatically when something happens to an order or a customer."
-        planned={["Order confirmed, dispatched and delivered notifications","Abandoned-cart and payment-pending reminders","Template management and per-branch sender numbers"]}
+        planned={[
+          "Order confirmed, dispatched and delivered notifications",
+          "Abandoned-cart and payment-pending reminders",
+          "Template management and per-branch sender numbers",
+        ]}
         phase="Phase 6 — WhatsApp Shop Connect"
       />
     </PortalShell>

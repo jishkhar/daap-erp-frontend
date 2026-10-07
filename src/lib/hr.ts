@@ -8,9 +8,21 @@ export async function staffJson<T = unknown>(
 ): Promise<{ data: T | null; error: string | null; unauthorized: boolean }> {
   const result = await staffFetch(path, {
     method,
-    ...(body !== undefined ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
+    ...(body !== undefined
+      ? {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      : {}),
   });
-  if (!result.ok) return { data: null, error: result.unauthorized ? "Session expired -- please sign in again." : result.error, unauthorized: result.unauthorized };
+  if (!result.ok)
+    return {
+      data: null,
+      error: result.unauthorized
+        ? "Session expired -- please sign in again."
+        : result.error,
+      unauthorized: result.unauthorized,
+    };
   return { data: result.data as T, error: null, unauthorized: false };
 }
 
@@ -26,7 +38,13 @@ export function fmtMinutes(total: number): string {
 /** "2026-09-21" -> "Mon 21 Sep". */
 export function fmtDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
 }
 
 export function fmtDateRange(from: string, to: string): string {
@@ -34,13 +52,20 @@ export function fmtDateRange(from: string, to: string): string {
 }
 
 export const LEAVE_TYPE_LABEL: Record<string, string> = {
-  casual: "Casual", sick: "Sick", annual: "Annual", unpaid: "Unpaid", personal: "Personal",
+  casual: "Casual",
+  sick: "Sick",
+  annual: "Annual",
+  unpaid: "Unpaid",
+  personal: "Personal",
 };
 
 export type Tone = "brand" | "clay" | "success" | "neutral";
 
 export const LEAVE_STATUS_TONE: Record<string, Tone> = {
-  pending: "clay", approved: "success", rejected: "neutral", cancelled: "neutral",
+  pending: "clay",
+  approved: "success",
+  rejected: "neutral",
+  cancelled: "neutral",
 };
 
 /** How one person's day reads on the team overview. */
@@ -56,7 +81,15 @@ export const DAY_STATE: Record<string, { label: string; tone: Tone }> = {
   off: { label: "Off", tone: "neutral" },
 };
 
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+export const WEEKDAYS = [
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+  "Sun",
+] as const;
 
 export type AttendanceRecord = {
   id: string;

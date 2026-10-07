@@ -41,7 +41,10 @@ export function ConfirmDialog({
         className="w-full max-w-[420px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="confirm-dialog-title" className="text-[16px] font-semibold text-ink-900">
+        <h2
+          id="confirm-dialog-title"
+          className="text-[16px] font-semibold text-ink-900"
+        >
           {title}
         </h2>
         <p className="mt-space-2 text-[13px] text-ink-600">{message}</p>
@@ -49,7 +52,11 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </Button>
-          <Button variant={destructive ? "destructive" : "primary"} onClick={onConfirm} disabled={busy}>
+          <Button
+            variant={destructive ? "destructive" : "primary"}
+            onClick={onConfirm}
+            disabled={busy}
+          >
             {busy ? "Working…" : confirmLabel}
           </Button>
         </div>

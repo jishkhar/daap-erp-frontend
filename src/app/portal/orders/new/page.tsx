@@ -1,7 +1,11 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon, Delete02Icon, ShoppingCart01Icon } from "@hugeicons/core-free-icons";
+import {
+  Add01Icon,
+  Delete02Icon,
+  ShoppingCart01Icon,
+} from "@hugeicons/core-free-icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -13,26 +17,49 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { useActiveBranch } from "@/lib/branch";
-import { CHANNELS, CHANNEL_ORDER, erp, formatMoney, qs, useErpQuery, type Channel, type Customer, type OrderDetail, type Product } from "@/lib/erp";
+import {
+  CHANNELS,
+  CHANNEL_ORDER,
+  erp,
+  formatMoney,
+  qs,
+  useErpQuery,
+  type Channel,
+  type Customer,
+  type OrderDetail,
+  type Product,
+} from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
 type Line = { product: Product; quantity: number; serials: string };
 type StockRow = { variant_id: string; available_qty: number };
 type ProductWithTax = Product & { tax_rate_bps?: number | null };
 
-const COUNTER_METHODS = [["cash", "Cash"], ["card", "Card"], ["upi", "UPI"]] as const;
+const COUNTER_METHODS = [
+  ["cash", "Cash"],
+  ["card", "Card"],
+  ["upi", "UPI"],
+] as const;
 
 /** Same rules as the server, per line, round-half-up. Exclusive prices: tax = amount x rate, added on top. Inclusive prices: the amount is what
  * the customer pays and tax is carved out of it (amount - amount x 100 / (100 + rate)). The server recomputes everything; this is a preview. */
 type Bands = Record<string, { up_to_minor: number | null; rate_bps: number }[]>;
 const lineTax = (l: Line, inclusive: boolean, bands: Bands) => {
   const code = (l.product as ProductWithTax).tax_code ?? "";
-  const band = [...(bands[code] ?? [])].sort((a, b) => (a.up_to_minor ?? Infinity) - (b.up_to_minor ?? Infinity)).find((b) => b.up_to_minor === null || l.product.price_minor <= b.up_to_minor);
-  const rate = band ? band.rate_bps : (l.product as ProductWithTax).tax_rate_bps ?? 0;
+  const band = [...(bands[code] ?? [])]
+    .sort((a, b) => (a.up_to_minor ?? Infinity) - (b.up_to_minor ?? Infinity))
+    .find(
+      (b) => b.up_to_minor === null || l.product.price_minor <= b.up_to_minor,
+    );
+  const rate = band
+    ? band.rate_bps
+    : ((l.product as ProductWithTax).tax_rate_bps ?? 0);
   const amount = l.product.price_minor * l.quantity;
   if (!inclusive) return Math.floor((amount * rate + 5000) / 10000);
   const divisor = 10000 + rate;
-  return amount - Math.floor((amount * 10000 + Math.floor(divisor / 2)) / divisor);
+  return (
+    amount - Math.floor((amount * 10000 + Math.floor(divisor / 2)) / divisor)
+  );
 };
 
 function NewOrder() {
@@ -41,7 +68,8 @@ function NewOrder() {
   const { tenant, ready } = usePortalGuard();
   const { branchId: activeBranch, branches } = useActiveBranch();
 
-  const initialChannel = CHANNEL_ORDER.find((c) => c === params.get("channel")) ?? "pos";
+  const initialChannel =
+    CHANNEL_ORDER.find((c) => c === params.get("channel")) ?? "pos";
   const [channel, setChannel] = useState<Channel>(initialChannel);
   const [branch, setBranch] = useState("");
   const [search, setSearch] = useState("");
@@ -61,36 +89,74 @@ function NewOrder() {
   const isPos = channel === "pos";
   const cur = tenant?.currency ?? "INR";
 
-  const products = useErpQuery<ProductWithTax[]>(`/api/v1/products${qs({ q: search, lifecycle_status: "active", limit: 12 })}`);
+  const products = useErpQuery<ProductWithTax[]>(
+    `/api/v1/products${qs({ q: search, lifecycle_status: "active", limit: 12 })}`,
+  );
   const customers = useErpQuery<Customer[]>("/api/v1/customers?limit=200");
-  const stock = useErpQuery<StockRow[]>(branchId ? `/api/v1/inventory${qs({ branch_id: branchId, limit: 1000 })}` : null);
-  const available = useMemo(() => new Map((stock.data ?? []).map((s) => [s.variant_id, s.available_qty])), [stock.data]);
+  const stock = useErpQuery<StockRow[]>(
+    branchId
+      ? `/api/v1/inventory${qs({ branch_id: branchId, limit: 1000 })}`
+      : null,
+  );
+  const available = useMemo(
+    () =>
+      new Map((stock.data ?? []).map((s) => [s.variant_id, s.available_qty])),
+    [stock.data],
+  );
 
   const inclusive = tenant?.pricesIncludeTax ?? false;
   const bandsQuery = useErpQuery<Bands>("/api/v1/tax-rule-bands");
   const bands = useMemo<Bands>(() => bandsQuery.data ?? {}, [bandsQuery.data]);
   const totals = useMemo(() => {
-    const amount = lines.reduce((s, l) => s + l.product.price_minor * l.quantity, 0);
+    const amount = lines.reduce(
+      (s, l) => s + l.product.price_minor * l.quantity,
+      0,
+    );
     const tax = lines.reduce((s, l) => s + lineTax(l, inclusive, bands), 0);
-    return inclusive ? { subtotal: amount - tax, tax, total: amount } : { subtotal: amount, tax, total: amount + tax };
+    return inclusive
+      ? { subtotal: amount - tax, tax, total: amount }
+      : { subtotal: amount, tax, total: amount + tax };
   }, [lines, inclusive, bands]);
 
   function add(product: Product) {
-    setLines((ls) => (ls.some((l) => l.product.id === product.id) ? ls.map((l) => (l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l)) : [...ls, { product, quantity: 1, serials: "" }]));
+    setLines((ls) =>
+      ls.some((l) => l.product.id === product.id)
+        ? ls.map((l) =>
+            l.product.id === product.id
+              ? { ...l, quantity: l.quantity + 1 }
+              : l,
+          )
+        : [...ls, { product, quantity: 1, serials: "" }],
+    );
   }
-  const patch = (id: string, change: Partial<Line>) => setLines((ls) => ls.map((l) => (l.product.id === id ? { ...l, ...change } : l)));
-  const serialList = (l: Line) => l.serials.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+  const patch = (id: string, change: Partial<Line>) =>
+    setLines((ls) =>
+      ls.map((l) => (l.product.id === id ? { ...l, ...change } : l)),
+    );
+  const serialList = (l: Line) =>
+    l.serials
+      .split(/[\n,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
 
   function problem(): string | null {
     if (!branchId) return "Choose a branch.";
     if (lines.length === 0) return "Add at least one product.";
-    if (!customerId && walkName.trim() && !walkPhone.trim()) return "Enter a phone number for the new customer.";
+    if (!customerId && walkName.trim() && !walkPhone.trim())
+      return "Enter a phone number for the new customer.";
     if (isPos) {
-      const bad = lines.find((l) => l.product.serialization_type !== "NONE" && serialList(l).length !== l.quantity);
-      if (bad) return `Enter ${bad.quantity} serial/IMEI number(s) for ${bad.product.name}.`;
+      const bad = lines.find(
+        (l) =>
+          l.product.serialization_type !== "NONE" &&
+          serialList(l).length !== l.quantity,
+      );
+      if (bad)
+        return `Enter ${bad.quantity} serial/IMEI number(s) for ${bad.product.name}.`;
     } else {
-      if (!customerId && !walkName.trim()) return "Choose a customer or enter their name and phone.";
-      if (orderType !== "pickup" && !address.line1.trim()) return "Enter a delivery address.";
+      if (!customerId && !walkName.trim())
+        return "Choose a customer or enter their name and phone.";
+      if (orderType !== "pickup" && !address.line1.trim())
+        return "Enter a delivery address.";
     }
     return null;
   }
@@ -99,9 +165,26 @@ function NewOrder() {
     const err = problem();
     if (err) return toast.error("Can't place the order yet", err);
     const body: Record<string, unknown> = {
-      branch_id: branchId, channel, notes: notes.trim() || null,
-      items: lines.map((l) => ({ variant_id: l.product.id, quantity: l.quantity, ...(isPos && l.product.serialization_type !== "NONE" ? { serial_numbers: serialList(l) } : {}) })),
-      ...(customerId ? { customer_id: customerId } : walkName.trim() ? { customer: { name: walkName.trim(), phone: walkPhone.trim() || null } } : {}),
+      branch_id: branchId,
+      channel,
+      notes: notes.trim() || null,
+      items: lines.map((l) => ({
+        variant_id: l.product.id,
+        quantity: l.quantity,
+        ...(isPos && l.product.serialization_type !== "NONE"
+          ? { serial_numbers: serialList(l) }
+          : {}),
+      })),
+      ...(customerId
+        ? { customer_id: customerId }
+        : walkName.trim()
+          ? {
+              customer: {
+                name: walkName.trim(),
+                phone: walkPhone.trim() || null,
+              },
+            }
+          : {}),
     };
     if (isPos) {
       body.order_type = "takeaway";
@@ -114,7 +197,8 @@ function NewOrder() {
     setBusy(true);
     const res = await erp<OrderDetail>("/api/v1/orders", "POST", body);
     setBusy(false);
-    if (res.error || !res.data) return toast.error("Couldn't place the order", res.error ?? undefined);
+    if (res.error || !res.data)
+      return toast.error("Couldn't place the order", res.error ?? undefined);
     toast.success(`Order ${res.data.order_number} placed`);
     router.push(`/portal/orders/${res.data.id}`);
   }
@@ -123,91 +207,332 @@ function NewOrder() {
 
   return (
     <PortalShell tenant={tenant} active="orders">
-      <PageHeader icon={<HugeiconsIcon icon={ShoppingCart01Icon} size={20} />} title="New order" description="Place an order on behalf of a customer. Prices and tax come from the product master." />
+      <PageHeader
+        icon={<HugeiconsIcon icon={ShoppingCart01Icon} size={20} />}
+        title="New order"
+        description="Place an order on behalf of a customer. Prices and tax come from the product master."
+      />
       <div className="grid gap-space-4 lg:grid-cols-[1fr_380px]">
         <div>
           <Card className="mb-space-4 p-space-4">
             <div className="grid gap-x-space-4 sm:grid-cols-2">
-              <Field label="Channel" htmlFor="o_channel"><Select id="o_channel" value={channel} onChange={(e) => setChannel(e.target.value as Channel)}>{CHANNEL_ORDER.map((c) => <option key={c} value={c}>{CHANNELS[c].label}</option>)}</Select></Field>
-              <Field label="Branch" htmlFor="o_branch" hint="Stock is taken from (or reserved at) this branch."><Select id="o_branch" value={branchId} onChange={(e) => setBranch(e.target.value)}>{branches.map((b) => <option key={b.id} value={b.id}>{b.branch_name} ({b.branch_code})</option>)}</Select></Field>
+              <Field label="Channel" htmlFor="o_channel">
+                <Select
+                  id="o_channel"
+                  value={channel}
+                  onChange={(e) => setChannel(e.target.value as Channel)}
+                >
+                  {CHANNEL_ORDER.map((c) => (
+                    <option key={c} value={c}>
+                      {CHANNELS[c].label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
+                label="Branch"
+                htmlFor="o_branch"
+                hint="Stock is taken from (or reserved at) this branch."
+              >
+                <Select
+                  id="o_branch"
+                  value={branchId}
+                  onChange={(e) => setBranch(e.target.value)}
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.branch_name} ({b.branch_code})
+                    </option>
+                  ))}
+                </Select>
+              </Field>
             </div>
-            <p className="text-[12.5px] text-ink-400">{isPos ? "Counter sale: stock leaves immediately and the order completes on the spot." : "Remote order: stock is reserved until it's delivered; the customer is required."}</p>
+            <p className="text-[12.5px] text-ink-400">
+              {isPos
+                ? "Counter sale: stock leaves immediately and the order completes on the spot."
+                : "Remote order: stock is reserved until it's delivered; the customer is required."}
+            </p>
           </Card>
 
           <Card className="mb-space-4 p-space-4">
-            <Input placeholder="Search products by name, SKU or barcode…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search products" className="mb-space-3" />
-            {products.error && <p className="text-[13px] text-error">{products.error}</p>}
+            <Input
+              placeholder="Search products by name, SKU or barcode…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search products"
+              className="mb-space-3"
+            />
+            {products.error && (
+              <p className="text-[13px] text-error">{products.error}</p>
+            )}
             <div className="grid gap-space-2 sm:grid-cols-2">
               {(products.data ?? []).map((pr) => {
                 const left = available.get(pr.id) ?? 0;
                 return (
-                  <button key={pr.id} type="button" onClick={() => add(pr)} disabled={left <= 0}
-                    className="flex items-center justify-between gap-space-2 rounded-md border border-line bg-card p-space-3 text-left transition hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50">
-                    <span className="min-w-0"><span className="block truncate text-[14px] font-semibold text-ink-900">{pr.name}</span>
-                      <span className="block text-[12px] text-ink-400">{pr.sku} · {left > 0 ? `${left} in stock` : "out of stock here"}</span></span>
-                    <span className="flex shrink-0 items-center gap-space-1 text-[13px] font-semibold">{formatMoney(pr.price_minor, cur)} <HugeiconsIcon icon={Add01Icon} size={16} /></span>
+                  <button
+                    key={pr.id}
+                    type="button"
+                    onClick={() => add(pr)}
+                    disabled={left <= 0}
+                    className="flex items-center justify-between gap-space-2 rounded-md border border-line bg-card p-space-3 text-left transition hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14px] font-semibold text-ink-900">
+                        {pr.name}
+                      </span>
+                      <span className="block text-[12px] text-ink-400">
+                        {pr.sku} ·{" "}
+                        {left > 0 ? `${left} in stock` : "out of stock here"}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-space-1 text-[13px] font-semibold">
+                      {formatMoney(pr.price_minor, cur)}{" "}
+                      <HugeiconsIcon icon={Add01Icon} size={16} />
+                    </span>
                   </button>
                 );
               })}
-              {products.data?.length === 0 && <p className="text-[13px] text-ink-400">No products match.</p>}
+              {products.data?.length === 0 && (
+                <p className="text-[13px] text-ink-400">No products match.</p>
+              )}
             </div>
           </Card>
 
           <Card className="p-space-4">
-            <h2 className="mb-space-3 text-[15px] font-semibold text-ink-900">{isPos ? "Customer (optional)" : "Customer"}</h2>
+            <h2 className="mb-space-3 text-[15px] font-semibold text-ink-900">
+              {isPos ? "Customer (optional)" : "Customer"}
+            </h2>
             <div className="grid gap-x-space-4 sm:grid-cols-3">
-              <Field label="Existing customer" htmlFor="o_cust"><Select id="o_cust" value={customerId} onChange={(e) => setCustomerId(e.target.value)}><option value="">{isPos ? "Walk-in" : "New customer…"}</option>{(customers.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}</Select></Field>
-              <Field label="Name" htmlFor="o_name"><Input id="o_name" value={walkName} disabled={!!customerId} onChange={(e) => setWalkName(e.target.value)} /></Field>
-              <Field label="Phone" htmlFor="o_phone"><Input id="o_phone" inputMode="tel" value={walkPhone} disabled={!!customerId} onChange={(e) => setWalkPhone(e.target.value)} /></Field>
+              <Field label="Existing customer" htmlFor="o_cust">
+                <Select
+                  id="o_cust"
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                >
+                  <option value="">
+                    {isPos ? "Walk-in" : "New customer…"}
+                  </option>
+                  {(customers.data ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.phone ? ` · ${c.phone}` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Name" htmlFor="o_name">
+                <Input
+                  id="o_name"
+                  value={walkName}
+                  disabled={!!customerId}
+                  onChange={(e) => setWalkName(e.target.value)}
+                />
+              </Field>
+              <Field label="Phone" htmlFor="o_phone">
+                <Input
+                  id="o_phone"
+                  inputMode="tel"
+                  value={walkPhone}
+                  disabled={!!customerId}
+                  onChange={(e) => setWalkPhone(e.target.value)}
+                />
+              </Field>
             </div>
             {!isPos && (
               <div className="grid gap-x-space-4 sm:grid-cols-2">
-                <Field label="Fulfilment" htmlFor="o_type"><Select id="o_type" value={orderType} onChange={(e) => setOrderType(e.target.value)}><option value="shipping">Shipping</option><option value="delivery">Local delivery</option><option value="pickup">Store pickup</option></Select></Field>
-                {orderType !== "pickup" && (<>
-                  <Field label="Address" htmlFor="o_addr" className="sm:col-span-2"><Input id="o_addr" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} /></Field>
-                  <Field label="City" htmlFor="o_city"><Input id="o_city" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} /></Field>
-                  <Field label="Pincode" htmlFor="o_pin"><Input id="o_pin" inputMode="numeric" value={address.pincode} onChange={(e) => setAddress({ ...address, pincode: e.target.value })} /></Field>
-                </>)}
+                <Field label="Fulfilment" htmlFor="o_type">
+                  <Select
+                    id="o_type"
+                    value={orderType}
+                    onChange={(e) => setOrderType(e.target.value)}
+                  >
+                    <option value="shipping">Shipping</option>
+                    <option value="delivery">Local delivery</option>
+                    <option value="pickup">Store pickup</option>
+                  </Select>
+                </Field>
+                {orderType !== "pickup" && (
+                  <>
+                    <Field
+                      label="Address"
+                      htmlFor="o_addr"
+                      className="sm:col-span-2"
+                    >
+                      <Input
+                        id="o_addr"
+                        value={address.line1}
+                        onChange={(e) =>
+                          setAddress({ ...address, line1: e.target.value })
+                        }
+                      />
+                    </Field>
+                    <Field label="City" htmlFor="o_city">
+                      <Input
+                        id="o_city"
+                        value={address.city}
+                        onChange={(e) =>
+                          setAddress({ ...address, city: e.target.value })
+                        }
+                      />
+                    </Field>
+                    <Field label="Pincode" htmlFor="o_pin">
+                      <Input
+                        id="o_pin"
+                        inputMode="numeric"
+                        value={address.pincode}
+                        onChange={(e) =>
+                          setAddress({ ...address, pincode: e.target.value })
+                        }
+                      />
+                    </Field>
+                  </>
+                )}
               </div>
             )}
           </Card>
         </div>
 
         <Card className="h-fit p-space-4 lg:sticky lg:top-space-4">
-          <h2 className="mb-space-3 text-[15px] font-semibold text-ink-900">Order summary</h2>
-          {lines.length === 0 && <p className="mb-space-3 text-[13px] text-ink-400">No products added yet.</p>}
+          <h2 className="mb-space-3 text-[15px] font-semibold text-ink-900">
+            Order summary
+          </h2>
+          {lines.length === 0 && (
+            <p className="mb-space-3 text-[13px] text-ink-400">
+              No products added yet.
+            </p>
+          )}
           {lines.map((l) => (
             <div key={l.product.id} className="border-b border-line py-space-3">
               <div className="flex items-start justify-between gap-space-2">
-                <div className="min-w-0"><p className="truncate text-[14px] font-semibold text-ink-900">{l.product.name}</p><p className="text-[12px] text-ink-400">{formatMoney(l.product.price_minor, cur)} each</p></div>
-                <button type="button" aria-label={`Remove ${l.product.name}`} className="text-ink-400 hover:text-error" onClick={() => setLines((ls) => ls.filter((x) => x.product.id !== l.product.id))}><HugeiconsIcon icon={Delete02Icon} size={16} /></button>
+                <div className="min-w-0">
+                  <p className="truncate text-[14px] font-semibold text-ink-900">
+                    {l.product.name}
+                  </p>
+                  <p className="text-[12px] text-ink-400">
+                    {formatMoney(l.product.price_minor, cur)} each
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Remove ${l.product.name}`}
+                  className="text-ink-400 hover:text-error"
+                  onClick={() =>
+                    setLines((ls) =>
+                      ls.filter((x) => x.product.id !== l.product.id),
+                    )
+                  }
+                >
+                  <HugeiconsIcon icon={Delete02Icon} size={16} />
+                </button>
               </div>
               <div className="mt-space-2 flex items-center justify-between">
-                <Input inputMode="numeric" aria-label="Quantity" className="h-9 w-20" value={l.quantity} onChange={(e) => patch(l.product.id, { quantity: Math.min(Math.max(parseInt(e.target.value.replace(/\D/g, ""), 10) || 1, 1), available.get(l.product.id) || 1) })} />
-                <span className="text-[14px] font-semibold">{formatMoney(l.product.price_minor * l.quantity, cur)}</span>
+                <Input
+                  inputMode="numeric"
+                  aria-label="Quantity"
+                  className="h-9 w-20"
+                  value={l.quantity}
+                  onChange={(e) =>
+                    patch(l.product.id, {
+                      quantity: Math.min(
+                        Math.max(
+                          parseInt(e.target.value.replace(/\D/g, ""), 10) || 1,
+                          1,
+                        ),
+                        available.get(l.product.id) || 1,
+                      ),
+                    })
+                  }
+                />
+                <span className="text-[14px] font-semibold">
+                  {formatMoney(l.product.price_minor * l.quantity, cur)}
+                </span>
               </div>
               {isPos && l.product.serialization_type !== "NONE" && (
-                <Textarea rows={2} className="mt-space-2" aria-label="Serial numbers" placeholder={`${l.quantity} ${l.product.serialization_type === "IMEI" ? "IMEI" : "serial"} number(s), one per line`} value={l.serials} onChange={(e) => patch(l.product.id, { serials: e.target.value })} />
+                <Textarea
+                  rows={2}
+                  className="mt-space-2"
+                  aria-label="Serial numbers"
+                  placeholder={`${l.quantity} ${l.product.serialization_type === "IMEI" ? "IMEI" : "serial"} number(s), one per line`}
+                  value={l.serials}
+                  onChange={(e) =>
+                    patch(l.product.id, { serials: e.target.value })
+                  }
+                />
               )}
             </div>
           ))}
           <div className="space-y-1 py-space-3 text-[14px]">
-            <div className="flex justify-between"><span className="text-ink-600">Subtotal</span><span>{formatMoney(totals.subtotal, cur)}</span></div>
-            <div className="flex justify-between"><span className="text-ink-600">Tax</span><span>{formatMoney(totals.tax, cur)}</span></div>
-            <div className="flex justify-between text-[16px] font-bold text-ink-900"><span>Total</span><span>{formatMoney(totals.total, cur)}</span></div>
-            {inclusive && <p className="text-[12px] text-ink-400">Prices include GST; the subtotal is shown before tax.</p>}
+            <div className="flex justify-between">
+              <span className="text-ink-600">Subtotal</span>
+              <span>{formatMoney(totals.subtotal, cur)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-600">Tax</span>
+              <span>{formatMoney(totals.tax, cur)}</span>
+            </div>
+            <div className="flex justify-between text-[16px] font-bold text-ink-900">
+              <span>Total</span>
+              <span>{formatMoney(totals.total, cur)}</span>
+            </div>
+            {inclusive && (
+              <p className="text-[12px] text-ink-400">
+                Prices include GST; the subtotal is shown before tax.
+              </p>
+            )}
           </div>
           {isPos ? (
             <div className="mb-space-3">
-              <Field label="Payment" htmlFor="o_pay" className="mb-0"><Select id="o_pay" value={payNow ? method : "later"} onChange={(e) => { const v = e.target.value; setPayNow(v !== "later"); if (v !== "later") setMethod(v); }}>{COUNTER_METHODS.map(([v, label]) => <option key={v} value={v}>Paid in full — {label}</option>)}<option value="later">Pay later</option></Select></Field>
+              <Field label="Payment" htmlFor="o_pay" className="mb-0">
+                <Select
+                  id="o_pay"
+                  value={payNow ? method : "later"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPayNow(v !== "later");
+                    if (v !== "later") setMethod(v);
+                  }}
+                >
+                  {COUNTER_METHODS.map(([v, label]) => (
+                    <option key={v} value={v}>
+                      Paid in full — {label}
+                    </option>
+                  ))}
+                  <option value="later">Pay later</option>
+                </Select>
+              </Field>
             </div>
           ) : (
             <div className="mb-space-3">
-              <Field label="Payment" htmlFor="o_rpay" className="mb-0"><Select id="o_rpay" value={remoteMethod} onChange={(e) => setRemoteMethod(e.target.value)}><option value="cod">Cash on delivery (confirms the order)</option><option value="online">Online (awaits payment)</option></Select></Field>
+              <Field label="Payment" htmlFor="o_rpay" className="mb-0">
+                <Select
+                  id="o_rpay"
+                  value={remoteMethod}
+                  onChange={(e) => setRemoteMethod(e.target.value)}
+                >
+                  <option value="cod">
+                    Cash on delivery (confirms the order)
+                  </option>
+                  <option value="online">Online (awaits payment)</option>
+                </Select>
+              </Field>
             </div>
           )}
-          <Field label="Notes" htmlFor="o_notes"><Input id="o_notes" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
-          <Button className="w-full" disabled={busy || lines.length === 0} onClick={place}>{busy ? "Placing…" : `Place order · ${formatMoney(totals.total, cur)}`}</Button>
+          <Field label="Notes" htmlFor="o_notes">
+            <Input
+              id="o_notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </Field>
+          <Button
+            className="w-full"
+            disabled={busy || lines.length === 0}
+            onClick={place}
+          >
+            {busy
+              ? "Placing…"
+              : `Place order · ${formatMoney(totals.total, cur)}`}
+          </Button>
         </Card>
       </div>
     </PortalShell>
@@ -215,5 +540,9 @@ function NewOrder() {
 }
 
 export default function NewOrderPage() {
-  return <Suspense><NewOrder /></Suspense>;
+  return (
+    <Suspense>
+      <NewOrder />
+    </Suspense>
+  );
 }

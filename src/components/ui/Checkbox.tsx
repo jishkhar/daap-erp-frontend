@@ -7,9 +7,19 @@ type CheckboxRowProps = {
   className?: string;
 };
 
-export function CheckboxRow({ checked, onChange, children, className }: CheckboxRowProps) {
+export function CheckboxRow({
+  checked,
+  onChange,
+  children,
+  className,
+}: CheckboxRowProps) {
   return (
-    <label className={cn("flex cursor-pointer items-start gap-space-2 text-[14px] text-ink-900 select-none", className)}>
+    <label
+      className={cn(
+        "flex cursor-pointer items-start gap-space-2 text-[14px] text-ink-900 select-none",
+        className,
+      )}
+    >
       <input
         type="checkbox"
         checked={checked}

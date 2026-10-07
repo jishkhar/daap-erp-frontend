@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
+import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalTenant } from "@/lib/portalAuth";
 
@@ -33,7 +34,14 @@ export function PortalShell({ tenant, active, children }: Props) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
-      {!inSettings && <PortalSidebar tenant={tenant} active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
+      {!inSettings && (
+        <PortalSidebar
+          tenant={tenant}
+          active={active}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
@@ -45,7 +53,9 @@ export function PortalShell({ tenant, active, children }: Props) {
           >
             <Menu size={20} strokeWidth={2} />
           </button>
-          <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">{tenant?.name || "ERP"}</span>
+          <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">
+            {tenant?.name || "ERP"}
+          </span>
           <div className="ml-auto flex items-center gap-space-2">
             <span
               // the server and the browser can be on different days/timezones for a moment; the browser's wins
@@ -53,21 +63,30 @@ export function PortalShell({ tenant, active, children }: Props) {
               className="mr-space-2 hidden items-center gap-space-2 rounded-md border border-line px-space-3 py-1.5 text-[13px] font-medium text-ink-600 md:flex"
             >
               <CalendarDays size={15} className="text-ink-400" />
-              {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+              {new Date().toLocaleDateString("en-IN", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
             </span>
             <BranchSwitcher />
             <UserMenu />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">{inSettings ? (
+        <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">
+          {inSettings ? (
             <div className="mx-auto flex max-w-[1100px] flex-col gap-space-4 lg:flex-row lg:items-start">
               <SettingsNav />
               <div className="min-w-0 flex-1">{children}</div>
             </div>
-          ) : children}
+          ) : (
+            children
+          )}
         </main>
       </div>
+      <SubscriptionGate />
     </div>
   );
 }

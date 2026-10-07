@@ -1,5 +1,10 @@
 // Thin compatibility layer over staffAuth.ts, kept so every portal page keeps one import for "who am I".
-import { clearStaffSession, getStaffAccessToken, getStaffSession, staffFetch } from "@/lib/staffAuth";
+import {
+  clearStaffSession,
+  getStaffAccessToken,
+  getStaffSession,
+  staffFetch,
+} from "@/lib/staffAuth";
 
 export type PortalTenant = {
   id: string;

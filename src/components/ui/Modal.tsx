@@ -12,22 +12,36 @@ type ModalProps = {
   /** Right-aligned action buttons under the body. */
   footer?: React.ReactNode;
   width?: "sm" | "md" | "lg";
+  /** false = no close button, and neither a backdrop click nor Escape closes it (a gate the person must act on). */
+  dismissible?: boolean;
 };
 
 const WIDTH = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl" } as const;
 
 /** Generic dialog: backdrop click and Escape close it. */
-export function Modal({ open, title, description, onClose, children, footer, width = "md" }: ModalProps) {
+export function Modal({
+  open,
+  title,
+  description,
+  onClose,
+  children,
+  footer,
+  width = "md",
+  dismissible = true,
+}: ModalProps) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !dismissible) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4"
+      onClick={dismissible ? onClose : undefined}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -38,14 +52,27 @@ export function Modal({ open, title, description, onClose, children, footer, wid
         <div className="flex items-start gap-space-3 border-b border-line p-space-4">
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-bold text-ink-900">{title}</h2>
-            {description && <p className="mt-0.5 text-[13px] text-ink-600">{description}</p>}
+            {description && (
+              <p className="mt-0.5 text-[13px] text-ink-600">{description}</p>
+            )}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-ink-400 hover:bg-black/[0.04] hover:text-ink-700">
-            <X size={18} />
-          </button>
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-md p-1 text-ink-400 hover:bg-black/[0.04] hover:text-ink-700"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
         <div className="overflow-y-auto p-space-4">{children}</div>
-        {footer && <div className="flex flex-wrap justify-end gap-space-2 border-t border-line p-space-4">{footer}</div>}
+        {footer && (
+          <div className="flex flex-wrap justify-end gap-space-2 border-t border-line p-space-4">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

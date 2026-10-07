@@ -13,9 +13,18 @@ type StepRailProps = {
   className?: string;
 };
 
-export function StepRail({ steps, currentStep, maxUnlockedStep, onStepClick, className }: StepRailProps) {
+export function StepRail({
+  steps,
+  currentStep,
+  maxUnlockedStep,
+  onStepClick,
+  className,
+}: StepRailProps) {
   return (
-    <nav className={cn("flex flex-col gap-space-1", className)} aria-label="Onboarding steps">
+    <nav
+      className={cn("flex flex-col gap-space-1", className)}
+      aria-label="Onboarding steps"
+    >
       {steps.map((step, i) => {
         const isDone = i < maxUnlockedStep;
         const isActive = i === currentStep;
@@ -43,7 +52,16 @@ export function StepRail({ steps, currentStep, maxUnlockedStep, onStepClick, cla
             >
               {isDone && !isActive ? <Check size={12} strokeWidth={3} /> : i}
             </span>
-            <span className={cn("font-medium", isActive ? "text-white" : isDone ? "text-ink-900" : "text-ink-600")}>
+            <span
+              className={cn(
+                "font-medium",
+                isActive
+                  ? "text-white"
+                  : isDone
+                    ? "text-ink-900"
+                    : "text-ink-600",
+              )}
+            >
               {step.title}
             </span>
           </button>
