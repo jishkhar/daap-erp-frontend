@@ -57,10 +57,10 @@ type Gstr1 = {
   hsn: Hsn[];
   documents: {
     doc_type: string;
+    series: string;
     from: string;
     to: string;
     count: number;
-    series: string[];
   }[];
 };
 type Reg = {
@@ -407,6 +407,7 @@ export function GstReturnReport({ currency }: { currency: string }) {
               <thead>
                 <tr>
                   <th className={th}>Type</th>
+                  <th className={th}>Series</th>
                   <th className={th}>From</th>
                   <th className={th}>To</th>
                   <th className={`${th} text-right`}>Count</th>
@@ -414,16 +415,20 @@ export function GstReturnReport({ currency }: { currency: string }) {
               </thead>
               <tbody>
                 {d.documents.map((x) => (
-                  <tr key={x.doc_type} className="border-t border-line">
+                  <tr
+                    key={`${x.doc_type}:${x.series}`}
+                    className="border-t border-line"
+                  >
                     <td className="py-1.5">
                       {x.doc_type === "INVOICE" ? "Invoices" : "Credit notes"}
                     </td>
+                    <td>{x.series}</td>
                     <td>{x.from}</td>
                     <td>{x.to}</td>
                     <td className="text-right tabular-nums">{x.count}</td>
                   </tr>
                 ))}
-                {d.documents.length === 0 && empty(4)}
+                {d.documents.length === 0 && empty(5)}
               </tbody>
             </table>,
           )}

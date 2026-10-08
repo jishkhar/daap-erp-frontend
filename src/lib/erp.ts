@@ -100,6 +100,15 @@ export type Payment = {
 
 export type OrderDetail = Order & { items: OrderItem[]; payments: Payment[] };
 
+/** One barcode that opens a product. The primary one is the product's own barcode field; the rest are extra labels or boxes. */
+export type ProductBarcode = {
+  id: string;
+  barcode: string;
+  is_primary: boolean;
+  source: "manufacturer" | "shop_label";
+  created_at: string;
+};
+
 export type Product = {
   id: string; // the variant id: the sellable, stockable unit
   parent_product_id: string;
@@ -114,7 +123,8 @@ export type Product = {
   price_minor: number;
   mrp_minor: number | null;
   cost_minor: number | null;
-  barcode: string | null;
+  barcode: string | null; // the primary barcode
+  barcodes?: ProductBarcode[]; // every barcode that opens this product, primary first
   images?: string[]; // public image URLs, first = cover
   lifecycle_status: "draft" | "active" | "discontinued" | "archived";
 };

@@ -12,6 +12,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
+import { ExtraBarcodes } from "@/components/erp/ExtraBarcodes";
 import {
   ProductImagesModal,
   ProductThumb,
@@ -307,7 +308,8 @@ export default function ProductsPage() {
       mrp_minor: mrp,
       cost_minor: cost,
       tax_code: draft.tax_code || null,
-      barcode: draft.barcode.trim() || null,
+      // editing: "" clears the main barcode (null would mean "leave it"); creating: no barcode is null
+      barcode: draft.barcode.trim() || (draft.id ? "" : null),
       serialization_type: draft.serialization_type,
       lifecycle_status: draft.lifecycle_status,
     };
@@ -626,6 +628,14 @@ export default function ProductsPage() {
                 }
               />
             </Field>
+            {draft.id && (
+              <ExtraBarcodes
+                product={
+                  (products.data ?? []).find((p) => p.id === draft.id) ?? null
+                }
+                onChanged={products.reload}
+              />
+            )}
             <Field
               label="Description"
               htmlFor="p_desc"

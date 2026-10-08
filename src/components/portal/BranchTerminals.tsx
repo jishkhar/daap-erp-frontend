@@ -13,6 +13,7 @@ import { hasGrantAt, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { SkeletonLines } from "@/components/ui/Skeleton";
+import { SyncHealthModal } from "@/components/portal/TerminalSyncHealth";
 
 type TerminalEvent = {
   id: number;
@@ -47,6 +48,13 @@ type Terminal = {
   revoked_at: string | null;
   revoke_reason: string | null;
   events?: TerminalEvent[];
+  /** What this till has sent the server (list only). */
+  uploads?: {
+    accepted: number;
+    rejected: number;
+    flagged: number;
+    last_received_at: string | null;
+  };
 };
 type PairingCode = {
   id: string;
@@ -284,6 +292,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const [nextName, setNextName] = useState("");
   const [issued, setIssued] = useState<Issued | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
+  const [health, setHealth] = useState<Terminal | null>(null);
   const [revoking, setRevoking] = useState<Terminal | null>(null);
   const [reason, setReason] = useState("");
   const [renaming, setRenaming] = useState<{
@@ -438,8 +447,27 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   ? `Last seen ${ago(t.last_seen_at)} · synced ${ago(t.last_sync_at)}`
                   : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}
               </p>
+              {t.uploads &&
+                (t.uploads.rejected > 0 || t.uploads.flagged > 0) && (
+                  <p className="mt-space-1 flex flex-wrap gap-space-1">
+                    {t.uploads.rejected > 0 && (
+                      <Badge tone="error">
+                        {t.uploads.rejected} bill
+                        {t.uploads.rejected === 1 ? "" : "s"} not accepted
+                      </Badge>
+                    )}
+                    {t.uploads.flagged > 0 && (
+                      <Badge tone="warning">
+                        {t.uploads.flagged} to review
+                      </Badge>
+                    )}
+                  </p>
+                )}
             </div>
             <div className="flex gap-space-1">
+              <Button variant="ghost" onClick={() => setHealth(t)}>
+                Sync health
+              </Button>
               <Button variant="ghost" onClick={() => setDetail(t.id)}>
                 Details
               </Button>
@@ -469,6 +497,9 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
       </ul>
       {issued && <CodeModal issued={issued} onClose={() => setIssued(null)} />}
       {detail && <Detail id={detail} onClose={() => setDetail(null)} />}
+      {health && (
+        <SyncHealthModal terminal={health} onClose={() => setHealth(null)} />
+      )}
       <Modal
         open={revoking !== null}
         onClose={() => setRevoking(null)}
