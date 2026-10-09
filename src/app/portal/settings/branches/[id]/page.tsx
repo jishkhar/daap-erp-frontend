@@ -7,10 +7,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import {
-  BranchEditModal,
-  type GstRegistration,
-} from "@/components/portal/BranchEditModal";
+import { BranchEditModal } from "@/components/portal/BranchEditModal";
 import { BranchPanels } from "@/components/portal/BranchPanels";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RecordActivity } from "@/components/portal/RecordActivity";
@@ -73,24 +70,14 @@ export default function BranchDetailPage() {
   const branch = useErpQuery<BranchRow>(`/api/v1/branches/${id}`);
   const canWrite = hasPermission(session, "branches", "write");
   const canViewGst = hasPermission(session, "settings", "view");
-  const canViewUsers = hasPermission(session, "staff", "view");
-  const gst = useErpQuery<{ registrations: GstRegistration[] }>(
-    canViewGst ? "/api/v1/tenant/gst-registrations" : null,
-  );
-  const team = useErpQuery<{ id: string; name: string }[]>(
-    canViewUsers ? "/api/v1/users" : null,
-  );
   const [editing, setEditing] = useState(false);
   const edit = canWrite ? () => setEditing(true) : undefined;
   if (!ready) return null;
   const b = branch.data;
   const currency = tenant?.currency ?? "INR";
-  const registration = b?.gst_registration_id
-    ? gst.data?.registrations.find((r) => r.id === b.gst_registration_id)
-    : undefined;
-  const manager = b?.manager_user_id
-    ? team.data?.find((u) => u.id === b.manager_user_id)?.name
-    : undefined;
+  // The branch response already carries the manager's name and the GST registration summary: no team or registrations request needed.
+  const registration = b?.gst_registration;
+  const manager = b?.manager_name;
 
   return (
     <PortalShell tenant={tenant} active="settings">
@@ -131,14 +118,7 @@ export default function BranchDetailPage() {
             <Section title="Contact" onEdit={edit}>
               <Item label="Phone">{displayPhone(b.phone)}</Item>
               <Item label="Email">{b.email}</Item>
-              <Item label="Manager">
-                {manager ??
-                  (b.manager_user_id && canViewUsers
-                    ? ""
-                    : b.manager_user_id
-                      ? "Assigned"
-                      : "")}
-              </Item>
+              <Item label="Manager">{manager ?? ""}</Item>
             </Section>
             <Section title="Address" onEdit={edit}>
               <Item label="Address">
@@ -158,9 +138,7 @@ export default function BranchDetailPage() {
                 <Item label="GST registration">
                   {registration
                     ? `${registration.gstin} — ${registration.state_name ?? registration.state_code}`
-                    : b.gst_registration_id
-                      ? "Linked"
-                      : ""}
+                    : ""}
                 </Item>
               </Section>
             )}
@@ -209,6 +187,17 @@ export default function BranchDetailPage() {
             </Section>
 
             <BranchPanels branch={b} canWrite={canWrite} currency={currency} />
+            <p className="text-[12.5px] text-ink-400">
+              POS terminals and cashier PINs are managed in{" "}
+              <Link className="underline" href="/portal/settings/channels/pos">
+                Settings → Sales channels → POS
+              </Link>
+              . Who works here is under{" "}
+              <Link className="underline" href="/portal/settings/staff">
+                Team &amp; Access
+              </Link>
+              .
+            </p>
           </div>
 
           <RecordActivity branchId={b.id} title="Activity at this branch" />

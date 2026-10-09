@@ -4,6 +4,7 @@ import { CalendarDays, Menu } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { HelpButton } from "@/components/portal/help/HelpButton";
 import { SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
@@ -71,15 +72,26 @@ export function PortalShell({ tenant, active, children }: Props) {
               })}
             </span>
             <BranchSwitcher />
+            <HelpButton />
             <UserMenu />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">
+        {/* Settings on a wide screen: the settings menu is a fixed full-height column and only the page beside it scrolls, so the
+            menu never moves with the page. Below `lg` it is a row above the page and the whole thing scrolls as usual. */}
+        <main
+          className={
+            inSettings
+              ? "flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6 lg:flex lg:flex-col lg:overflow-hidden lg:p-0"
+              : "flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6"
+          }
+        >
           {inSettings ? (
-            <div className="mx-auto flex max-w-[1100px] flex-col gap-space-4 lg:flex-row lg:items-start">
+            <div className="flex flex-col gap-space-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
               <SettingsNav />
-              <div className="min-w-0 flex-1">{children}</div>
+              <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:p-space-6">
+                <div className="mx-auto max-w-[880px]">{children}</div>
+              </div>
             </div>
           ) : (
             children

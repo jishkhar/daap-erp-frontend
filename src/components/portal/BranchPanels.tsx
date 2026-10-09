@@ -1,12 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import {
-  CashiersPanel,
-  TerminalsPanel,
-} from "@/components/portal/BranchTerminals";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
@@ -24,14 +18,6 @@ type Hour = {
   channel: string | null;
 };
 type Area = { pincode: string; delivery_fee_minor: number | null };
-type StaffRow = {
-  user_id: string;
-  name: string;
-  email: string;
-  status: string;
-  role_name: string;
-  scope: "all" | "branch";
-};
 const areasToText = (areas: Area[]) =>
   areas
     .map((a) =>
@@ -62,7 +48,6 @@ export function BranchPanels({
   const schedule = useErpQuery<{ hours: Hour[]; areas: Area[] }>(
     `/api/v1/branches/${branch.id}/schedule`,
   );
-  const staff = useErpQuery<StaffRow[]>(`/api/v1/branches/${branch.id}/staff`);
   const [hours, setHours] = useState<Hour[] | null>(null); // null = not edited yet: show what the server has
   const [pins, setPins] = useState<string | null>(null);
   const [slot, setSlot] = useState({
@@ -256,56 +241,6 @@ export function BranchPanels({
             Save pincodes
           </Button>
         )}
-      </Card>
-      <Card className="p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-          POS terminals
-        </h2>
-        <TerminalsPanel branchId={branch.id} />
-      </Card>
-      <Card className="p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-          Cashiers
-        </h2>
-        <CashiersPanel branchId={branch.id} />
-      </Card>
-      <Card className="p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Staff</h2>
-        {staff.error && <p className="text-[13px] text-error">{staff.error}</p>}
-        {(staff.data ?? []).length === 0 &&
-          (staff.loading ? (
-            <SkeletonLines rows={2} />
-          ) : (
-            <p className="text-[13.5px] text-ink-400">
-              {"Nobody is assigned to this branch yet."}
-            </p>
-          ))}
-        <ul className="divide-y divide-line">
-          {(staff.data ?? []).map((m, i) => (
-            <li
-              key={`${m.user_id}-${i}`}
-              className="flex items-center justify-between gap-space-3 py-space-2 text-[14px]"
-            >
-              <span>
-                <strong className="text-ink-900">{m.name}</strong>{" "}
-                <span className="text-ink-400">{m.email}</span>
-              </span>
-              <span className="flex items-center gap-space-2">
-                <Badge tone="neutral">{humanize(m.role_name)}</Badge>
-                <Badge tone={m.scope === "all" ? "violet" : "brand"}>
-                  {m.scope === "all" ? "all branches" : "this branch"}
-                </Badge>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-space-3 text-[12.5px] text-ink-400">
-          Change assignments under{" "}
-          <Link className="underline" href="/portal/settings/staff">
-            Team &amp; Access
-          </Link>
-          .
-        </p>
       </Card>
     </div>
   );

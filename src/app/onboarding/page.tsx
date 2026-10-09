@@ -7,7 +7,10 @@ import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
+import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { GSTIN_PATTERN, GST_STATES, stateForGstin } from "@/lib/gstStates";
 import {
   clearPendingSignup,
   getPendingSignup,
@@ -39,10 +42,14 @@ export default function OnboardingPage() {
   );
   const [businessName, setBusinessName] = useState("");
   const [legalName, setLegalName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gstin, setGstin] = useState("");
+  const [channels, setChannels] = useState<string[]>([]);
+  const [terms, setTerms] = useState(false);
   const [branchName, setBranchName] = useState("Main Store");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
-  const [state, setState] = useState("");
+  const [pickedState, setPickedState] = useState("");
   const [pincode, setPincode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +58,16 @@ export default function OnboardingPage() {
     if (!getPendingSignup()) router.replace("/auth");
   }, [router]);
 
+  // A valid GSTIN fixes the state (its first two digits), so the dropdown follows it and is locked.
+  const gstinValue = gstin.trim().toUpperCase();
+  const gstinOk =
+    GSTIN_PATTERN.test(gstinValue) && stateForGstin(gstinValue) !== null;
+  const state = gstinOk ? (stateForGstin(gstinValue) ?? "") : pickedState;
+  const toggleChannel = (c: string) =>
+    setChannels((cs) =>
+      cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c],
+    );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -58,11 +75,15 @@ export default function OnboardingPage() {
     const failure = await signupWithGoogle({
       business_name: businessName.trim(),
       legal_name: legalName.trim() || undefined,
+      phone: phone.trim() || undefined,
+      gstin: gstinOk ? gstinValue : undefined,
+      planned_channels: channels,
+      accepted_terms: terms,
       first_branch: {
         branch_name: branchName.trim(),
         address_line: address.trim() || undefined,
         city: city.trim() || undefined,
-        state: state.trim() || undefined,
+        state,
         pincode: pincode.trim() || undefined,
       },
     });
@@ -107,6 +128,37 @@ export default function OnboardingPage() {
             />
           </Field>
 
+          <Field
+            label="Phone"
+            htmlFor="phone"
+            hint="Used as your store's contact number."
+          >
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="GSTIN"
+            htmlFor="gstin"
+            hint="Optional. If you have one, we set up your GST registration and read your state from it."
+            error={
+              gstin.trim() && !gstinOk
+                ? "15 characters, like 07AAAAA0000A1Z5."
+                : undefined
+            }
+          >
+            <Input
+              id="gstin"
+              maxLength={15}
+              value={gstin}
+              onChange={(e) => setGstin(e.target.value.toUpperCase())}
+            />
+          </Field>
+
           <h2 className="mt-space-5 mb-space-3 text-[15px] font-bold text-ink-900">
             First branch
           </h2>
@@ -133,12 +185,29 @@ export default function OnboardingPage() {
                 onChange={(e) => setCity(e.target.value)}
               />
             </Field>
-            <Field label="State" htmlFor="state">
-              <Input
+            <Field
+              label="State"
+              htmlFor="state"
+              required
+              hint={
+                gstinOk
+                  ? "Taken from your GSTIN."
+                  : "Decides how GST is split on invoices."
+              }
+            >
+              <Select
                 id="state"
                 value={state}
-                onChange={(e) => setState(e.target.value)}
-              />
+                disabled={gstinOk}
+                onChange={(e) => setPickedState(e.target.value)}
+              >
+                <option value="">Select…</option>
+                {GST_STATES.map((st) => (
+                  <option key={st.code} value={st.name}>
+                    {st.name}
+                  </option>
+                ))}
+              </Select>
             </Field>
             <Field label="Pincode" htmlFor="pincode">
               <Input
@@ -150,6 +219,55 @@ export default function OnboardingPage() {
             </Field>
           </div>
 
+          <h2 className="mt-space-5 mb-space-1 text-[15px] font-bold text-ink-900">
+            What will you sell through?
+          </h2>
+          <p className="mb-space-3 text-[13px] text-ink-600">
+            Optional. We use this to suggest your next steps; nothing is
+            switched on or off by it.
+          </p>
+          <div className="mb-space-4 space-y-space-2">
+            {(
+              [
+                ["pos", "In my store (POS)"],
+                ["online", "My website"],
+                ["whatsapp", "WhatsApp"],
+              ] as const
+            ).map(([value, label]) => (
+              <CheckboxRow
+                key={value}
+                checked={channels.includes(value)}
+                onChange={() => toggleChannel(value)}
+              >
+                {label}
+              </CheckboxRow>
+            ))}
+          </div>
+
+          <CheckboxRow
+            checked={terms}
+            onChange={setTerms}
+            className="mb-space-4"
+          >
+            I agree to the{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              className="font-semibold text-brand-600 hover:underline"
+            >
+              terms
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              className="font-semibold text-brand-600 hover:underline"
+            >
+              privacy policy
+            </Link>
+            .
+          </CheckboxRow>
+
           {error && (
             <p className="mb-space-3 rounded-md bg-error-tint p-space-3 text-[13px] font-medium text-error">
               {error}
@@ -159,7 +277,12 @@ export default function OnboardingPage() {
           <Button
             type="submit"
             disabled={
-              submitting || businessName.trim().length < 2 || !branchName.trim()
+              submitting ||
+              businessName.trim().length < 2 ||
+              !branchName.trim() ||
+              !state ||
+              !terms ||
+              (gstin.trim() !== "" && !gstinOk)
             }
             className="mt-space-2 w-full"
             size="lg"

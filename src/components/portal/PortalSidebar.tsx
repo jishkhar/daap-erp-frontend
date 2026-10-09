@@ -158,7 +158,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Online",
     icon: Globe,
     href: "/portal/channels/online",
-    pageKey: "orders",
+    pageKey: "channels",
     group: "Sales Channels",
   },
   {
@@ -166,7 +166,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "POS",
     icon: Store,
     href: "/portal/channels/pos",
-    pageKey: "orders",
+    pageKey: "channels",
     group: "Sales Channels",
   },
   {
@@ -174,7 +174,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "WhatsApp",
     icon: WhatsAppIcon,
     href: "/portal/channels/whatsapp",
-    pageKey: "orders",
+    pageKey: "channels",
     group: "Sales Channels",
   },
 

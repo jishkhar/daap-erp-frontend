@@ -25,6 +25,8 @@ export type SessionBranch = {
 export type StaffSession = {
   id: string;
   name: string;
+  /** Absent on sessions saved before it was returned; it fills in on the next refresh. */
+  email?: string | null;
   roles: string[];
   tenant: PortalTenant;
   permissions: PermissionMap;
@@ -38,6 +40,7 @@ export type StaffSession = {
 type MeResponse = {
   user_id: string;
   name: string;
+  email?: string | null;
   tenant_id: string;
   tenant: {
     id: string;
@@ -139,6 +142,7 @@ async function loadSession(accessToken: string): Promise<StaffSession> {
   return {
     id: me.user_id,
     name: me.name,
+    email: me.email,
     roles: me.roles,
     tenant,
     permissions: me.permissions,
@@ -254,11 +258,17 @@ export async function loginStaffWithGoogle(
 export type SignupInput = {
   business_name: string;
   legal_name?: string;
+  phone?: string;
+  /** Optional: creates the first GST registration and fixes the branch's state. */
+  gstin?: string;
+  /** What they intend to sell through (online / pos / whatsapp); drives the setup guide, switches nothing on. */
+  planned_channels?: string[];
+  accepted_terms: boolean;
   first_branch: {
     branch_name: string;
     address_line?: string;
     city?: string;
-    state?: string;
+    state: string;
     pincode?: string;
   };
 };
@@ -281,6 +291,60 @@ export async function signupWithGoogle(
     if (isAxiosError(err) && err.response)
       return errorMessage(err.response.data);
     return "Couldn't reach the server. Please try again.";
+  }
+}
+
+export type InvitePreview = {
+  business_name: string;
+  name: string;
+  email: string;
+  tenant_code: string;
+  expires_at: string;
+};
+
+/** Who an administrator invitation is for. `error` is set when the link is invalid, used or expired. */
+export async function previewInvite(
+  token: string,
+): Promise<{ invite: InvitePreview | null; error: string | null }> {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/invite/preview`, {
+      token,
+    });
+    return { invite: res.data as InvitePreview, error: null };
+  } catch (err) {
+    return {
+      invite: null,
+      error:
+        isAxiosError(err) && err.response
+          ? errorMessage(err.response.data)
+          : "Couldn't reach the server. Please try again.",
+    };
+  }
+}
+
+/** Chooses the administrator's password with an invitation link and signs them in. Returns an error message, or null on success;
+ * "password_set" means the password is saved but the workspace isn't open for sign-in right now. */
+export async function acceptInvite(
+  token: string,
+  password: string,
+): Promise<{ error: string | null; signedIn: boolean }> {
+  try {
+    const res = await axios.post(`${API_BASE_URL}/api/v1/auth/accept-invite`, {
+      token,
+      password,
+    });
+    if (res.data.status !== "signed_in")
+      return { error: null, signedIn: false };
+    await startSession(res.data as TokenResponse);
+    return { error: null, signedIn: true };
+  } catch (err) {
+    return {
+      error:
+        isAxiosError(err) && err.response
+          ? errorMessage(err.response.data)
+          : "Couldn't reach the server. Please try again.",
+      signedIn: false,
+    };
   }
 }
 

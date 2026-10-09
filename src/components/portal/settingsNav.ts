@@ -3,7 +3,7 @@ import {
   AppWindow,
   Bell,
   Boxes,
-  Clock,
+  ClipboardCheck,
   CreditCard,
   FileText,
   Globe,
@@ -45,6 +45,12 @@ const soon = (
 
 export const SETTINGS_NAV: SettingsNavItem[] = [
   { slug: "general", label: "General", icon: Store, href: "/portal/settings" },
+  {
+    slug: "setup",
+    label: "Setup",
+    icon: ClipboardCheck,
+    href: "/portal/settings/setup",
+  },
   {
     slug: "billing",
     label: "Plan and billing",
@@ -93,12 +99,6 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
   soon("languages", "Languages", Languages),
   soon("customer-privacy", "Customer privacy", Lock),
   soon("policies", "Policies", FileText),
-  {
-    slug: "attendance",
-    label: "Attendance",
-    icon: Clock,
-    href: "/portal/settings/attendance",
-  },
   {
     slug: "activity",
     label: "Activity log",

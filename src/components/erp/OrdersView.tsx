@@ -21,7 +21,6 @@ import {
   humanize,
   qs,
   useErpQuery,
-  type Channel,
   type Customer,
   type Order,
 } from "@/lib/erp";
@@ -47,20 +46,20 @@ const PAYMENT_STATUSES: Order["payment_status"][] = [
 ];
 
 type Props = {
-  /** Fixed channel (the Sales Channels pages); omitted = all channels with a channel filter. */
-  channel?: Channel;
+  /** Channel the filter starts on (from the page's ?channel= link); omitted = all channels. */
+  initialChannel?: string;
 };
 
-/** The orders list: filters + table. Used by Orders (all channels) and each Sales Channel page. */
-export function OrdersView({ channel }: Props) {
+/** The orders list: filters + table. Orders from every channel live here; the channel is a filter. */
+export function OrdersView({ initialChannel = "" }: Props) {
   const router = useRouter();
   const { branchId, branches } = useActiveBranch();
   const [status, setStatus] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
-  const [channelFilter, setChannelFilter] = useState("");
+  const [channelFilter, setChannelFilter] = useState(initialChannel);
   const [search, setSearch] = useState("");
 
-  const effectiveChannel = channel ?? (channelFilter || undefined);
+  const effectiveChannel = channelFilter || undefined;
   const path = `/api/v1/orders${qs({ channel: effectiveChannel, status, payment_status: paymentStatus, branch_id: branchId, q: search, limit: 200 })}`;
   const orders = useErpQuery<Order[]>(path);
   const customers = useErpQuery<Customer[]>("/api/v1/customers?limit=200");
@@ -84,16 +83,10 @@ export function OrdersView({ channel }: Props) {
           </span>
         ),
       },
-      ...(channel
-        ? []
-        : [
-            {
-              header: "Channel",
-              cell: ({ row }: { row: { original: Order } }) => (
-                <ChannelBadge channel={row.original.channel} />
-              ),
-            } as ColumnDef<Order, unknown>,
-          ]),
+      {
+        header: "Channel",
+        cell: ({ row }) => <ChannelBadge channel={row.original.channel} />,
+      },
       {
         header: "Branch",
         cell: ({ row }) =>
@@ -137,7 +130,7 @@ export function OrdersView({ channel }: Props) {
         ),
       },
     ],
-    [channel, branchCode, customerName],
+    [branchCode, customerName],
   );
 
   return (
@@ -150,21 +143,19 @@ export function OrdersView({ channel }: Props) {
           className="max-w-xs"
           aria-label="Search orders"
         />
-        {!channel && (
-          <Select
-            value={channelFilter}
-            onChange={(e) => setChannelFilter(e.target.value)}
-            className="w-44"
-            aria-label="Channel"
-          >
-            <option value="">All channels</option>
-            {CHANNEL_ORDER.map((c) => (
-              <option key={c} value={c}>
-                {CHANNELS[c].label}
-              </option>
-            ))}
-          </Select>
-        )}
+        <Select
+          value={channelFilter}
+          onChange={(e) => setChannelFilter(e.target.value)}
+          className="w-44"
+          aria-label="Channel"
+        >
+          <option value="">All channels</option>
+          {CHANNEL_ORDER.map((c) => (
+            <option key={c} value={c}>
+              {CHANNELS[c].label}
+            </option>
+          ))}
+        </Select>
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value)}

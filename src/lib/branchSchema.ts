@@ -102,6 +102,13 @@ export type BranchRow = {
   shipping_origin_pincode: string | null;
   receipt_header: string | null;
   receipt_footer: string | null;
+  /** Only on the single-branch response (GET /api/v1/branches/{id}), so a branch page needn't fetch the team and every GST registration. */
+  manager_name?: string | null;
+  gst_registration?: {
+    gstin: string;
+    state_code: string;
+    state_name: string | null;
+  } | null;
 };
 
 export function branchToDraft(b: BranchRow): BranchDraft {

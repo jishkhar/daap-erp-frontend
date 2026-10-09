@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Percent } from "lucide-react";
 import { useState } from "react";
+import { LearnMore } from "@/components/portal/help/HelpButton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -142,6 +143,7 @@ export default function TaxesPage() {
     if (res.error)
       return toast.error("Couldn't change the pricing mode", res.error);
     toast.success(value ? "Prices now include tax" : "Prices now exclude tax");
+    await erp("/api/v1/onboarding/steps/prices", "POST", { action: "confirm" }); // choosing a mode counts as confirming it for the setup guide
     tenantView.reload();
     await refreshStaffSession(); // the New order screen reads the mode from the stored session
   }
@@ -212,11 +214,14 @@ export default function TaxesPage() {
         title="Taxes and duties"
         description="GST registrations, how tax is split, and the rates in use."
         actions={
-          canWrite && (
-            <Button onClick={() => setDraft({ ...EMPTY })}>
-              Add registration
-            </Button>
-          )
+          <>
+            <LearnMore doc="gst" />
+            {canWrite && (
+              <Button onClick={() => setDraft({ ...EMPTY })}>
+                Add registration
+              </Button>
+            )}
+          </>
         }
       />
       {listing.error && (

@@ -8,6 +8,7 @@ import { JournalTab } from "@/components/erp/finance/JournalTab";
 import { ReconciliationTab } from "@/components/erp/finance/ReconciliationTab";
 import { TaxInvoicesTab } from "@/components/erp/finance/TaxInvoicesTab";
 import { FinancialReports } from "@/components/erp/reports/FinancialReports";
+import { GstNotice } from "@/components/portal/onboarding/guide";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -35,6 +36,7 @@ export default function FinancePage() {
         title="Finance"
         description="One set of books for every branch and channel. Financial statements and GST reports are under Reports."
       />
+      <GstNotice />
       <Tabs<Tab>
         tabs={[
           { key: "overview", label: "Overview" },

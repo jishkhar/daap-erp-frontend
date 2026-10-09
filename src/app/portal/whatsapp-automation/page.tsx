@@ -2,6 +2,7 @@
 
 import { Zap } from "lucide-react";
 import { ModulePlaceholder } from "@/components/erp/ModulePlaceholder";
+import { SetupRequired } from "@/components/portal/channels/SetupRequired";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -16,6 +17,7 @@ export default function Page() {
         title="WhatsApp Automation"
         description="Automated WhatsApp messages triggered by order events."
       />
+      <SetupRequired channel="whatsapp" what="automate WhatsApp replies" />
       <ModulePlaceholder
         title="WhatsApp Automation"
         summary="Rules that send WhatsApp messages automatically when something happens to an order or a customer."

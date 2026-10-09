@@ -2,6 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 import { ModulePlaceholder } from "@/components/erp/ModulePlaceholder";
+import { SetupRequired } from "@/components/portal/channels/SetupRequired";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -16,6 +17,7 @@ export default function Page() {
         title="WhatsApp Inbox"
         description="Customer conversations from WhatsApp Shop Connect."
       />
+      <SetupRequired channel="whatsapp" what="read WhatsApp conversations" />
       <ModulePlaceholder
         title="WhatsApp Inbox"
         summary="A shared inbox for customer conversations that arrive through WhatsApp, linked to the customer record and their orders."

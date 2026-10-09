@@ -31,15 +31,15 @@ export function SettingsNav() {
   const name = session?.tenant.name ?? "Settings";
 
   return (
-    <aside className="w-full shrink-0 lg:sticky lg:top-0 lg:w-64 lg:self-start">
+    <aside className="w-full shrink-0 lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-line lg:bg-card lg:p-space-3">
       <Link
         href="/portal/dashboard"
-        className="mb-space-2 inline-flex items-center gap-space-2 text-[13px] font-medium text-ink-600 hover:text-ink-900"
+        className="mb-space-2 inline-flex shrink-0 items-center gap-space-2 text-[13px] font-medium text-ink-600 hover:text-ink-900"
       >
         <ArrowLeft size={14} /> Back to portal
       </Link>
-      <div className="overflow-hidden rounded-lg border border-line bg-card shadow-[var(--shadow-sm)]">
-        <div className="flex items-center gap-space-3 border-b border-line bg-paper px-space-3 py-space-3">
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-line bg-card shadow-[var(--shadow-sm)] lg:flex-1 lg:rounded-none lg:border-0 lg:bg-transparent lg:shadow-none">
+        <div className="flex shrink-0 items-center gap-space-3 border-b border-line bg-paper px-space-3 py-space-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-600 text-[12px] font-bold text-white">
             {initials(name)}
           </span>
@@ -52,7 +52,7 @@ export function SettingsNav() {
             </p>
           </div>
         </div>
-        <div className="p-space-2">
+        <div className="shrink-0 p-space-2">
           <label className="relative block">
             <Search
               size={14}
@@ -67,14 +67,14 @@ export function SettingsNav() {
             />
           </label>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-space-2 pb-space-2 lg:max-h-[calc(100vh-18rem)] lg:flex-col lg:overflow-y-auto">
+        <nav className="flex gap-1 overflow-x-auto px-space-2 pb-space-2 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto">
           {items.map(({ slug, label, icon: Icon, href }) => (
             <Link
               key={slug}
               href={href}
               aria-current={isActive(href, slug) ? "page" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-space-3 whitespace-nowrap rounded-md px-space-3 py-2 text-[13px] font-medium text-ink-700 hover:bg-paper",
+                "flex shrink-0 items-center gap-space-3 whitespace-nowrap rounded-md px-space-3 py-2 text-[13px] font-medium text-ink-700 hover:bg-paper lg:whitespace-normal",
                 isActive(href, slug) &&
                   "bg-brand-50 font-semibold text-brand-700",
               )}
@@ -88,13 +88,23 @@ export function SettingsNav() {
           )}
         </nav>
         {session && (
-          <div className="hidden items-center gap-space-3 border-t border-line px-space-3 py-space-3 lg:flex">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
+          <div className="hidden shrink-0 items-center gap-space-3 border-t border-line px-space-3 py-space-3 lg:flex">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
               {initials(session.name)}
             </span>
-            <p className="truncate text-[13px] font-semibold text-ink-900">
-              {session.name}
-            </p>
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold text-ink-900">
+                {session.name}
+              </p>
+              {session.email && (
+                <p
+                  className="truncate text-[12px] text-ink-600"
+                  title={session.email}
+                >
+                  {session.email}
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

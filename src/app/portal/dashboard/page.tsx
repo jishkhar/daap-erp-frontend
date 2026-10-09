@@ -10,13 +10,13 @@ import {
 import Link from "next/link";
 import { ChannelBadge, OrderStatusBadge } from "@/components/erp/StatusBadges";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { FirstRunChecklist } from "@/components/portal/onboarding/guide";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveBranch } from "@/lib/branch";
 import {
-  CHANNELS,
   CHANNEL_ORDER,
   formatMoney,
   qs,
@@ -74,6 +74,7 @@ export default function DashboardPage() {
         title="Dashboard"
         description={`Today across ${branchId === null ? "all your branches" : "this branch"}.`}
       />
+      <FirstRunChecklist />
       {(today.error || orders.error) && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
           {today.error ?? orders.error}
@@ -119,7 +120,7 @@ export default function DashboardPage() {
 
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-3">
         {CHANNEL_ORDER.map((c) => (
-          <Link key={c} href={`/portal/channels/${CHANNELS[c].slug}`}>
+          <Link key={c} href={`/portal/orders?channel=${c}`}>
             <Card elevation="interactive" className="p-space-4">
               <div className="flex items-center justify-between">
                 <ChannelBadge channel={c} />

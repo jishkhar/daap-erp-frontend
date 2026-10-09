@@ -4,14 +4,16 @@ import { Globe, Store } from "lucide-react";
 import { notFound } from "next/navigation";
 import { use } from "react";
 import {
+  ChannelBranches,
   OnlineChannelPanel,
   PosChannelPanel,
   WhatsAppChannelPanel,
 } from "@/components/portal/channels/ChannelPanels";
+import { LearnMore } from "@/components/portal/help/HelpButton";
+import { Button } from "@/components/ui/Button";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
-import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CHANNELS, channelFromSlug } from "@/lib/erp";
 
@@ -42,12 +44,16 @@ export default function ChannelSettingsPage({
         title={CHANNELS[channel].label}
         description={CHANNELS[channel].blurb}
         actions={
-          <Button variant="secondary" href={`/portal/channels/${channel}`}>
-            View orders
-          </Button>
+          <>
+            <LearnMore doc={channel === "online" ? "online-store" : channel} />
+            <Button variant="secondary" href={`/portal/channels/${channel}`}>
+              Open {CHANNELS[channel].label}
+            </Button>
+          </>
         }
       />
       <Panel />
+      <ChannelBranches channel={channel} />
     </PortalShell>
   );
 }
