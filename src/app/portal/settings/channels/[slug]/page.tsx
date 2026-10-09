@@ -9,6 +9,7 @@ import {
   PosChannelPanel,
   WhatsAppChannelPanel,
 } from "@/components/portal/channels/ChannelPanels";
+import { ServiceLock } from "@/components/portal/channels/ServiceLock";
 import { LearnMore } from "@/components/portal/help/HelpButton";
 import { Button } from "@/components/ui/Button";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -52,8 +53,10 @@ export default function ChannelSettingsPage({
           </>
         }
       />
-      <Panel />
-      <ChannelBranches channel={channel} />
+      <ServiceLock service={channel}>
+        <Panel />
+        <ChannelBranches channel={channel} />
+      </ServiceLock>
     </PortalShell>
   );
 }

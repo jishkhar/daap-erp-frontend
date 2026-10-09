@@ -4,6 +4,7 @@ import { Globe } from "lucide-react";
 import { ChannelStatusStrip } from "@/components/portal/channels/ChannelStatusStrip";
 import { LearnMore } from "@/components/portal/help/HelpButton";
 import { OnlineStoreThemes } from "@/components/portal/channels/OnlineStoreThemes";
+import { ServiceLock } from "@/components/portal/channels/ServiceLock";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -20,8 +21,10 @@ export default function OnlineChannelPage() {
         description="Pick a theme and edit the text on your website."
         actions={<LearnMore doc="online-store" />}
       />
-      <ChannelStatusStrip channel="online" />
-      <OnlineStoreThemes storeName={tenant?.name ?? "Your store"} />
+      <ServiceLock service="online">
+        <ChannelStatusStrip channel="online" />
+        <OnlineStoreThemes storeName={tenant?.name ?? "Your store"} />
+      </ServiceLock>
     </PortalShell>
   );
 }

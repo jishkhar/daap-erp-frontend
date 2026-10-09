@@ -52,7 +52,10 @@ export type ReadinessItem = {
 export type Readiness = {
   channel: Channel;
   label: string;
+  /** The channel's service works (it is on a live plan, a trial included). */
   in_plan: boolean;
+  /** It had a plan that has ended. */
+  ended: boolean;
   items: ReadinessItem[];
   met: number;
   total: number;
@@ -73,7 +76,7 @@ export const readinessStatus = (r: Readiness | null): ChannelStatus =>
   !r
     ? { label: "Not set up", tone: "neutral" }
     : !r.in_plan
-      ? { label: "Not in your plan", tone: "neutral" }
+      ? { label: r.ended ? "Plan ended" : "Not bought", tone: "neutral" }
       : r.ready
         ? { label: "Ready", tone: "success" }
         : {
@@ -107,8 +110,9 @@ export function ChannelReadiness({ channel }: { channel: Channel }) {
       </div>
       {!data.in_plan && (
         <p className="mb-space-3 text-[13.5px] text-ink-600">
-          Your plan doesn&apos;t include this channel. Choose a plan under Plan
-          and billing to switch it on.
+          {data.ended
+            ? "Your plan for this channel has ended. Renew it under Plan and billing to switch it back on."
+            : "You haven't bought this channel yet. Buy a plan under Plan and billing to switch it on."}
         </p>
       )}
       <ul className="divide-y divide-line">

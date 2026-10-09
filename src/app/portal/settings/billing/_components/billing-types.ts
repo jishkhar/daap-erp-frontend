@@ -1,7 +1,11 @@
 // Shapes returned by /api/v1/billing (erp-ecommerce-backend api/billing.py). Money is in paise.
+import type { Service, ServiceState } from "@/lib/services";
+
 export type BillingPlan = {
   id: string;
   code: string;
+  /** The service this plan is for; a plan belongs to exactly one. */
+  service: Service;
   name: string;
   description: string | null;
   price_monthly_minor: number;
@@ -10,6 +14,7 @@ export type BillingPlan = {
   currency: string;
   max_branches: number | null;
   max_users: number | null;
+  max_terminals: number | null;
   features: string[];
   feature_labels?: string[];
   is_popular: boolean;
@@ -18,6 +23,7 @@ export type BillingPlan = {
 
 export type BillingSubscription = {
   id: string;
+  service: Service;
   plan_id: string;
   status:
     | "trialing"
@@ -33,10 +39,13 @@ export type BillingSubscription = {
   razorpay_short_url: string | null;
   pending_plan_id: string | null;
   cancel_at_period_end: boolean;
+  /** Charged through Razorpay; false for a trial, a complimentary service or one paid outside. */
+  billed: boolean;
 };
 
 export type BillingPayment = {
   id: string;
+  service: Service | null;
   plan_name: string | null;
   amount_minor: number;
   currency: string;
@@ -54,16 +63,26 @@ export type BillingPayment = {
   created_at: string;
 };
 
-export type BillingView = {
-  billing_configured: boolean;
+/** One service as Plan & Billing shows it. */
+export type BillingService = {
+  state: ServiceState;
+  locked: boolean;
   plan: BillingPlan | null;
   subscription: BillingSubscription | null;
   pending_plan: BillingPlan | null;
+};
+
+export type BillingView = {
+  billing_configured: boolean;
+  services: Record<Service, BillingService>;
+  /** Branches and users are the business's, limited by its most generous live plan; terminals belong to POS. */
   usage: {
     branches: number;
     max_branches: number | null;
     users: number;
     max_users: number | null;
+    terminals: number;
+    max_terminals: number | null;
   };
   payments: BillingPayment[];
 };

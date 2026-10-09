@@ -1,6 +1,7 @@
 "use client";
 
 import { ChannelStatusStrip } from "@/components/portal/channels/ChannelStatusStrip";
+import { ServiceLock } from "@/components/portal/channels/ServiceLock";
 import { WhatsAppTemplates } from "@/components/portal/channels/WhatsAppTemplates";
 import { LearnMore } from "@/components/portal/help/HelpButton";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -21,8 +22,10 @@ export default function WhatsAppChannelPage() {
         description={CHANNELS.whatsapp.blurb}
         actions={<LearnMore doc="whatsapp" />}
       />
-      <ChannelStatusStrip channel="whatsapp" />
-      <WhatsAppTemplates />
+      <ServiceLock service="whatsapp">
+        <ChannelStatusStrip channel="whatsapp" />
+        <WhatsAppTemplates />
+      </ServiceLock>
     </PortalShell>
   );
 }

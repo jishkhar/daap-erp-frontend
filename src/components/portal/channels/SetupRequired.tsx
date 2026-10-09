@@ -51,7 +51,9 @@ export function SetupRequired({
           </ul>
         ) : (
           <p className="mt-1 text-[13px] text-ink-600">
-            Your plan doesn&apos;t include this channel yet.
+            {data.ended
+              ? "Your plan for this channel has ended."
+              : "You haven't bought this channel yet."}
           </p>
         )}
       </div>
@@ -63,9 +65,13 @@ export function SetupRequired({
           How to
         </Link>
         <Button
-          href={data.in_plan ? SETUP[channel].href : "/portal/settings/billing"}
+          href={
+            data.in_plan
+              ? SETUP[channel].href
+              : `/portal/settings/billing#${channel}`
+          }
         >
-          {data.in_plan ? "Set up" : "See plans"}
+          {data.in_plan ? "Set up" : data.ended ? "Renew" : "Buy a plan"}
         </Button>
       </div>
     </Card>

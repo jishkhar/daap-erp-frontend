@@ -220,11 +220,12 @@ export default function OnboardingPage() {
           </div>
 
           <h2 className="mt-space-5 mb-space-1 text-[15px] font-bold text-ink-900">
-            What will you sell through?
+            What would you like to start with?
           </h2>
           <p className="mb-space-3 text-[13px] text-ink-600">
-            Optional. We use this to suggest your next steps; nothing is
-            switched on or off by it.
+            Each one is a separate service with its own plan. We start a free
+            trial for the ones you pick; you can add or change them any time
+            from Plan &amp; Billing.
           </p>
           <div className="mb-space-4 space-y-space-2">
             {(

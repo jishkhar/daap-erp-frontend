@@ -28,7 +28,9 @@ export function ChannelStatusStrip({ channel }: { channel: Channel }) {
           ? `${CHANNELS[channel].label} is set up.`
           : data.in_plan
             ? `${CHANNELS[channel].label} isn't fully set up yet.`
-            : `${CHANNELS[channel].label} isn't in your plan.`}
+            : data.ended
+              ? `Your ${CHANNELS[channel].label} plan has ended.`
+              : `You haven't bought ${CHANNELS[channel].label} yet.`}
       </span>
       <Link
         href={`/portal/settings/channels/${channel}`}

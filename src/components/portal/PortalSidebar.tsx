@@ -8,6 +8,7 @@ import {
   Globe,
   LayoutDashboard,
   LogIn,
+  Lock,
   MessageCircle,
   MessageSquareText,
   Banknote,
@@ -33,6 +34,7 @@ import Link from "next/link";
 import { LogoMark } from "@/components/brand/Logo";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { cn } from "@/lib/cn";
+import type { Service } from "@/lib/services";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import type { PortalTenant } from "@/lib/portalAuth";
 
@@ -53,6 +55,8 @@ type NavItem = {
   group: NavGroup;
   /** Listed but not usable yet. */
   disabled?: boolean;
+  /** The service this item is the page of; it shows a lock while that service does not work. */
+  service?: Service;
 };
 
 type IconProps = { size?: number; strokeWidth?: number; className?: string };
@@ -160,6 +164,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/portal/channels/online",
     pageKey: "channels",
     group: "Sales Channels",
+    service: "online",
   },
   {
     key: "channel-pos",
@@ -168,6 +173,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/portal/channels/pos",
     pageKey: "channels",
     group: "Sales Channels",
+    service: "pos",
   },
   {
     key: "channel-whatsapp",
@@ -176,6 +182,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/portal/channels/whatsapp",
     pageKey: "channels",
     group: "Sales Channels",
+    service: "whatsapp",
   },
 
   {
@@ -392,6 +399,14 @@ export function PortalSidebar({
                   >
                     <Icon size={18} strokeWidth={2} className="shrink-0" />
                     {label}
+                    {item.service && session?.services?.[item.service]?.locked && (
+                      <Lock
+                        size={13}
+                        strokeWidth={2.25}
+                        aria-label="Not active"
+                        className="ml-auto shrink-0 opacity-70"
+                      />
+                    )}
                   </Link>
                 )}
               </div>

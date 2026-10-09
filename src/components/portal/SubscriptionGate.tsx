@@ -14,13 +14,14 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 
-/** Shown over every portal page while the tenant has no active plan (trial over, subscription cancelled or expired). It can't be closed: the
- * server refuses everything but billing in this state, so the only ways forward are renewing or contacting support. */
+/** A full-screen "No active plan" gate for when EVERY service has ended. It is NOT mounted today: each service now locks on its own (see ServiceLock), and the
+ * portal and Billing always stay open. It is kept for the decision on when the portal itself should ask for a subscription -- mount it in PortalShell then. */
 export function SubscriptionGate() {
   const router = useRouter();
   const session = useStaffSession();
   const [picking, setPicking] = useState(false);
-  const ended = !!session?.accessEnded;
+  const services = session?.services ? Object.values(session.services) : [];
+  const ended = services.length > 0 && services.every((s) => s.locked);
 
   // After paying in the Razorpay tab the plan comes back by itself: keep asking until the server says the plan is active again.
   useEffect(() => {

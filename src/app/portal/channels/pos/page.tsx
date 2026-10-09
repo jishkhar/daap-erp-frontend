@@ -4,6 +4,7 @@ import { Store } from "lucide-react";
 import { ChannelStatusStrip } from "@/components/portal/channels/ChannelStatusStrip";
 import { LearnMore } from "@/components/portal/help/HelpButton";
 import { PosScreenEditor } from "@/components/portal/channels/PosScreenEditor";
+import { ServiceLock } from "@/components/portal/channels/ServiceLock";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -20,8 +21,10 @@ export default function PosChannelPage() {
         description="Choose how the till screen looks and what it says."
         actions={<LearnMore doc="pos" />}
       />
-      <ChannelStatusStrip channel="pos" />
-      <PosScreenEditor storeName={tenant?.name ?? "Your store"} />
+      <ServiceLock service="pos">
+        <ChannelStatusStrip channel="pos" />
+        <PosScreenEditor storeName={tenant?.name ?? "Your store"} />
+      </ServiceLock>
     </PortalShell>
   );
 }

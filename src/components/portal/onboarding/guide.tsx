@@ -23,6 +23,7 @@ export type GuideStep = {
     channel: string;
     label: string;
     in_plan: boolean;
+    ended?: boolean;
     met: number;
     total: number;
     ready: boolean;
@@ -195,7 +196,9 @@ export function SetupStatusRow({
                     ? "Ready"
                     : c.in_plan
                       ? `${c.met} of ${c.total} done`
-                      : "Not in your plan"}
+                      : c.ended
+                        ? "Plan ended"
+                        : "Not bought"}
                 </Badge>
                 {target && (
                   <Link
@@ -211,6 +214,14 @@ export function SetupStatusRow({
                     className="text-[12.5px] font-semibold text-brand-600 hover:underline"
                   >
                     {c.ready ? "Review" : "Configure"}
+                  </Link>
+                )}
+                {!c.in_plan && (
+                  <Link
+                    href={`/portal/settings/billing#${c.channel}`}
+                    className="text-[12.5px] font-semibold text-brand-600 hover:underline"
+                  >
+                    {c.ended ? "Renew" : "Buy a plan"}
                   </Link>
                 )}
               </li>

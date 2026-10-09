@@ -7,7 +7,6 @@ import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { HelpButton } from "@/components/portal/help/HelpButton";
 import { SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
-import { SubscriptionGate } from "@/components/portal/SubscriptionGate";
 import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalTenant } from "@/lib/portalAuth";
 
@@ -98,7 +97,6 @@ export function PortalShell({ tenant, active, children }: Props) {
           )}
         </main>
       </div>
-      <SubscriptionGate />
     </div>
   );
 }

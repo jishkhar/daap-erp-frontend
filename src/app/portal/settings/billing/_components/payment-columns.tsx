@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatMoney } from "@/lib/erp";
 import { formatDate } from "@/lib/formatDate";
+import { SERVICE_LABEL } from "@/lib/services";
 import type { BillingPayment } from "./billing-types";
 
 const TONE = {
@@ -29,6 +30,11 @@ export function createPaymentColumns(): ColumnDef<BillingPayment, unknown>[] {
       header: "Date",
       cell: ({ row }) =>
         formatDate(row.original.paid_at ?? row.original.created_at),
+    },
+    {
+      header: "Service",
+      cell: ({ row }) =>
+        row.original.service ? SERVICE_LABEL[row.original.service] : "—",
     },
     {
       header: "Plan",

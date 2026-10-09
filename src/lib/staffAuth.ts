@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import axios, { isAxiosError } from "axios";
 import { requestInitToAxiosConfig } from "@/lib/apiClient";
 import type { PortalTenant } from "@/lib/portalAuth";
+import type { Service, ServiceInfo } from "@/lib/services";
 import { notifyStorageChange, useStorageValue } from "@/lib/useStorageValue";
 
 const ACCESS_KEY = "erp_access_token";
@@ -33,8 +34,9 @@ export type StaffSession = {
   branches: SessionBranch[];
   /** Modules the tenant has switched on and bought (super admin's Access Management). Absent on sessions saved before this existed. */
   modules?: Record<string, boolean>;
-  /** The tenant has no active plan (trial over, subscription cancelled or expired): the portal shows the renew screen and nothing else works. */
-  accessEnded?: boolean;
+  /** Each service (online, pos, whatsapp) as the business has it: not subscribed, on a trial, active or ended. A service that is `locked` does not work; the
+   * portal itself and Billing always do. Absent on sessions saved before this existed; it fills in on the next refresh. */
+  services?: Record<Service, ServiceInfo>;
 };
 
 type MeResponse = {
@@ -54,7 +56,7 @@ type MeResponse = {
   permissions: PermissionMap;
   branches: SessionBranch[];
   modules?: Record<string, boolean>;
-  access_ended?: boolean;
+  services?: Record<Service, ServiceInfo>;
 };
 
 type TokenResponse = { access_token: string; refresh_token: string };
@@ -98,22 +100,20 @@ export function clearStaffSession() {
   notifyStorageChange();
 }
 
-/** The server refuses everything but billing once the plan has ended; remember that so the renew screen shows even mid-session. */
-function noteAccessEnded(status: number, data: unknown) {
+/** A service whose plan ended is refused by the server (403, reason service_ended / access_ended). Re-read who-am-I so its lock shows at once. */
+let refreshingForEnded = false;
+function noteServiceEnded(status: number, data: unknown) {
   const reason = (data as { error?: { reason?: string } } | undefined)?.error
     ?.reason;
-  const session = getStaffSession();
   if (
     status === 403 &&
-    reason === "access_ended" &&
-    session &&
-    !session.accessEnded
+    (reason === "service_ended" || reason === "access_ended") &&
+    !refreshingForEnded
   ) {
-    localStorage.setItem(
-      SESSION_KEY,
-      JSON.stringify({ ...session, accessEnded: true }),
-    );
-    notifyStorageChange();
+    refreshingForEnded = true;
+    void refreshStaffSession().finally(() => {
+      refreshingForEnded = false;
+    });
   }
 }
 
@@ -148,7 +148,7 @@ async function loadSession(accessToken: string): Promise<StaffSession> {
     permissions: me.permissions,
     branches: me.branches,
     modules: me.modules,
-    accessEnded: me.access_ended,
+    services: me.services,
   };
 }
 
@@ -432,7 +432,7 @@ export async function staffFetch(
       };
     }
     if (err.response.status !== 401) {
-      noteAccessEnded(err.response.status, err.response.data);
+      noteServiceEnded(err.response.status, err.response.data);
       return {
         ok: false,
         unauthorized: false,
@@ -458,7 +458,7 @@ export async function staffFetch(
         clearStaffSession();
         return { ok: false, unauthorized: true };
       }
-      noteAccessEnded(retryErr.response.status, retryErr.response.data);
+      noteServiceEnded(retryErr.response.status, retryErr.response.data);
       return {
         ok: false,
         unauthorized: false,

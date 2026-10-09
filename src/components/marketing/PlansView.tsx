@@ -12,6 +12,12 @@ import type { BillingPlan } from "@/app/portal/settings/billing/_components/bill
 import { DemoRequestButton } from "@/components/marketing/DemoRequestButton";
 import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/erp";
+import {
+  SERVICE_BLURB,
+  SERVICE_LABEL,
+  SERVICES,
+  type Service,
+} from "@/lib/services";
 import { API_BASE_URL } from "@/lib/staffAuth";
 
 const ICONS: LucideIcon[] = [Sprout, Building2, Rocket];
@@ -20,12 +26,21 @@ const planFeatures = (p: BillingPlan) => [
     ? `Up to ${p.max_branches} branch${p.max_branches === 1 ? "" : "es"}`
     : "Unlimited branches",
   p.max_users ? `Up to ${p.max_users} users` : "Unlimited users",
+  ...(p.service === "pos"
+    ? [
+        p.max_terminals
+          ? `Up to ${p.max_terminals} POS terminal${p.max_terminals === 1 ? "" : "s"}`
+          : "Unlimited POS terminals",
+      ]
+    : []),
   ...(p.feature_labels ?? p.features),
 ];
 
-/** Every plan on offer, from the public plans endpoint (no sign-in needed), centred under the page heading. */
+/** The plans on offer, from the public plans endpoint (no sign-in needed): choose a service (Online, POS, WhatsApp), then its plan pack. */
 export function PlansView() {
-  const [plans, setPlans] = useState<BillingPlan[] | null>(null);
+  const [allPlans, setPlans] = useState<BillingPlan[] | null>(null);
+  const [service, setService] = useState<Service>("pos");
+  const plans = allPlans && allPlans.filter((p) => p.service === service);
   const [failed, setFailed] = useState(false);
   const [cycle, setCycle] = useState<"monthly" | "annual">("monthly");
 
@@ -52,6 +67,28 @@ export function PlansView() {
 
   return (
     <>
+      <div
+        className="mx-auto mb-space-5 flex w-fit flex-wrap justify-center gap-space-2"
+        role="tablist"
+        aria-label="Service"
+      >
+        {SERVICES.map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="tab"
+            aria-selected={service === s}
+            onClick={() => setService(s)}
+            className={`rounded-full px-space-5 py-2 text-[14px] font-semibold transition-colors ${service === s ? "bg-brand-600 text-white" : "border border-line text-ink-600 hover:bg-brand-50"}`}
+          >
+            {SERVICE_LABEL[s]}
+          </button>
+        ))}
+      </div>
+      <p className="mx-auto mb-space-6 max-w-lg text-center text-[14px] text-ink-600">
+        {SERVICE_BLURB[service]} Each service is bought on its own plan, so you
+        pay only for what you use.
+      </p>
       <div className="relative mx-auto mb-space-8 w-fit">
         <div className="inline-flex rounded-full bg-black/[0.05] p-1 text-[13px] font-semibold">
           {(["monthly", "annual"] as const).map((c) => (
@@ -78,12 +115,12 @@ export function PlansView() {
           moment.
         </p>
       )}
-      {!plans && !failed && (
+      {!allPlans && !failed && (
         <p className="text-center text-[14px] text-ink-400">Loading plans…</p>
       )}
       {plans && plans.length === 0 && (
         <p className="mx-auto max-w-md text-center text-[14px] text-ink-600">
-          Plans will be listed here soon. In the meantime, request a demo and
+          {SERVICE_LABEL[service]} plans will be listed here soon. In the meantime, request a demo and
           we&apos;ll walk you through the options.
         </p>
       )}
