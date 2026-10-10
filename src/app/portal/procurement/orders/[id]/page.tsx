@@ -19,45 +19,36 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import {
+  useFetchGoodsReceipt,
+  usePurchaseOrder,
+  usePurchaseOrderAction,
+  useReturnGoods,
+  useSuppliers,
+  type GoodsReceipt,
+  type PurchaseOrderAction,
+} from "@/hooks/useProcurement";
+import {
   PO_STATUS_TONE,
-  erp,
   formatDateTime,
   formatMoney,
   humanize,
   toMinor,
-  useErpQuery,
   type PoItem,
-  type PurchaseOrder,
-  type Supplier,
 } from "@/lib/erp";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
-type GrnItem = {
-  id: string;
-  variant_id: string;
-  sku: string;
-  product_name: string;
-  quantity: number;
-  returned_quantity: number;
-  landed_unit_cost_minor: number;
-  serial_numbers: string[];
-};
-type Grn = {
-  id: string;
-  grn_number: string;
-  total_minor: number;
-  items: GrnItem[];
-};
-
 export default function PurchaseOrderPage() {
   const { id } = useParams<{ id: string }>();
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const po = useErpQuery<PurchaseOrder>(`/api/v1/purchase-orders/${id}`);
-  const suppliers = useErpQuery<Supplier[]>("/api/v1/suppliers");
-  const [busy, setBusy] = useState(false);
+  const po = usePurchaseOrder(id);
+  const suppliers = useSuppliers();
+  const step = usePurchaseOrderAction(id);
+  const returnGoods = useReturnGoods();
+  const fetchGoodsReceipt = useFetchGoodsReceipt();
+  const busy = step.isPending || returnGoods.isPending;
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [recvOpen, setRecvOpen] = useState(false);
@@ -65,7 +56,7 @@ export default function PurchaseOrderPage() {
   const [recvSerials, setRecvSerials] = useState<Record<string, string>>({});
   const [invoiceNo, setInvoiceNo] = useState("");
   const [freight, setFreight] = useState("");
-  const [returnGrn, setReturnGrn] = useState<Grn | null>(null);
+  const [returnGrn, setReturnGrn] = useState<GoodsReceipt | null>(null);
   const [retQty, setRetQty] = useState<Record<string, string>>({});
   const [retSerials, setRetSerials] = useState<Record<string, string>>({});
   const [retReason, setRetReason] = useState("");
@@ -85,20 +76,20 @@ export default function PurchaseOrderPage() {
       .map((x) => x.trim())
       .filter(Boolean);
 
-  async function act(
-    path: string,
+  /** The toasts (and what to do next) of one action on this order. */
+  const done = (message: string, after?: () => void) => ({
+    onSuccess: () => {
+      toast.success(message);
+      after?.();
+    },
+    onError: (e: Error) => toast.error("Couldn't complete that", e.message),
+  });
+  const act = (
+    action: PurchaseOrderAction,
     body: unknown,
     message: string,
     after?: () => void,
-  ) {
-    setBusy(true);
-    const res = await erp(path, "POST", body);
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't complete that", res.error);
-    toast.success(message);
-    after?.();
-    po.reload();
-  }
+  ) => step.mutate({ action, body }, done(message, after));
 
   function openReceive() {
     if (!o?.items) return;
@@ -128,10 +119,13 @@ export default function PurchaseOrderPage() {
   });
 
   async function openReturn(grnId: string) {
-    const res = await erp<Grn>(`/api/v1/goods-receipts/${grnId}`);
-    if (res.error || !res.data)
-      return toast.error("Couldn't load the receipt", res.error ?? undefined);
-    setReturnGrn(res.data);
+    let grn: GoodsReceipt;
+    try {
+      grn = await fetchGoodsReceipt(grnId);
+    } catch (e) {
+      return toast.error("Couldn't load the receipt", (e as Error).message);
+    }
+    setReturnGrn(grn);
     setRetQty({});
     setRetSerials({});
     setRetReason("");
@@ -146,7 +140,7 @@ export default function PurchaseOrderPage() {
         <ArrowLeft size={14} /> All purchase orders
       </Link>
       {po.error && (
-        <p className="text-[14px] font-medium text-error">{po.error}</p>
+        <p className="text-[14px] font-medium text-error">{po.error.message}</p>
       )}
       {!o && !po.error && <SkeletonLines rows={3} />}
       {o && (
@@ -174,11 +168,7 @@ export default function PurchaseOrderPage() {
                 <Button
                   disabled={busy}
                   onClick={() =>
-                    act(
-                      `/api/v1/purchase-orders/${o.id}/approve`,
-                      undefined,
-                      "Purchase order approved",
-                    )
+                    act("approve", undefined, "Purchase order approved")
                   }
                 >
                   <CheckCircle2 size={16} /> Approve
@@ -193,13 +183,7 @@ export default function PurchaseOrderPage() {
                 <Button
                   variant="secondary"
                   disabled={busy}
-                  onClick={() =>
-                    act(
-                      `/api/v1/purchase-orders/${o.id}/close-short`,
-                      undefined,
-                      "Order closed",
-                    )
-                  }
+                  onClick={() => act("close-short", undefined, "Order closed")}
                 >
                   Close short
                 </Button>
@@ -335,7 +319,7 @@ export default function PurchaseOrderPage() {
                   disabled={busy || !reason.trim()}
                   onClick={() =>
                     act(
-                      `/api/v1/purchase-orders/${o.id}/cancel`,
+                      "cancel",
                       { reason: reason.trim() },
                       "Purchase order cancelled",
                       () => {
@@ -374,11 +358,8 @@ export default function PurchaseOrderPage() {
                 <Button
                   disabled={busy || receiveBody().lines.length === 0}
                   onClick={() =>
-                    act(
-                      `/api/v1/purchase-orders/${o.id}/receive`,
-                      receiveBody(),
-                      "Goods received",
-                      () => setRecvOpen(false),
+                    act("receive", receiveBody(), "Goods received", () =>
+                      setRecvOpen(false),
                     )
                   }
                 >
@@ -477,28 +458,30 @@ export default function PurchaseOrderPage() {
                     )
                   }
                   onClick={() =>
-                    act(
-                      `/api/v1/goods-receipts/${returnGrn!.id}/returns`,
+                    returnGoods.mutate(
                       {
-                        reason: retReason.trim(),
-                        lines: returnGrn!.items
-                          .filter(
-                            (i) => (parseInt(retQty[i.id] ?? "0", 10) || 0) > 0,
-                          )
-                          .map((i) => ({
-                            grn_item_id: i.id,
-                            quantity: parseInt(retQty[i.id], 10),
-                            ...(i.serial_numbers.length
-                              ? {
-                                  serial_numbers: splitList(
-                                    retSerials[i.id] ?? "",
-                                  ),
-                                }
-                              : {}),
-                          })),
+                        grnId: returnGrn!.id,
+                        body: {
+                          reason: retReason.trim(),
+                          lines: returnGrn!.items
+                            .filter(
+                              (i) =>
+                                (parseInt(retQty[i.id] ?? "0", 10) || 0) > 0,
+                            )
+                            .map((i) => ({
+                              grn_item_id: i.id,
+                              quantity: parseInt(retQty[i.id], 10),
+                              ...(i.serial_numbers.length
+                                ? {
+                                    serial_numbers: splitList(
+                                      retSerials[i.id] ?? "",
+                                    ),
+                                  }
+                                : {}),
+                            })),
+                        },
                       },
-                      "Goods returned",
-                      () => setReturnGrn(null),
+                      done("Goods returned", () => setReturnGrn(null)),
                     )
                   }
                 >

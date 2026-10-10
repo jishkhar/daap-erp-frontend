@@ -11,6 +11,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -20,13 +21,17 @@ import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
 import {
+  useCreateSupplier,
+  useDecidePurchaseRequest,
+  usePurchaseOrders,
+  usePurchaseRequests,
+  useSuppliers,
+} from "@/hooks/useProcurement";
+import {
   PO_STATUS_TONE,
-  erp,
   formatDateTime,
   formatMoney,
   humanize,
-  qs,
-  useErpQuery,
   type PurchaseOrder,
   type PurchaseRequest,
   type Supplier,
@@ -55,15 +60,15 @@ export default function ProcurementPage() {
   const [tab, setTab] = useState<Tab>("orders");
   const [status, setStatus] = useState("");
   const { branchId: activeBranch } = useActiveBranch();
-  const pos = useErpQuery<PurchaseOrder[]>(
-    `/api/v1/purchase-orders${qs({ status, branch_id: activeBranch })}`,
+  // newest first, paged on the server
+  const pos = usePurchaseOrders({ status, branch_id: activeBranch });
+  const requests = usePurchaseRequests(
+    { branch_id: activeBranch },
+    tab === "requests",
   );
-  const requests = useErpQuery<PurchaseRequest[]>(
-    tab === "requests"
-      ? `/api/v1/purchase-requests${qs({ branch_id: activeBranch })}`
-      : null,
-  );
-  const suppliers = useErpQuery<Supplier[]>("/api/v1/suppliers");
+  const suppliers = useSuppliers();
+  const createSupplierMutation = useCreateSupplier();
+  const decideRequest = useDecidePurchaseRequest();
   const [newPo, setNewPo] = useState(false);
   const [openSupplier, setOpenSupplier] = useState<string | null>(null);
   const [addSupplier, setAddSupplier] = useState(false);
@@ -75,7 +80,7 @@ export default function ProcurementPage() {
     state: "",
     terms: "30",
   });
-  const [busy, setBusy] = useState(false);
+  const busy = createSupplierMutation.isPending;
   const cur = tenant?.currency ?? "INR";
   const canCreate = hasGrant(session, "procurement:create");
   const canAddSupplier = hasTenantWide(session, "suppliers:create");
@@ -207,47 +212,50 @@ export default function ProcurementPage() {
 
   if (!ready) return null;
 
-  async function decide(id: string, action: "approve" | "reject") {
+  function decide(id: string, action: "approve" | "reject") {
     const reason =
       action === "reject"
         ? window.prompt("Reason for rejecting this request?")
         : null;
     if (action === "reject" && !reason) return;
-    const res = await erp(
-      `/api/v1/purchase-requests/${id}/${action}`,
-      "POST",
-      action === "reject" ? { reason } : undefined,
+    decideRequest.mutate(
+      { id, action, reason },
+      {
+        onSuccess: () =>
+          toast.success(
+            action === "approve" ? "Request approved" : "Request rejected",
+          ),
+        onError: (e) => toast.error("Couldn't update the request", e.message),
+      },
     );
-    if (res.error) return toast.error("Couldn't update the request", res.error);
-    toast.success(
-      action === "approve" ? "Request approved" : "Request rejected",
-    );
-    requests.reload();
   }
 
-  async function createSupplier() {
-    setBusy(true);
-    const res = await erp("/api/v1/suppliers", "POST", {
-      name: form.name.trim(),
-      gstin: form.gstin.trim() || null,
-      phone: form.phone.trim() || null,
-      email: form.email.trim() || null,
-      state: form.state.trim() || null,
-      payment_terms_days: parseInt(form.terms, 10) || 30,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't add the supplier", res.error);
-    toast.success("Supplier added");
-    setAddSupplier(false);
-    setForm({
-      name: "",
-      gstin: "",
-      phone: "",
-      email: "",
-      state: "",
-      terms: "30",
-    });
-    suppliers.reload();
+  function createSupplier() {
+    createSupplierMutation.mutate(
+      {
+        name: form.name.trim(),
+        gstin: form.gstin.trim() || null,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        state: form.state.trim() || null,
+        payment_terms_days: parseInt(form.terms, 10) || 30,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Supplier added");
+          setAddSupplier(false);
+          setForm({
+            name: "",
+            gstin: "",
+            phone: "",
+            email: "",
+            state: "",
+            terms: "30",
+          });
+        },
+        onError: (e) => toast.error("Couldn't add the supplier", e.message),
+      },
+    );
   }
 
   const supplierColumns: ColumnDef<Supplier, unknown>[] = [
@@ -344,22 +352,24 @@ export default function ProcurementPage() {
           </Card>
           {pos.error && (
             <p className="mb-space-3 text-[13px] font-medium text-error">
-              {pos.error}
+              {pos.error.message}
             </p>
           )}
           <Card className="p-space-2">
             <DataTable
               columns={poColumns}
-              data={pos.data ?? []}
+              data={pos.rows}
               getRowId={(o) => String(o.id)}
               onRowClick={(o) =>
                 router.push(`/portal/procurement/orders/${o.id}`)
               }
-              loading={pos.loading}
+              paginate={false}
+              loading={pos.isFetching}
               emptyMessage={
-                pos.loading ? "Loading…" : "No purchase orders yet."
+                pos.isLoading ? "Loading…" : "No purchase orders yet."
               }
             />
+            <CursorPager {...pos.pager} />
           </Card>
         </>
       )}
@@ -367,20 +377,22 @@ export default function ProcurementPage() {
         <Card className="p-space-2">
           <DataTable
             columns={requestColumns}
-            data={requests.data ?? []}
+            data={requests.rows}
             getRowId={(o) => String(o.id)}
-            loading={requests.loading}
+            paginate={false}
+            loading={requests.isFetching}
             emptyMessage={
-              requests.loading ? "Loading…" : "No purchase requests."
+              requests.isLoading ? "Loading…" : "No purchase requests."
             }
           />
+          <CursorPager {...requests.pager} />
         </Card>
       )}
       {tab === "suppliers" && (
         <>
           {suppliers.error && (
             <p className="mb-space-3 text-[13px] font-medium text-error">
-              {suppliers.error}
+              {suppliers.error.message}
             </p>
           )}
           <Card className="p-space-2">
@@ -389,9 +401,9 @@ export default function ProcurementPage() {
               data={suppliers.data ?? []}
               getRowId={(o) => String(o.id)}
               onRowClick={(s) => setOpenSupplier(s.id)}
-              loading={suppliers.loading}
+              loading={suppliers.isFetching}
               emptyMessage={
-                suppliers.loading ? "Loading…" : "No suppliers yet."
+                suppliers.isLoading ? "Loading…" : "No suppliers yet."
               }
             />
           </Card>

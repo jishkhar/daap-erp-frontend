@@ -120,8 +120,8 @@ export function PlansView() {
       )}
       {plans && plans.length === 0 && (
         <p className="mx-auto max-w-md text-center text-[14px] text-ink-600">
-          {SERVICE_LABEL[service]} plans will be listed here soon. In the meantime, request a demo and
-          we&apos;ll walk you through the options.
+          {SERVICE_LABEL[service]} plans will be listed here soon. In the
+          meantime, request a demo and we&apos;ll walk you through the options.
         </p>
       )}
 

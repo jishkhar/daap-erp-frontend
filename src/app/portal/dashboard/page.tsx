@@ -16,46 +16,19 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveBranch } from "@/lib/branch";
-import {
-  CHANNEL_ORDER,
-  formatMoney,
-  qs,
-  useErpQuery,
-  type Order,
-} from "@/lib/erp";
+import { CHANNEL_ORDER, formatMoney } from "@/lib/erp";
+import { useTodaySummary } from "@/hooks/useAnalytics";
+import { useLowStock } from "@/hooks/useInventory";
+import { useRecentOrders } from "@/hooks/useOrders";
 import { formatDateTime } from "@/lib/erp";
 import { Skeleton, SkeletonLines } from "@/components/ui/Skeleton";
-
-type Level = {
-  branch_id: string;
-  branch_code: string;
-  variant_id: string;
-  product_name: string;
-  sku: string;
-  available_qty: number;
-  reorder_level: number | null;
-};
-
-type Today = {
-  orders: number;
-  revenue_minor: number;
-  by_channel: { channel: string; orders: number; revenue_minor: number }[];
-  open_orders: number;
-  low_stock_items: number | null;
-};
 
 export default function DashboardPage() {
   const { tenant, ready } = usePortalGuard();
   const { branchId } = useActiveBranch();
-  const today = useErpQuery<Today>(
-    `/api/v1/analytics/today${qs({ branch_id: branchId })}`,
-  );
-  const orders = useErpQuery<Order[]>(
-    `/api/v1/orders${qs({ branch_id: branchId, limit: 8 })}`,
-  );
-  const lowStock = useErpQuery<Level[]>(
-    `/api/v1/inventory${qs({ branch_id: branchId, low_stock: true, limit: 50 })}`,
-  );
+  const today = useTodaySummary(branchId);
+  const orders = useRecentOrders(branchId);
+  const lowStock = useLowStock(branchId);
   const cur = tenant?.currency ?? "INR";
   const byChannel = (c: string) =>
     today.data?.by_channel.find((x) => x.channel === c) ?? {
@@ -77,12 +50,12 @@ export default function DashboardPage() {
       <FirstRunChecklist />
       {(today.error || orders.error) && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {today.error ?? orders.error}
+          {(today.error ?? orders.error)?.message}
         </p>
       )}
       <div className="mb-space-5 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
-          loading={today.loading && !today.data}
+          loading={today.isFetching && !today.data}
           label="Sales today"
           value={formatMoney(today.data?.revenue_minor ?? 0, cur)}
           deltaPct={null}
@@ -91,7 +64,7 @@ export default function DashboardPage() {
           icon={<IndianRupee size={22} />}
         />
         <StatTile
-          loading={today.loading && !today.data}
+          loading={today.isFetching && !today.data}
           label="Orders today"
           value={today.data?.orders ?? 0}
           deltaPct={null}
@@ -99,7 +72,7 @@ export default function DashboardPage() {
           icon={<ShoppingCart size={22} />}
         />
         <StatTile
-          loading={today.loading && !today.data}
+          loading={today.isFetching && !today.data}
           label="Open orders"
           value={today.data?.open_orders ?? 0}
           deltaPct={null}
@@ -108,7 +81,7 @@ export default function DashboardPage() {
           icon={<Timer size={22} />}
         />
         <StatTile
-          loading={today.loading && !today.data}
+          loading={today.isFetching && !today.data}
           label="Low-stock items"
           value={today.data?.low_stock_items ?? lowStock.data?.length ?? 0}
           deltaPct={null}
@@ -126,7 +99,7 @@ export default function DashboardPage() {
                 <ChannelBadge channel={c} />
                 <span className="text-[12px] text-ink-400">today</span>
               </div>
-              {today.loading && !today.data ? (
+              {today.isFetching && !today.data ? (
                 <>
                   <Skeleton className="mt-space-2 h-[26px] w-28" />
                   <Skeleton className="mt-1 h-4 w-16" />
@@ -161,7 +134,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           {recent.length === 0 &&
-            (orders.loading ? (
+            (orders.isFetching ? (
               <SkeletonLines rows={2} />
             ) : (
               <p className="text-[13.5px] text-ink-400">{"No orders yet."}</p>
@@ -198,7 +171,7 @@ export default function DashboardPage() {
             Low stock
           </h2>
           {(lowStock.data ?? []).length === 0 &&
-            (lowStock.loading ? (
+            (lowStock.isFetching ? (
               <SkeletonLines rows={2} />
             ) : (
               <p className="text-[13.5px] text-ink-400">

@@ -5,21 +5,20 @@ import { Plus, Trash2, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import {
-  erp,
-  formatMoney,
-  humanize,
-  toMinor,
-  useErpQuery,
-  type Account,
-  type JournalEntry,
-  qs,
-} from "@/lib/erp";
+  useAccounts,
+  useJournalEntry,
+  useJournalList,
+  usePostJournal,
+  useReverseJournal,
+} from "@/hooks/useFinance";
+import { formatMoney, humanize, toMinor, type JournalEntry } from "@/lib/erp";
 import { useActiveBranch } from "@/lib/branch";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
@@ -30,18 +29,21 @@ type Row = { account: string; debit: string; credit: string };
 export function JournalTab({ currency }: { currency: string }) {
   const session = useStaffSession();
   const { branchId } = useActiveBranch();
-  const entries = useErpQuery<JournalEntry[]>(
-    `/api/v1/finance/journal-entries${qs({ branch_id: branchId, limit: 200 })}`,
-  );
-  const accounts = useErpQuery<Account[]>("/api/v1/finance/accounts");
-  const [view, setView] = useState<JournalEntry | null>(null);
+  const entries = useJournalList({ branch_id: branchId }); // newest first, paged on the server
+  const accounts = useAccounts();
+  const postJournal = usePostJournal();
+  const reverseJournal = useReverseJournal();
+  const [viewId, setViewId] = useState(""); // the entry open in the dialog
+  const viewed = useJournalEntry(viewId);
+  const view = viewId ? (viewed.data ?? null) : null;
+  const setView = (e: JournalEntry | null) => setViewId(e?.id ?? "");
   const [open, setOpen] = useState(false);
   const [memo, setMemo] = useState("");
   const [rows, setRows] = useState<Row[]>([
     { account: "", debit: "", credit: "" },
     { account: "", debit: "", credit: "" },
   ]);
-  const [busy, setBusy] = useState(false);
+  const busy = postJournal.isPending;
   const canManage = hasTenantWide(session, "finance:manage");
   const m = (v: number) => formatMoney(v, currency);
 
@@ -85,47 +87,44 @@ export function JournalTab({ currency }: { currency: string }) {
     [],
   );
 
-  async function openEntry(e: JournalEntry) {
-    const res = await erp<JournalEntry>(
-      `/api/v1/finance/journal-entries/${e.id}`,
+  function post() {
+    postJournal.mutate(
+      {
+        memo: memo.trim(),
+        lines: rows.map((r) => ({
+          account: r.account,
+          debit_minor: toMinor(r.debit) ?? 0,
+          credit_minor: toMinor(r.credit) ?? 0,
+        })),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Entry posted");
+          setOpen(false);
+          setMemo("");
+          setRows([
+            { account: "", debit: "", credit: "" },
+            { account: "", debit: "", credit: "" },
+          ]);
+        },
+        onError: (e) => toast.error("Couldn't post the entry", e.message),
+      },
     );
-    if (res.data) setView(res.data);
   }
 
-  async function post() {
-    setBusy(true);
-    const res = await erp("/api/v1/finance/journal-entries", "POST", {
-      memo: memo.trim(),
-      lines: rows.map((r) => ({
-        account: r.account,
-        debit_minor: toMinor(r.debit) ?? 0,
-        credit_minor: toMinor(r.credit) ?? 0,
-      })),
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't post the entry", res.error);
-    toast.success("Entry posted");
-    setOpen(false);
-    setMemo("");
-    setRows([
-      { account: "", debit: "", credit: "" },
-      { account: "", debit: "", credit: "" },
-    ]);
-    entries.reload();
-  }
-
-  async function reverse(e: JournalEntry) {
+  function reverse(e: JournalEntry) {
     const reason = window.prompt("Reason for reversing this entry?");
     if (!reason) return;
-    const res = await erp(
-      `/api/v1/finance/journal-entries/${e.id}/reverse`,
-      "POST",
-      { reason },
+    reverseJournal.mutate(
+      { id: e.id, reason },
+      {
+        onSuccess: () => {
+          toast.success("Entry reversed");
+          setView(null);
+        },
+        onError: (err) => toast.error("Couldn't reverse", err.message),
+      },
     );
-    if (res.error) return toast.error("Couldn't reverse", res.error);
-    toast.success("Entry reversed");
-    setView(null);
-    entries.reload();
   }
 
   return (
@@ -143,36 +142,22 @@ export function JournalTab({ currency }: { currency: string }) {
       </Card>
       {entries.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {entries.error}
+          {entries.error.message}
         </p>
       )}
       <Card className="p-space-2">
         <DataTable
           columns={columns}
-          data={entries.data ?? []}
+          data={entries.rows}
           getRowId={(e) => String(e.id)}
-          onRowClick={openEntry}
+          onRowClick={setView}
+          paginate={false}
+          loading={entries.isFetching}
           emptyMessage={
-            entries.loading ? "Loading…" : "No journal entries yet."
+            entries.isLoading ? "Loading…" : "No journal entries yet."
           }
         />
-      </Card>
-      {entries.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {entries.error}
-        </p>
-      )}
-      <Card className="p-space-2">
-        <DataTable
-          columns={columns}
-          data={entries.data ?? []}
-          getRowId={(e) => String(e.id)}
-          onRowClick={openEntry}
-          loading={entries.loading}
-          emptyMessage={
-            entries.loading ? "Loading…" : "No journal entries yet."
-          }
-        />
+        <CursorPager {...entries.pager} />
       </Card>
 
       <Modal

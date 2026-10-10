@@ -11,36 +11,17 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { erp, formatMoney, fromMinor, toMinor, useErpQuery } from "@/lib/erp";
+import {
+  useSaveContact,
+  useSaveSettings,
+  useTenantView,
+  type TenantContact as Contact,
+  type TenantView,
+} from "@/hooks/useTenantSettings";
+import { formatMoney, fromMinor, toMinor } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-
-type Contact = {
-  email: string | null;
-  phone: string | null;
-  website: string | null;
-  registered_address: string | null;
-  city: string | null;
-  state: string | null;
-  pincode: string | null;
-};
-type TenantView = {
-  contact: Contact;
-  tenant: {
-    id: string;
-    tenant_code: string;
-    legal_name: string;
-    display_name: string;
-    currency: string;
-    timezone: string;
-    status: string;
-  };
-  settings: {
-    reservation_ttl_minutes: number;
-    transfer_high_value_threshold_minor: number;
-  };
-};
 
 const CONTACT_FIELDS: (keyof Contact)[] = [
   "email",
@@ -56,17 +37,16 @@ function GeneralSections({
   t,
   contact,
   canEdit,
-  onSaved,
 }: {
   t: TenantView["tenant"];
   contact: Contact;
   canEdit: boolean;
-  onSaved: () => void;
 }) {
   const [draft, setDraft] = useState<Record<keyof Contact, string> | null>(
     null,
   );
-  const [busy, setBusy] = useState(false);
+  const saveContact = useSaveContact();
+  const busy = saveContact.isPending;
   const edit = () =>
     setDraft(
       Object.fromEntries(
@@ -83,16 +63,16 @@ function GeneralSections({
     .filter(Boolean)
     .join(" · ");
 
-  async function save() {
+  function save() {
     if (!draft) return;
-    setBusy(true);
-    const res = await erp("/api/v1/tenant/contact", "PATCH", draft);
-    setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't save the contact details", res.error);
-    toast.success("Contact details saved");
-    setDraft(null);
-    onSaved();
+    saveContact.mutate(draft, {
+      onSuccess: () => {
+        toast.success("Contact details saved");
+        setDraft(null);
+      },
+      onError: (e) =>
+        toast.error("Couldn't save the contact details", e.message),
+    });
   }
 
   const row = (
@@ -318,20 +298,19 @@ function OperationsCard({
   settings,
   currency,
   canEdit,
-  onSaved,
 }: {
   settings: TenantView["settings"];
   currency: string;
   canEdit: boolean;
-  onSaved: () => void;
 }) {
   const [ttl, setTtl] = useState(String(settings.reservation_ttl_minutes));
   const [threshold, setThreshold] = useState(
     fromMinor(settings.transfer_high_value_threshold_minor),
   );
-  const [busy, setBusy] = useState(false);
+  const saveSettings = useSaveSettings();
+  const busy = saveSettings.isPending;
 
-  async function save() {
+  function save() {
     const minor = toMinor(threshold);
     const minutes = parseInt(ttl, 10);
     if (minor === null || !minutes)
@@ -339,15 +318,16 @@ function OperationsCard({
         "Check the values",
         "Enter a whole number of minutes and a valid amount.",
       );
-    setBusy(true);
-    const res = await erp("/api/v1/tenant/settings", "PATCH", {
-      reservation_ttl_minutes: minutes,
-      transfer_high_value_threshold_minor: minor,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't save", res.error);
-    toast.success("Settings saved");
-    onSaved();
+    saveSettings.mutate(
+      {
+        reservation_ttl_minutes: minutes,
+        transfer_high_value_threshold_minor: minor,
+      },
+      {
+        onSuccess: () => toast.success("Settings saved"),
+        onError: (e) => toast.error("Couldn't save", e.message),
+      },
+    );
   }
 
   return (
@@ -393,7 +373,7 @@ function OperationsCard({
 export default function SettingsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const view = useErpQuery<TenantView>("/api/v1/tenant");
+  const view = useTenantView();
   const canEdit = hasPermission(session, "settings", "write");
 
   if (!ready) return null;
@@ -408,7 +388,7 @@ export default function SettingsPage() {
       />
       {view.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {view.error}
+          {view.error.message}
         </p>
       )}
       {!view.data && !view.error && (
@@ -419,12 +399,7 @@ export default function SettingsPage() {
         </div>
       )}
       {t && view.data && (
-        <GeneralSections
-          t={t}
-          contact={view.data.contact}
-          canEdit={canEdit}
-          onSaved={view.reload}
-        />
+        <GeneralSections t={t} contact={view.data.contact} canEdit={canEdit} />
       )}
       <div>
         {view.data && (
@@ -433,7 +408,6 @@ export default function SettingsPage() {
             settings={view.data.settings}
             currency={view.data.tenant.currency}
             canEdit={canEdit}
-            onSaved={view.reload}
           />
         )}
       </div>

@@ -9,9 +9,11 @@ import {
   PaymentStatusBadge,
 } from "@/components/erp/StatusBadges";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useOrderList } from "@/hooks/useOrders";
 import { useActiveBranch } from "@/lib/branch";
 import {
   CHANNELS,
@@ -19,11 +21,9 @@ import {
   formatDateTime,
   formatMoney,
   humanize,
-  qs,
-  useErpQuery,
-  type Customer,
   type Order,
 } from "@/lib/erp";
+import { useDebounced } from "@/lib/useDebounced";
 
 const STATUSES: Order["status"][] = [
   "pending",
@@ -59,15 +59,15 @@ export function OrdersView({ initialChannel = "" }: Props) {
   const [channelFilter, setChannelFilter] = useState(initialChannel);
   const [search, setSearch] = useState("");
 
-  const effectiveChannel = channelFilter || undefined;
-  const path = `/api/v1/orders${qs({ channel: effectiveChannel, status, payment_status: paymentStatus, branch_id: branchId, q: search, limit: 200 })}`;
-  const orders = useErpQuery<Order[]>(path);
-  const customers = useErpQuery<Customer[]>("/api/v1/customers?limit=200");
-
-  const customerName = useMemo(
-    () => new Map((customers.data ?? []).map((c) => [c.id, c.name])),
-    [customers.data],
-  );
+  const q = useDebounced(search.trim());
+  // paged on the server (newest first); each row carries its customer's name
+  const orders = useOrderList({
+    channel: channelFilter,
+    status,
+    payment_status: paymentStatus,
+    branch_id: branchId,
+    q,
+  });
   const branchCode = useMemo(
     () => new Map(branches.map((b) => [b.id, b.branch_code])),
     [branches],
@@ -97,8 +97,7 @@ export function OrdersView({ initialChannel = "" }: Props) {
         header: "Customer",
         cell: ({ row }) =>
           row.original.customer_id ? (
-            (customerName.get(row.original.customer_id) ??
-            `#${row.original.customer_id}`)
+            row.original.customer_name || `#${row.original.customer_id}`
           ) : (
             <span className="text-ink-400">Walk-in</span>
           ),
@@ -130,7 +129,7 @@ export function OrdersView({ initialChannel = "" }: Props) {
         ),
       },
     ],
-    [branchCode, customerName],
+    [branchCode],
   );
 
   return (
@@ -186,22 +185,24 @@ export function OrdersView({ initialChannel = "" }: Props) {
 
       {orders.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {orders.error}
+          {orders.error.message}
         </p>
       )}
       <Card className="p-space-2">
         <DataTable
           columns={columns}
-          data={orders.data ?? []}
+          data={orders.rows}
           getRowId={(o) => String(o.id)}
+          paginate={false}
           onRowClick={(o) => router.push(`/portal/orders/${o.id}`)}
-          loading={orders.loading}
+          loading={orders.isFetching}
           emptyMessage={
-            orders.loading
+            orders.isLoading
               ? "Loading orders…"
               : "No orders match these filters."
           }
         />
+        <CursorPager {...orders.pager} />
       </Card>
     </>
   );

@@ -23,17 +23,26 @@ export function SubscriptionGate() {
   const services = session?.services ? Object.values(session.services) : [];
   const ended = services.length > 0 && services.every((s) => s.locked);
 
-  // After paying in the Razorpay tab the plan comes back by itself: keep asking until the server says the plan is active again.
+  const [waitingSince, setWaitingSince] = useState<number | null>(null);
+
+  // After paying in the Razorpay tab the plan comes back by itself. Ask again only while a checkout started here is open (up to 10 minutes)
+  // and when the tab regains focus: an idle gate makes no requests.
   useEffect(() => {
-    if (!ended) return;
-    const poll = () => void refreshStaffSession();
+    if (!ended || waitingSince === null) return;
+    const poll = () => {
+      if (Date.now() - waitingSince > 10 * 60 * 1000) {
+        setWaitingSince(null);
+        return;
+      }
+      void refreshStaffSession();
+    };
     const timer = setInterval(poll, 8000);
     window.addEventListener("focus", poll);
     return () => {
       clearInterval(timer);
       window.removeEventListener("focus", poll);
     };
-  }, [ended]);
+  }, [ended, waitingSince]);
 
   if (!ended) return null;
   const canRenew = hasPermission(session, "billing", "write");
@@ -85,7 +94,11 @@ export function SubscriptionGate() {
           </p>
         </div>
       </Modal>
-      <PlanPickerModal open={picking} onClose={() => setPicking(false)} />
+      <PlanPickerModal
+        open={picking}
+        onClose={() => setPicking(false)}
+        onDone={() => setWaitingSince(Date.now())}
+      />
     </>
   );
 }

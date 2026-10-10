@@ -13,7 +13,8 @@ import {
   validateBarcode,
   type BarcodeType,
 } from "@/lib/barcode";
-import { erp, type Product } from "@/lib/erp";
+import { useProductBarcodes } from "@/hooks/useProducts";
+import type { Product } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
 const SOURCE_LABEL = { manufacturer: "Manufacturer", shop_label: "Shop label" };
@@ -23,49 +24,39 @@ const SOURCE_LABEL = { manufacturer: "Manufacturer", shop_label: "Shop label" };
  * a barcode can belong to only one product. (The main barcode is the field above; the till only scans, so this is the one place
  * barcodes are managed.)
  */
-export function ExtraBarcodes({
-  product,
-  onChanged,
-}: {
-  product: Product | null;
-  onChanged: () => void;
-}) {
+export function ExtraBarcodes({ product }: { product: Product | null }) {
   const [type, setType] = useState<BarcodeType>("EAN_13");
   const [source, setSource] = useState<"manufacturer" | "shop_label">(
     "manufacturer",
   );
   const [value, setValue] = useState("");
-  const [busy, setBusy] = useState(false);
+  const barcodes = useProductBarcodes(product?.id ?? ""); // each change refreshes the product lists, which carry the barcodes
+  const busy = barcodes.add.isPending || barcodes.remove.isPending;
   if (!product) return null;
   const extras = (product.barcodes ?? []).filter((b) => !b.is_primary);
   const error = validateBarcode(type, value.trim());
 
-  async function add() {
+  function add() {
     const code = value.trim();
     if (!code) return toast.error("Enter a barcode");
     if (error) return toast.error("Check the barcode", error);
-    setBusy(true);
-    const res = await erp(`/api/v1/products/${product!.id}/barcodes`, "POST", {
-      barcode: code,
-      source,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't add the barcode", res.error);
-    setValue("");
-    toast.success("Barcode added");
-    onChanged();
+    barcodes.add.mutate(
+      { barcode: code, source },
+      {
+        onSuccess: () => {
+          setValue("");
+          toast.success("Barcode added");
+        },
+        onError: (e) => toast.error("Couldn't add the barcode", e.message),
+      },
+    );
   }
 
-  async function remove(id: string) {
-    setBusy(true);
-    const res = await erp(
-      `/api/v1/products/${product!.id}/barcodes/${id}`,
-      "DELETE",
-    );
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't remove the barcode", res.error);
-    toast.success("Barcode removed");
-    onChanged();
+  function remove(id: string) {
+    barcodes.remove.mutate(id, {
+      onSuccess: () => toast.success("Barcode removed"),
+      onError: (e) => toast.error("Couldn't remove the barcode", e.message),
+    });
   }
 
   return (

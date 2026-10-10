@@ -19,13 +19,8 @@ import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveBranch } from "@/lib/branch";
-import {
-  CHANNELS,
-  CHANNEL_ORDER,
-  formatMoney,
-  qs,
-  useErpQuery,
-} from "@/lib/erp";
+import { useSalesOverview } from "@/hooks/useAnalytics";
+import { CHANNELS, CHANNEL_ORDER, formatMoney } from "@/lib/erp";
 import { Skeleton, SkeletonLines } from "@/components/ui/Skeleton";
 
 const COLORS: Record<string, string> = {
@@ -39,36 +34,6 @@ const RANGES = [
   { days: 30, label: "Last 30 days" },
   { days: 90, label: "Last 90 days" },
 ];
-
-type BranchRow = {
-  branch_id: string;
-  branch_code: string;
-  branch_name: string;
-  status: string;
-  orders: number;
-  revenue_minor: number;
-  avg_order_minor: number;
-  expenses_minor: number;
-  stock_units: number;
-  stock_value_minor: number;
-  low_stock_items: number;
-};
-type Overview = {
-  date_from: string;
-  date_to: string;
-  totals: {
-    orders: number;
-    revenue_minor: number;
-    avg_order_minor: number;
-    expenses_minor: number;
-    stock_units: number;
-    stock_value_minor: number;
-    low_stock_items: number;
-  };
-  by_channel: { channel: string; orders: number; revenue_minor: number }[];
-  by_branch: BranchRow[];
-  daily: ({ date: string } & Record<string, number | string>)[];
-};
 
 const isoDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -85,9 +50,7 @@ export default function AnalyticsPage() {
     from.setDate(to.getDate() - (days - 1));
     return { date_from: isoDay(from), date_to: isoDay(to) };
   }, [days]);
-  const data = useErpQuery<Overview>(
-    `/api/v1/analytics/sales${qs({ ...range, branch_id: branchId })}`,
-  );
+  const data = useSalesOverview(range, branchId);
   const cur = tenant?.currency ?? "INR";
   const t = data.data?.totals;
   const daily = useMemo(
@@ -138,12 +101,12 @@ export default function AnalyticsPage() {
         </div>
         {data.error && (
           <p className="mb-space-3 text-[13px] font-medium text-error">
-            {data.error}
+            {data.error.message}
           </p>
         )}
         <div className="mb-space-5 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-3">
           <StatTile
-            loading={data.loading && !data.data}
+            loading={data.isFetching && !data.data}
             label="Revenue"
             value={formatMoney(t?.revenue_minor ?? 0, cur)}
             deltaPct={null}
@@ -152,7 +115,7 @@ export default function AnalyticsPage() {
             icon={<BarChart3 size={22} />}
           />
           <StatTile
-            loading={data.loading && !data.data}
+            loading={data.isFetching && !data.data}
             label="Orders"
             value={t?.orders ?? 0}
             deltaPct={null}
@@ -160,7 +123,7 @@ export default function AnalyticsPage() {
             icon={<BarChart3 size={22} />}
           />
           <StatTile
-            loading={data.loading && !data.data}
+            loading={data.isFetching && !data.data}
             label="Average order"
             value={formatMoney(t?.avg_order_minor ?? 0, cur)}
             deltaPct={null}
@@ -169,7 +132,7 @@ export default function AnalyticsPage() {
             icon={<BarChart3 size={22} />}
           />
           <StatTile
-            loading={data.loading && !data.data}
+            loading={data.isFetching && !data.data}
             label="Expenses"
             value={formatMoney(t?.expenses_minor ?? 0, cur)}
             deltaPct={null}
@@ -178,7 +141,7 @@ export default function AnalyticsPage() {
             icon={<BarChart3 size={22} />}
           />
           <StatTile
-            loading={data.loading && !data.data}
+            loading={data.isFetching && !data.data}
             label="Stock value"
             value={formatMoney(t?.stock_value_minor ?? 0, cur)}
             deltaPct={null}
@@ -187,7 +150,7 @@ export default function AnalyticsPage() {
             icon={<BarChart3 size={22} />}
           />
           <StatTile
-            loading={data.loading && !data.data}
+            loading={data.isFetching && !data.data}
             label="Low-stock items"
             value={t?.low_stock_items ?? 0}
             deltaPct={null}
@@ -201,7 +164,7 @@ export default function AnalyticsPage() {
             Revenue by day and channel
           </h2>
           <div className="h-72 w-full">
-            {data.loading && !data.data ? (
+            {data.isFetching && !data.data ? (
               <Skeleton className="h-full w-full" />
             ) : (
               <ResponsiveContainer>
@@ -242,7 +205,7 @@ export default function AnalyticsPage() {
             <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
               By channel
             </h2>
-            {data.loading && !data.data ? (
+            {data.isFetching && !data.data ? (
               <SkeletonLines rows={3} />
             ) : (
               <ul className="divide-y divide-line">
@@ -277,7 +240,7 @@ export default function AnalyticsPage() {
             {(data.data?.by_branch ?? []).every(
               (b) => b.revenue_minor === 0,
             ) ? (
-              data.loading ? (
+              data.isFetching ? (
                 <SkeletonLines rows={2} />
               ) : (
                 <p className="text-[13.5px] text-ink-400">
@@ -326,7 +289,7 @@ export default function AnalyticsPage() {
               </tr>
             </thead>
             <tbody>
-              {data.loading && !data.data
+              {data.isFetching && !data.data
                 ? [0, 1, 2].map((i) => (
                     <tr key={i} className="border-t border-line">
                       <td colSpan={8} className="py-2">

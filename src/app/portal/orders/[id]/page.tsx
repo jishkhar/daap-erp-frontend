@@ -20,14 +20,19 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import {
-  erp,
+  useAdvanceOrder,
+  useBindSerials,
+  useCancelOrder,
+  useCapturePayment,
+  useOrder,
+  useRecordPayment,
+} from "@/hooks/useOrders";
+import {
   formatDateTime,
   formatMoney,
   humanize,
   methodLabel,
   toMinor,
-  useErpQuery,
-  type OrderDetail,
 } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
@@ -58,8 +63,15 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const order = useErpQuery<OrderDetail>(`/api/v1/orders/${id}`);
-  const [busy, setBusy] = useState(false);
+  const order = useOrder(id);
+  const advance = useAdvanceOrder(id);
+  const bindSerials = useBindSerials(id);
+  const recordPayment = useRecordPayment(id);
+  const capture = useCapturePayment();
+  const cancel = useCancelOrder(id);
+  const busy = [advance, bindSerials, recordPayment, capture, cancel].some(
+    (m) => m.isPending,
+  );
   const [cancelOpen, setCancelOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -72,20 +84,14 @@ export default function OrderDetailPage() {
   const canUpdate = hasPermission(session, "orders", "write");
   const canCancel = hasPermission(session, "orders", "delete");
 
-  async function act(
-    path: string,
-    body: unknown,
-    okMessage: string,
-    after?: () => void,
-  ) {
-    setBusy(true);
-    const res = await erp(path, "POST", body);
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't complete that", res.error);
-    toast.success(okMessage);
-    after?.();
-    order.reload();
-  }
+  /** The toasts (and what to do next) of one order action. */
+  const done = (okMessage: string, after?: () => void) => ({
+    onSuccess: () => {
+      toast.success(okMessage);
+      after?.();
+    },
+    onError: (e: Error) => toast.error("Couldn't complete that", e.message),
+  });
 
   const outstanding = o ? o.total_minor - o.paid_minor : 0;
   const canPay =
@@ -114,7 +120,9 @@ export default function OrderDetailPage() {
         <ArrowLeft size={14} /> All orders
       </Link>
       {order.error && (
-        <p className="text-[14px] font-medium text-error">{order.error}</p>
+        <p className="text-[14px] font-medium text-error">
+          {order.error.message}
+        </p>
       )}
       {!o && !order.error && <SkeletonLines rows={3} />}
       {o && (
@@ -150,10 +158,9 @@ export default function OrderDetailPage() {
                     key={s.to}
                     disabled={busy}
                     onClick={() =>
-                      act(
-                        `/api/v1/orders/${o.id}/fulfilment`,
-                        { status: s.to },
-                        `Order ${humanize(s.to).toLowerCase()}`,
+                      advance.mutate(
+                        s.to,
+                        done(`Order ${humanize(s.to).toLowerCase()}`),
                       )
                     }
                   >
@@ -265,20 +272,20 @@ export default function OrderDetailPage() {
                               busy || !(serialDraft[item.id] ?? "").trim()
                             }
                             onClick={() =>
-                              act(
-                                `/api/v1/orders/${o.id}/items/${item.id}/serials`,
+                              bindSerials.mutate(
                                 {
-                                  serial_numbers: serialDraft[item.id]
+                                  itemId: item.id,
+                                  serials: serialDraft[item.id]
                                     .split(",")
                                     .map((s) => s.trim())
                                     .filter(Boolean),
                                 },
-                                "Units bound",
-                                () =>
+                                done("Units bound", () =>
                                   setSerialDraft({
                                     ...serialDraft,
                                     [item.id]: "",
                                   }),
+                                ),
                               )
                             }
                           >
@@ -376,11 +383,7 @@ export default function OrderDetailPage() {
                               variant="secondary"
                               disabled={busy}
                               onClick={() =>
-                                act(
-                                  `/api/v1/payments/${p.id}/capture`,
-                                  {},
-                                  "Cash collected",
-                                )
+                                capture.mutate(p.id, done("Cash collected"))
                               }
                             >
                               Collect
@@ -408,14 +411,12 @@ export default function OrderDetailPage() {
                   variant="destructive"
                   disabled={busy || !reason.trim()}
                   onClick={() =>
-                    act(
-                      `/api/v1/orders/${o.id}/cancel`,
-                      { reason: reason.trim() },
-                      "Order cancelled",
-                      () => {
+                    cancel.mutate(
+                      reason.trim(),
+                      done("Order cancelled", () => {
                         setCancelOpen(false);
                         setReason("");
-                      },
+                      }),
                     )
                   }
                 >
@@ -451,13 +452,14 @@ export default function OrderDetailPage() {
                     (toMinor(amount) ?? 0) === 0
                   }
                   onClick={() =>
-                    act(
-                      `/api/v1/orders/${o.id}/payments`,
-                      { method, amount_minor: toMinor(amount) },
-                      method === "cod"
-                        ? "Cash on delivery recorded"
-                        : "Payment recorded",
-                      () => setPayOpen(false),
+                    recordPayment.mutate(
+                      { method, amount_minor: toMinor(amount) ?? 0 },
+                      done(
+                        method === "cod"
+                          ? "Cash on delivery recorded"
+                          : "Payment recorded",
+                        () => setPayOpen(false),
+                      ),
                     )
                   }
                 >

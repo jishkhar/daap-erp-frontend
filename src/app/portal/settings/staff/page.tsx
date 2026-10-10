@@ -14,7 +14,17 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
-import { erp, formatDateTime, useErpQuery } from "@/lib/erp";
+import {
+  useCreateUser,
+  useGrantRole,
+  useRemoveRole,
+  useResetPassword,
+  useRoles,
+  useSetUserStatus,
+  useTeamUsers,
+  type TeamUser as User,
+} from "@/hooks/useTeam";
+import { formatDateTime } from "@/lib/erp";
 import { roleLabel, roleTone } from "@/lib/staffRoles";
 import {
   activeBranches,
@@ -23,29 +33,16 @@ import {
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Assignment = {
-  id: string;
-  branch_id: string | null;
-  role_id: string;
-  role_code: string;
-  role_name: string;
-};
-type User = {
-  id: string;
-  email: string;
-  name: string;
-  phone: string | null;
-  status: "active" | "disabled";
-  last_login_at: string | null;
-  roles: Assignment[];
-};
-type Role = { id: string; code: string; name: string; permissions: string[] };
-
 export default function TeamAccessPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const users = useErpQuery<User[]>("/api/v1/users");
-  const roles = useErpQuery<Role[]>("/api/v1/roles");
+  const users = useTeamUsers();
+  const roles = useRoles();
+  const createPerson = useCreateUser();
+  const grantRole = useGrantRole();
+  const removeRole = useRemoveRole();
+  const resetPassword = useResetPassword();
+  const setStatus = useSetUserStatus();
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -58,7 +55,13 @@ export default function TeamAccessPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [grant, setGrant] = useState({ role_id: "", branch_id: "" });
   const [newPassword, setNewPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const busy = [
+    createPerson,
+    grantRole,
+    removeRole,
+    resetPassword,
+    setStatus,
+  ].some((m) => m.isPending);
 
   const canManage = hasPermission(session, "staff", "write");
   const branches = useMemo(() => session?.branches ?? [], [session]);
@@ -127,23 +130,23 @@ export default function TeamAccessPage() {
   if (!ready) return null;
 
   async function run(
-    call: () => Promise<{ error: string | null }>,
+    call: () => Promise<unknown>,
     message: string,
     after?: () => void,
   ) {
-    setBusy(true);
-    const res = await call();
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't complete that", res.error);
+    try {
+      await call();
+    } catch (e) {
+      return toast.error("Couldn't complete that", (e as Error).message);
+    }
     toast.success(message);
     after?.();
-    users.reload();
   }
 
   const createUser = () =>
     run(
       () =>
-        erp("/api/v1/users", "POST", {
+        createPerson.mutateAsync({
           name: form.name.trim(),
           email: form.email.trim(),
           phone: form.phone.trim() || null,
@@ -182,7 +185,7 @@ export default function TeamAccessPage() {
       />
       {(users.error || roles.error) && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {users.error ?? roles.error}
+          {(users.error ?? roles.error)?.message}
         </p>
       )}
       <Card className="p-space-2">
@@ -195,8 +198,8 @@ export default function TeamAccessPage() {
             setGrant({ role_id: "", branch_id: "" });
             setNewPassword("");
           }}
-          loading={users.loading}
-          emptyMessage={users.loading ? "Loading…" : "No people yet."}
+          loading={users.isFetching}
+          emptyMessage={users.isFetching ? "Loading…" : "No people yet."}
         />
       </Card>
 
@@ -331,10 +334,10 @@ export default function TeamAccessPage() {
                         onClick={() =>
                           run(
                             () =>
-                              erp(
-                                `/api/v1/users/${selected.id}/roles/${r.id}`,
-                                "DELETE",
-                              ),
+                              removeRole.mutateAsync({
+                                userId: selected.id,
+                                assignmentId: r.id,
+                              }),
                             "Access removed",
                           )
                         }
@@ -383,7 +386,8 @@ export default function TeamAccessPage() {
                     onClick={() =>
                       run(
                         () =>
-                          erp(`/api/v1/users/${selected.id}/roles`, "POST", {
+                          grantRole.mutateAsync({
+                            userId: selected.id,
                             role_id: grant.role_id,
                             branch_id: grant.branch_id || null,
                           }),
@@ -420,7 +424,8 @@ export default function TeamAccessPage() {
                     onClick={() =>
                       run(
                         () =>
-                          erp(`/api/v1/users/${selected.id}/password`, "POST", {
+                          resetPassword.mutateAsync({
+                            userId: selected.id,
                             new_password: newPassword,
                           }),
                         "Password reset — they have been signed out",
@@ -438,7 +443,8 @@ export default function TeamAccessPage() {
                     onClick={() =>
                       run(
                         () =>
-                          erp(`/api/v1/users/${selected.id}`, "PATCH", {
+                          setStatus.mutateAsync({
+                            userId: selected.id,
                             status: "disabled",
                           }),
                         "Person disabled — they have been signed out",
@@ -453,7 +459,8 @@ export default function TeamAccessPage() {
                     onClick={() =>
                       run(
                         () =>
-                          erp(`/api/v1/users/${selected.id}`, "PATCH", {
+                          setStatus.mutateAsync({
+                            userId: selected.id,
                             status: "active",
                           }),
                         "Person re-enabled",

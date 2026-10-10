@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import axios, { isAxiosError } from "axios";
 import { requestInitToAxiosConfig } from "@/lib/apiClient";
+import { clearQueryCache } from "@/lib/queryClient";
 import type { PortalTenant } from "@/lib/portalAuth";
 import type { Service, ServiceInfo } from "@/lib/services";
 import { notifyStorageChange, useStorageValue } from "@/lib/useStorageValue";
@@ -66,6 +67,12 @@ export function saveStaffSession(
   refreshToken: string,
   session: StaffSession,
 ) {
+  const before = getStaffSession();
+  if (
+    before &&
+    (before.id !== session.id || before.tenant.id !== session.tenant.id)
+  )
+    clearQueryCache(); // another person: nothing cached for the previous one may show
   localStorage.setItem(ACCESS_KEY, accessToken);
   localStorage.setItem(REFRESH_KEY, refreshToken);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -97,6 +104,7 @@ export function clearStaffSession() {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(SESSION_KEY);
+  clearQueryCache();
   notifyStorageChange();
 }
 

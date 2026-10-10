@@ -5,33 +5,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { SkeletonLines } from "@/components/ui/Skeleton";
-import { formatDateTime, formatMoney, useErpQuery } from "@/lib/erp";
-
-type Flag = { code: string; message: string };
-type Upload = {
-  id: string;
-  event_id: string;
-  status: "accepted" | "rejected";
-  occurred_at: string;
-  received_at: string;
-  invoice_number: string | null;
-  total_minor: number | null;
-  cashier_name: string | null;
-  order_number: string | null;
-  flags: Flag[];
-  error_code: string | null;
-  error_message: string | null;
-};
-type Health = {
-  summary: {
-    accepted: number;
-    rejected: number;
-    flagged: number;
-    last_received_at: string | null;
-  };
-  missing_invoice_numbers: string[];
-  uploads: Upload[];
-};
+import { useTerminalSyncHealth } from "@/hooks/useBranches";
+import { formatDateTime, formatMoney } from "@/lib/erp";
 
 const PAGE = 25;
 
@@ -84,9 +59,7 @@ export function SyncHealthModal({
 }) {
   const [onlyProblems, setOnlyProblems] = useState(false);
   const [limit, setLimit] = useState(PAGE);
-  const q = useErpQuery<Health>(
-    `/api/v1/terminals/${terminal.id}/uploads?problems_only=${onlyProblems}&limit=${limit}`,
-  );
+  const q = useTerminalSyncHealth(terminal.id, onlyProblems, limit);
   const h = q.data;
   const rows = h?.uploads ?? [];
   return (
@@ -102,8 +75,8 @@ export function SyncHealthModal({
         </Button>
       }
     >
-      {q.error && <p className="text-[13px] text-error">{q.error}</p>}
-      {!h && q.loading && <SkeletonLines rows={4} />}
+      {q.error && <p className="text-[13px] text-error">{q.error.message}</p>}
+      {!h && q.isFetching && <SkeletonLines rows={4} />}
       {h && (
         <>
           <div className="grid grid-cols-2 gap-space-2 sm:grid-cols-4">
@@ -152,7 +125,7 @@ export function SyncHealthModal({
               Only bills that need attention
             </label>
           </div>
-          {rows.length === 0 && !q.loading && (
+          {rows.length === 0 && !q.isFetching && (
             <p className="mt-space-2 text-[13.5px] text-ink-400">
               {onlyProblems
                 ? "Nothing needs attention."

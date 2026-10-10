@@ -4,15 +4,14 @@ import { ImageIcon, ImagePlus, Star, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { erp, erpUpload, qs, type Product } from "@/lib/erp";
+import { useProductImages } from "@/hooks/useProducts";
+import type { Product } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
 // Mirrors the server's rules (services/product_images.py); the server is what actually enforces them.
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_IMAGES = 10;
 const ACCEPT = "image/jpeg,image/png,image/webp";
-
-type Images = { images: string[] };
 
 /** The small cover picture shown in the products table. */
 export function ProductThumb({ url }: { url?: string }) {
@@ -33,21 +32,23 @@ export function ProductThumb({ url }: { url?: string }) {
   );
 }
 
-/** Manage a product's gallery: upload to the image store, remove, and choose the cover (the first image). */
+/** Manage a product's gallery: upload to the image store, remove, and choose the cover (the first image). Each change refreshes the
+ * product lists (hooks/useProducts). */
 export function ProductImagesModal({
   product,
   onClose,
-  onChanged,
 }: {
   product: Product | null;
   onClose: () => void;
-  onChanged: () => void;
 }) {
   // `edited` holds the list after this dialog has changed anything; until then the product's own list is shown.
   const [edited, setEdited] = useState<{ id: string; urls: string[] } | null>(
     null,
   );
-  const [busy, setBusy] = useState(false);
+  const gallery = useProductImages(product?.id ?? "");
+  const [uploading, setUploading] = useState(false);
+  const busy =
+    uploading || gallery.remove.isPending || gallery.reorder.isPending;
   const input = useRef<HTMLInputElement>(null);
 
   const images = product
@@ -55,16 +56,14 @@ export function ProductImagesModal({
       ? edited.urls
       : (product.images ?? [])
     : [];
-  const path = product ? `/api/v1/products/${product.id}/images` : "";
-  const apply = (urls: string[]) => {
+  const apply = ({ images: urls }: { images: string[] }) => {
     if (product) setEdited({ id: product.id, urls });
-    onChanged();
   };
 
   async function upload(files: FileList | null) {
     if (input.current) input.current.value = "";
     if (!product || !files?.length) return;
-    setBusy(true);
+    setUploading(true);
     let current = images;
     for (const file of Array.from(files)) {
       if (current.length >= MAX_IMAGES) {
@@ -79,38 +78,29 @@ export function ProductImagesModal({
         toast.error(`${file.name}: images can be at most 5 MB`);
         continue;
       }
-      const res = await erpUpload<Images>(path, file);
-      if (res.error || !res.data) {
-        toast.error(`Couldn't upload ${file.name}`, res.error ?? undefined);
-        continue;
+      try {
+        const result = await gallery.upload.mutateAsync(file); // one at a time, in order
+        current = result.images;
+        apply(result);
+      } catch (e) {
+        toast.error(`Couldn't upload ${file.name}`, (e as Error).message);
       }
-      current = res.data.images;
-      apply(current);
     }
-    setBusy(false);
+    setUploading(false);
   }
 
-  async function remove(url: string) {
-    setBusy(true);
-    const res = await erp<Images>(`${path}${qs({ url })}`, "DELETE");
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error("Couldn't remove the image", res.error ?? undefined);
-    apply(res.data.images);
-  }
-
-  async function makeCover(url: string) {
-    setBusy(true);
-    const res = await erp<Images>(`${path}/order`, "PUT", {
-      urls: [url, ...images.filter((u) => u !== url)],
+  function remove(url: string) {
+    gallery.remove.mutate(url, {
+      onSuccess: apply,
+      onError: (e) => toast.error("Couldn't remove the image", e.message),
     });
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error(
-        "Couldn't change the cover image",
-        res.error ?? undefined,
-      );
-    apply(res.data.images);
+  }
+
+  function makeCover(url: string) {
+    gallery.reorder.mutate([url, ...images.filter((u) => u !== url)], {
+      onSuccess: apply,
+      onError: (e) => toast.error("Couldn't change the cover image", e.message),
+    });
   }
 
   return (

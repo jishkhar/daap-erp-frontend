@@ -6,33 +6,11 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-import {
-  erp,
-  formatDateTime,
-  formatMoney,
-  toMinor,
-  useErpQuery,
-  type Supplier,
-} from "@/lib/erp";
+import { formatDateTime, formatMoney, toMinor } from "@/lib/erp";
+import { usePaySupplier, useSupplierStatement } from "@/hooks/useProcurement";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
-
-type Statement = {
-  supplier: Supplier;
-  balance: {
-    billed: number;
-    returned: number;
-    paid: number;
-    outstanding_minor: number;
-  };
-  entries: {
-    kind: "GRN" | "RETURN" | "PAYMENT";
-    number: string;
-    at: string;
-    amount_minor: number;
-  }[];
-};
 
 /** One supplier's account: what we bought, returned and paid, the balance, and a way to pay. */
 export function SupplierPanel({
@@ -45,33 +23,30 @@ export function SupplierPanel({
   onClose: () => void;
 }) {
   const session = useStaffSession();
-  const statement = useErpQuery<Statement>(
-    supplierId ? `/api/v1/suppliers/${supplierId}/statement` : null,
-  );
+  const statement = useSupplierStatement(supplierId ?? "");
+  const paySupplier = usePaySupplier(supplierId ?? "");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("BANK_TRANSFER");
   const [reference, setReference] = useState("");
-  const [busy, setBusy] = useState(false);
+  const busy = paySupplier.isPending;
   const canPay = hasGrant(session, "procurement:pay");
   const d = statement.data;
 
-  async function pay() {
+  function pay() {
     const minor = toMinor(amount);
     if (minor === null || minor === 0)
       return toast.error("Enter a valid amount");
-    setBusy(true);
-    const res = await erp(
-      `/api/v1/suppliers/${supplierId}/payments`,
-      "POST",
+    paySupplier.mutate(
       { amount_minor: minor, method, reference: reference.trim() || null },
-      { "Idempotency-Key": crypto.randomUUID() },
+      {
+        onSuccess: () => {
+          toast.success("Payment recorded");
+          setAmount("");
+          setReference("");
+        },
+        onError: (e) => toast.error("Couldn't record the payment", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't record the payment", res.error);
-    toast.success("Payment recorded");
-    setAmount("");
-    setReference("");
-    statement.reload();
   }
 
   return (
@@ -87,7 +62,9 @@ export function SupplierPanel({
       }
     >
       {statement.error && (
-        <p className="text-[13px] font-medium text-error">{statement.error}</p>
+        <p className="text-[13px] font-medium text-error">
+          {statement.error.message}
+        </p>
       )}
       {!d && !statement.error && <SkeletonLines rows={5} />}
       {d && (

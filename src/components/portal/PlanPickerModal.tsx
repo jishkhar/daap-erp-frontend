@@ -2,14 +2,12 @@
 
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
-import type {
-  BillingPlan,
-  BillingView,
-} from "@/app/portal/settings/billing/_components/billing-types";
+import type { BillingPlan } from "@/app/portal/settings/billing/_components/billing-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { erp, formatMoney, useErpQuery } from "@/lib/erp";
+import { useBilling, useChoosePlan, useServicePlans } from "@/hooks/useBilling";
+import { formatMoney } from "@/lib/erp";
 import {
   buyLabel,
   SERVICE_BLURB,
@@ -57,49 +55,56 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
   const [picked, setPicked] = useState<Service | null>(null);
   const chosen = service ?? picked;
 
-  const view = useErpQuery<BillingView>("/api/v1/billing");
-  const plansQ = useErpQuery<BillingPlan[]>(
-    chosen ? `/api/v1/billing/plans?service=${chosen}` : null,
-  );
+  const view = useBilling();
+  const plansQ = useServicePlans(chosen);
+  const choosePlan = useChoosePlan();
   const [cycle, setCycle] = useState<"monthly" | "annual">("monthly");
   const [busy, setBusy] = useState<string | null>(null);
   const plans = plansQ.data ?? [];
   const configured = view.data?.billing_configured ?? true;
   const current = chosen ? view.data?.services[chosen] : undefined;
-  const billed = !!current?.subscription?.billed &&
+  const billed =
+    !!current?.subscription?.billed &&
     (current.subscription.status === "active" ||
       current.subscription.status === "past_due");
 
-  async function choose(plan: BillingPlan) {
+  function choose(plan: BillingPlan) {
     if (!chosen) return;
     setBusy(plan.code);
-    const res = billed
-      ? await erp(`/api/v1/billing/${chosen}/change-plan`, "POST", {
-          plan_code: plan.code,
-        })
-      : await erp<{ short_url: string }>(
-          `/api/v1/billing/${chosen}/subscribe`,
-          "POST",
-          { plan_code: plan.code, billing_cycle: cycle },
-        );
-    setBusy(null);
-    if (res.error || !res.data)
-      return toast.error(
-        billed ? "Couldn't change the plan" : "Couldn't start checkout",
-        res.error ?? undefined,
-      );
-    if (billed) {
-      toast.success(
-        `Your ${SERVICE_LABEL[chosen]} plan will change to ${plan.name} at the end of the current period.`,
-      );
-    } else {
-      window.open((res.data as { short_url: string }).short_url, "_blank", "noopener");
-      toast.success(
-        "Checkout is ready — complete the payment in the new tab. This page updates by itself once it goes through.",
-      );
-    }
-    onDone?.();
-    onClose();
+    choosePlan.mutate(
+      {
+        service: chosen,
+        plan_code: plan.code,
+        change: billed,
+        billing_cycle: cycle,
+      },
+      {
+        onSuccess: (data) => {
+          if (billed) {
+            toast.success(
+              `Your ${SERVICE_LABEL[chosen]} plan will change to ${plan.name} at the end of the current period.`,
+            );
+          } else {
+            window.open(
+              (data as { short_url: string }).short_url,
+              "_blank",
+              "noopener",
+            );
+            toast.success(
+              "Checkout is ready — complete the payment in the new tab. This page updates by itself once it goes through.",
+            );
+          }
+          onDone?.();
+          onClose();
+        },
+        onError: (e) =>
+          toast.error(
+            billed ? "Couldn't change the plan" : "Couldn't start checkout",
+            e.message,
+          ),
+        onSettled: () => setBusy(null),
+      },
+    );
   }
 
   return (
@@ -108,7 +113,9 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
       onClose={onClose}
       width="lg"
       title={
-        chosen ? `${SERVICE_LABEL[chosen]} plans` : "What would you like to buy?"
+        chosen
+          ? `${SERVICE_LABEL[chosen]} plans`
+          : "What would you like to buy?"
       }
       description={
         chosen
@@ -156,7 +163,9 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                 </span>
                 {info && (
                   <Badge tone={STATE_TONE[info.state]} className="mt-space-1">
-                    {info.plan && info.state !== "none" && info.state !== "ended"
+                    {info.plan &&
+                    info.state !== "none" &&
+                    info.state !== "ended"
                       ? `${info.plan.name} · ${STATE_LABEL[info.state]}`
                       : STATE_LABEL[info.state]}
                   </Badge>
@@ -192,7 +201,9 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                 "annual"
                   ? p.price_yearly_minor
                   : p.price_monthly_minor;
-              const shownCycle = billed ? current?.subscription?.billing_cycle : cycle;
+              const shownCycle = billed
+                ? current?.subscription?.billing_cycle
+                : cycle;
               const discount = Number(p.annual_discount_pct);
               const isCurrent = current?.plan?.id === p.id;
               const scheduled = current?.pending_plan?.id === p.id;
@@ -234,14 +245,20 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                     )}
                   </div>
                   {p.description && (
-                    <p className="text-[12.5px] text-ink-600">{p.description}</p>
+                    <p className="text-[12.5px] text-ink-600">
+                      {p.description}
+                    </p>
                   )}
                   <p className="mt-space-2">
                     <span className="text-[22px] font-bold text-ink-900">
-                      {formatMoney(price, p.currency.trim()).replace(/\.00$/, "")}
+                      {formatMoney(price, p.currency.trim()).replace(
+                        /\.00$/,
+                        "",
+                      )}
                     </span>{" "}
                     <span className="text-[13px] text-ink-600">
-                      {p.currency.trim()}/{shownCycle === "annual" ? "year" : "month"}
+                      {p.currency.trim()}/
+                      {shownCycle === "annual" ? "year" : "month"}
                     </span>
                   </p>
                   {shownCycle === "annual" && discount > 0 && !billed && (
@@ -268,7 +285,7 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                 No {SERVICE_LABEL[chosen]} plans are available right now.
               </p>
             )}
-            {plansQ.loading && !plansQ.data && (
+            {plansQ.isFetching && !plansQ.data && (
               <p className="text-ink-400">Loading…</p>
             )}
           </div>

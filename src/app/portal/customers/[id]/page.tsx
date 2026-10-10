@@ -12,32 +12,20 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
-import {
-  formatDateTime,
-  formatMoney,
-  humanize,
-  useErpQuery,
-  type Customer,
-  type Interaction,
-  type Order,
-  type StoreCredit,
-} from "@/lib/erp";
+import { useCustomer, useStoreCredit } from "@/hooks/useCustomers";
+import { useOrderList } from "@/hooks/useOrders";
+import { formatDateTime, formatMoney, humanize } from "@/lib/erp";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { tenant, ready } = usePortalGuard();
-  const customer = useErpQuery<Customer & { interactions: Interaction[] }>(
-    `/api/v1/customers/${id}`,
-  );
-  const orders = useErpQuery<Order[]>(
-    `/api/v1/orders?customer_id=${id}&limit=100`,
-  );
-  const credit = useErpQuery<StoreCredit>(
-    `/api/v1/customers/${id}/store-credit`,
-  );
+  const customer = useCustomer(id);
+  const orders = useOrderList({ customer_id: id }); // the customer's orders, newest first, paged on the server
+  const credit = useStoreCredit(id);
   if (!ready) return null;
   const c = customer.data;
 
@@ -50,7 +38,9 @@ export default function CustomerDetailPage() {
         <ArrowLeft size={14} /> All customers
       </Link>
       {customer.error && (
-        <p className="text-[14px] font-medium text-error">{customer.error}</p>
+        <p className="text-[14px] font-medium text-error">
+          {customer.error.message}
+        </p>
       )}
       {!c && !customer.error && <SkeletonLines rows={3} />}
       {c && (
@@ -115,13 +105,14 @@ export default function CustomerDetailPage() {
                     cell: ({ row }) => formatDateTime(row.original.placed_at),
                   },
                 ]}
-                data={orders.data ?? []}
+                data={orders.rows}
                 getRowId={(o) => String(o.id)}
                 onRowClick={(o) => router.push(`/portal/orders/${o.id}`)}
-                pageSize={10}
-                loading={orders.loading}
-                emptyMessage={orders.loading ? "Loading…" : "No orders yet."}
+                paginate={false}
+                loading={orders.isFetching}
+                emptyMessage={orders.isLoading ? "Loading…" : "No orders yet."}
               />
+              <CursorPager {...orders.pager} />
             </Card>
             <div className="space-y-space-4">
               {credit.data &&

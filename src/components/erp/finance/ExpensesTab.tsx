@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -13,30 +14,29 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { useActiveBranch } from "@/lib/branch";
 import {
+  useCreateExpense,
+  useExpenseAction,
+  useExpenseCategories,
+  useExpenseList,
+} from "@/hooks/useFinance";
+import {
   EXPENSE_STATUS_TONE,
-  erp,
   formatMoney,
   humanize,
-  qs,
   toMinor,
-  useErpQuery,
   type Expense,
 } from "@/lib/erp";
 import { activeBranches, hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Category = { id: string; name: string; account_code: string };
-
 export function ExpensesTab({ currency }: { currency: string }) {
   const session = useStaffSession();
   const [status, setStatus] = useState("");
   const { branchId: activeBranch } = useActiveBranch();
-  const expenses = useErpQuery<Expense[]>(
-    `/api/v1/finance/expenses${qs({ status, branch_id: activeBranch })}`,
-  );
-  const categories = useErpQuery<Category[]>(
-    "/api/v1/finance/expense-categories",
-  );
+  const expenses = useExpenseList({ status, branch_id: activeBranch }); // newest first, paged on the server
+  const categories = useExpenseCategories();
+  const createExpense = useCreateExpense();
+  const expenseAction = useExpenseAction();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     branch_id: "",
@@ -46,7 +46,7 @@ export function ExpensesTab({ currency }: { currency: string }) {
     vendor: "",
     date: "",
   });
-  const [busy, setBusy] = useState(false);
+  const busy = createExpense.isPending;
   const allBranches = useMemo(() => session?.branches ?? [], [session]);
   const branches = useMemo(() => activeBranches(session), [session]);
   const branchCode = (id: string) =>
@@ -55,20 +55,19 @@ export function ExpensesTab({ currency }: { currency: string }) {
     canApprove = hasGrant(session, "expenses:approve"),
     canPay = hasGrant(session, "expenses:pay");
 
-  async function act(
+  function act(
     id: string,
-    action: string,
+    action: "approve" | "reject" | "pay",
     body?: unknown,
     message?: string,
   ) {
-    const res = await erp(
-      `/api/v1/finance/expenses/${id}/${action}`,
-      "POST",
-      body,
+    expenseAction.mutate(
+      { id, action, body },
+      {
+        onSuccess: () => toast.success(message ?? "Done"),
+        onError: (e) => toast.error("Couldn't update the expense", e.message),
+      },
     );
-    if (res.error) return toast.error("Couldn't update the expense", res.error);
-    toast.success(message ?? "Done");
-    expenses.reload();
   }
 
   const columns = useMemo<ColumnDef<Expense, unknown>[]>(
@@ -184,31 +183,34 @@ export function ExpensesTab({ currency }: { currency: string }) {
     [branches, currency, canApprove, canPay],
   );
 
-  async function submit() {
+  function submit() {
     const amount = toMinor(form.amount);
     if (!amount) return toast.error("Enter a valid amount");
-    setBusy(true);
-    const res = await erp("/api/v1/finance/expenses", "POST", {
-      branch_id: form.branch_id || branches[0]?.id,
-      category_id: form.category_id,
-      amount_minor: amount,
-      description: form.description.trim(),
-      vendor: form.vendor.trim() || null,
-      ...(form.date ? { expense_date: form.date } : {}),
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't submit the expense", res.error);
-    toast.success("Expense submitted for approval");
-    setOpen(false);
-    setForm({
-      branch_id: "",
-      category_id: "",
-      amount: "",
-      description: "",
-      vendor: "",
-      date: "",
-    });
-    expenses.reload();
+    createExpense.mutate(
+      {
+        branch_id: form.branch_id || branches[0]?.id,
+        category_id: form.category_id,
+        amount_minor: amount,
+        description: form.description.trim(),
+        vendor: form.vendor.trim() || null,
+        ...(form.date ? { expense_date: form.date } : {}),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Expense submitted for approval");
+          setOpen(false);
+          setForm({
+            branch_id: "",
+            category_id: "",
+            amount: "",
+            description: "",
+            vendor: "",
+            date: "",
+          });
+        },
+        onError: (e) => toast.error("Couldn't submit the expense", e.message),
+      },
+    );
   }
 
   return (
@@ -235,17 +237,19 @@ export function ExpensesTab({ currency }: { currency: string }) {
       </Card>
       {expenses.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {expenses.error}
+          {expenses.error.message}
         </p>
       )}
       <Card className="p-space-2">
         <DataTable
           columns={columns}
-          data={expenses.data ?? []}
+          data={expenses.rows}
           getRowId={(e) => String(e.id)}
-          loading={expenses.loading}
-          emptyMessage={expenses.loading ? "Loading…" : "No expenses."}
+          paginate={false}
+          loading={expenses.isFetching}
+          emptyMessage={expenses.isLoading ? "Loading…" : "No expenses."}
         />
+        <CursorPager {...expenses.pager} />
       </Card>
       <Modal
         open={open}

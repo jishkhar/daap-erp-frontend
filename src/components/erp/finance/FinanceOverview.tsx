@@ -16,53 +16,41 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { useActiveBranch } from "@/lib/branch";
-import { erp, formatMoney, qs, useErpQuery } from "@/lib/erp";
+import { useFinanceSummary, useSetPeriodLock } from "@/hooks/useFinance";
+import { formatMoney } from "@/lib/erp";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { Help } from "@/components/erp/finance/Help";
 
-type Summary = {
-  month: string;
-  net_revenue_minor: number;
-  gross_profit_minor: number;
-  gross_margin_pct: number | null;
-  net_profit_minor: number;
-  cash_and_bank_minor: number;
-  gateway_clearing_minor: number;
-  receivable_minor: number;
-  payable_minor: number;
-  inventory_minor: number;
-  gst_payable_minor: number;
-};
-
 export function FinanceOverview({ currency }: { currency: string }) {
   const { branchId } = useActiveBranch();
-  const s = useErpQuery<Summary>(
-    `/api/v1/finance/reports/summary${qs({ branch_id: branchId })}`,
-  );
+  const s = useFinanceSummary(branchId);
+  const periodLock = useSetPeriodLock();
   const session = useStaffSession();
   const [lock, setLock] = useState("");
   const d = s.data;
   const m = (v: number) => formatMoney(v, currency);
 
-  async function setPeriodLock(value: string | null) {
-    const res = await erp("/api/v1/finance/period-lock", "PUT", {
-      closed_through: value,
+  function setPeriodLock(value: string | null) {
+    periodLock.mutate(value, {
+      onSuccess: () => {
+        toast.success(
+          value ? `Books closed through ${value}` : "Books reopened",
+        );
+        setLock("");
+      },
+      onError: (e) => toast.error("Couldn't change the period lock", e.message),
     });
-    if (res.error)
-      return toast.error("Couldn't change the period lock", res.error);
-    toast.success(value ? `Books closed through ${value}` : "Books reopened");
-    setLock("");
   }
 
   return (
     <>
       {s.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {s.error}
+          {s.error.message}
         </p>
       )}
-      {!d && s.loading && (
+      {!d && s.isLoading && (
         <div className="mb-space-5 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
           {[
             "Net revenue",

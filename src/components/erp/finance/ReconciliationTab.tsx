@@ -6,31 +6,15 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
 import {
-  erp,
-  formatDateTime,
-  formatMoney,
-  toMinor,
-  useErpQuery,
-} from "@/lib/erp";
+  useImportSettlements,
+  useSettlements,
+  useUnreconciledPayments,
+} from "@/hooks/useFinance";
+import { formatDateTime, formatMoney, toMinor } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { Help } from "@/components/erp/finance/Help";
 
-type Unreconciled = {
-  id: string;
-  order_id: string;
-  provider_txn_id: string | null;
-  amount_minor: number;
-  captured_at: string;
-};
-type Settlement = {
-  id: string;
-  external_ref: string;
-  amount_minor: number;
-  fee_minor: number;
-  settled_on: string;
-  status: "MATCHED" | "UNMATCHED" | "AMOUNT_MISMATCH";
-};
 const TONE = {
   MATCHED: "success",
   UNMATCHED: "warning",
@@ -39,15 +23,14 @@ const TONE = {
 
 /** Match what the payment gateway paid out against the payments we recorded. Mismatches are never booked automatically. */
 export function ReconciliationTab({ currency }: { currency: string }) {
-  const open = useErpQuery<Unreconciled[]>(
-    "/api/v1/finance/unreconciled-payments",
-  );
-  const settlements = useErpQuery<Settlement[]>("/api/v1/finance/settlements");
+  const open = useUnreconciledPayments();
+  const settlements = useSettlements();
+  const importSettlements = useImportSettlements();
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
+  const busy = importSettlements.isPending;
   const m = (v: number) => formatMoney(v, currency);
 
-  async function importLines() {
+  function importLines() {
     const lines = text
       .split("\n")
       .map((l) => l.trim())
@@ -63,25 +46,15 @@ export function ReconciliationTab({ currency }: { currency: string }) {
       return toast.error(
         "Each line needs: reference, amount, fee, date (YYYY-MM-DD)",
       );
-    setBusy(true);
-    const res = await erp<{
-      matched: number;
-      unmatched: number;
-      amount_mismatch: number;
-      duplicate: number;
-    }>("/api/v1/finance/settlements/import", "POST", {
-      provider: "razorpay",
-      lines: parsed,
+    importSettlements.mutate(parsed, {
+      onSuccess: (r) => {
+        toast.success(
+          `${r.matched} matched, ${r.amount_mismatch} amount mismatch, ${r.unmatched} unknown, ${r.duplicate} already imported`,
+        );
+        setText("");
+      },
+      onError: (e) => toast.error("Couldn't import", e.message),
     });
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error("Couldn't import", res.error ?? undefined);
-    toast.success(
-      `${res.data.matched} matched, ${res.data.amount_mismatch} amount mismatch, ${res.data.unmatched} unknown, ${res.data.duplicate} already imported`,
-    );
-    setText("");
-    open.reload();
-    settlements.reload();
   }
 
   return (
@@ -119,9 +92,11 @@ export function ReconciliationTab({ currency }: { currency: string }) {
           Paid by customers, not yet settled
           <Help term="Paid by customers, not yet settled" />
         </h2>
-        {open.error && <p className="text-[13px] text-error">{open.error}</p>}
+        {open.error && (
+          <p className="text-[13px] text-error">{open.error.message}</p>
+        )}
         {(open.data ?? []).length === 0 &&
-          (open.loading ? (
+          (open.isLoading ? (
             <SkeletonLines rows={2} />
           ) : (
             <p className="text-[13px] text-ink-400">

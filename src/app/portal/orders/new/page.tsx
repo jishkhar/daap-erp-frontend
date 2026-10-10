@@ -8,6 +8,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
+import { CustomerSelect } from "@/components/erp/CustomerSelect";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Button } from "@/components/ui/Button";
@@ -17,23 +18,22 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { useActiveBranch } from "@/lib/branch";
+import { useStockFor } from "@/hooks/useInventory";
+import { useCreateOrder } from "@/hooks/useOrders";
+import { useProductSearch, type ProductWithTax } from "@/hooks/useProducts";
+import { useTaxBands, type TaxBands } from "@/hooks/useTaxes";
 import {
   CHANNELS,
   CHANNEL_ORDER,
-  erp,
   formatMoney,
-  qs,
-  useErpQuery,
   type Channel,
   type Customer,
-  type OrderDetail,
   type Product,
 } from "@/lib/erp";
 import { toast } from "@/lib/toast";
+import { useDebounced } from "@/lib/useDebounced";
 
 type Line = { product: Product; quantity: number; serials: string };
-type StockRow = { variant_id: string; available_qty: number };
-type ProductWithTax = Product & { tax_rate_bps?: number | null };
 
 const COUNTER_METHODS = [
   ["cash", "Cash"],
@@ -43,8 +43,7 @@ const COUNTER_METHODS = [
 
 /** Same rules as the server, per line, round-half-up. Exclusive prices: tax = amount x rate, added on top. Inclusive prices: the amount is what
  * the customer pays and tax is carved out of it (amount - amount x 100 / (100 + rate)). The server recomputes everything; this is a preview. */
-type Bands = Record<string, { up_to_minor: number | null; rate_bps: number }[]>;
-const lineTax = (l: Line, inclusive: boolean, bands: Bands) => {
+const lineTax = (l: Line, inclusive: boolean, bands: TaxBands) => {
   const code = (l.product as ProductWithTax).tax_code ?? "";
   const band = [...(bands[code] ?? [])]
     .sort((a, b) => (a.up_to_minor ?? Infinity) - (b.up_to_minor ?? Infinity))
@@ -74,7 +73,8 @@ function NewOrder() {
   const [branch, setBranch] = useState("");
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
-  const [customerId, setCustomerId] = useState("");
+  const [customer, setCustomer] = useState<Customer | null>(null); // an existing customer, searched on the server
+  const customerId = customer ? String(customer.id) : "";
   const [walkName, setWalkName] = useState("");
   const [walkPhone, setWalkPhone] = useState("");
   const [orderType, setOrderType] = useState("shipping");
@@ -83,20 +83,28 @@ function NewOrder() {
   const [method, setMethod] = useState("cash");
   const [remoteMethod, setRemoteMethod] = useState("cod");
   const [notes, setNotes] = useState("");
-  const [busy, setBusy] = useState(false);
+  const createOrder = useCreateOrder();
+  const busy = createOrder.isPending;
 
   const branchId = branch || activeBranch || branches[0]?.id || "";
   const isPos = channel === "pos";
   const cur = tenant?.currency ?? "INR";
 
-  const products = useErpQuery<ProductWithTax[]>(
-    `/api/v1/products${qs({ q: search, lifecycle_status: "active", limit: 12 })}`,
-  );
-  const customers = useErpQuery<Customer[]>("/api/v1/customers?limit=200");
-  const stock = useErpQuery<StockRow[]>(
+  const q = useDebounced(search.trim());
+  const products = useProductSearch({
+    q,
+    lifecycle_status: "active",
+    limit: 12,
+  });
+  // stock of just the products on screen: the search results and the order's lines
+  const stock = useStockFor(
     branchId
-      ? `/api/v1/inventory${qs({ branch_id: branchId, limit: 1000 })}`
-      : null,
+      ? [
+          ...(products.data ?? []).map((p) => p.id),
+          ...lines.map((l) => l.product.id),
+        ]
+      : [],
+    branchId,
   );
   const available = useMemo(
     () =>
@@ -105,8 +113,11 @@ function NewOrder() {
   );
 
   const inclusive = tenant?.pricesIncludeTax ?? false;
-  const bandsQuery = useErpQuery<Bands>("/api/v1/tax-rule-bands");
-  const bands = useMemo<Bands>(() => bandsQuery.data ?? {}, [bandsQuery.data]);
+  const bandsQuery = useTaxBands();
+  const bands = useMemo<TaxBands>(
+    () => bandsQuery.data ?? {},
+    [bandsQuery.data],
+  );
   const totals = useMemo(() => {
     const amount = lines.reduce(
       (s, l) => s + l.product.price_minor * l.quantity,
@@ -161,7 +172,7 @@ function NewOrder() {
     return null;
   }
 
-  async function place() {
+  function place() {
     const err = problem();
     if (err) return toast.error("Can't place the order yet", err);
     const body: Record<string, unknown> = {
@@ -194,13 +205,13 @@ function NewOrder() {
       body.payment_method = remoteMethod;
       if (orderType !== "pickup") body.delivery_address = { ...address };
     }
-    setBusy(true);
-    const res = await erp<OrderDetail>("/api/v1/orders", "POST", body);
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error("Couldn't place the order", res.error ?? undefined);
-    toast.success(`Order ${res.data.order_number} placed`);
-    router.push(`/portal/orders/${res.data.id}`);
+    createOrder.mutate(body, {
+      onSuccess: (order) => {
+        toast.success(`Order ${order.order_number} placed`);
+        router.push(`/portal/orders/${order.id}`);
+      },
+      onError: (e) => toast.error("Couldn't place the order", e.message),
+    });
   }
 
   if (!ready) return null;
@@ -263,7 +274,7 @@ function NewOrder() {
               className="mb-space-3"
             />
             {products.error && (
-              <p className="text-[13px] text-error">{products.error}</p>
+              <p className="text-[13px] text-error">{products.error.message}</p>
             )}
             <div className="grid gap-space-2 sm:grid-cols-2">
               {(products.data ?? []).map((pr) => {
@@ -304,21 +315,16 @@ function NewOrder() {
             </h2>
             <div className="grid gap-x-space-4 sm:grid-cols-3">
               <Field label="Existing customer" htmlFor="o_cust">
-                <Select
+                <CustomerSelect
                   id="o_cust"
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                >
-                  <option value="">
-                    {isPos ? "Walk-in" : "New customer…"}
-                  </option>
-                  {(customers.data ?? []).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                      {c.phone ? ` · ${c.phone}` : ""}
-                    </option>
-                  ))}
-                </Select>
+                  value={customer}
+                  onChange={setCustomer}
+                  emptyLabel={
+                    isPos
+                      ? "Walk-in — or search a customer"
+                      : "New customer — or search one"
+                  }
+                />
               </Field>
               <Field label="Name" htmlFor="o_name">
                 <Input

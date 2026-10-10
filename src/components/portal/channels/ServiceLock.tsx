@@ -17,10 +17,16 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 
+const POLL_MS = 8000;
+const WAIT_MS = 10 * 60 * 1000;
+
 const WHY: Record<ServiceState, (label: string) => string> = {
-  none: (l) => `${l} isn't active on your account yet. Buy a plan to start using it.`,
-  ended: (l) => `Your ${l} plan has ended. Renew to use ${l} again — your data is kept.`,
-  pending: (l) => `Your ${l} payment hasn't gone through yet. Finish it to switch ${l} on.`,
+  none: (l) =>
+    `${l} isn't active on your account yet. Buy a plan to start using it.`,
+  ended: (l) =>
+    `Your ${l} plan has ended. Renew to use ${l} again — your data is kept.`,
+  pending: (l) =>
+    `Your ${l} payment hasn't gone through yet. Finish it to switch ${l} on.`,
   trialing: (l) => `Your ${l} trial has ended. Choose a plan to keep using it.`,
   active: (l) => `${l} is not available right now.`,
   past_due: (l) => `${l} is not available right now.`,
@@ -43,19 +49,28 @@ export function ServiceLock({
   const info = session?.services?.[service];
   const locked = !!info?.locked;
   const [picking, setPicking] = useState(false);
+  // Set when a checkout was opened from here: only then is there anything to wait for.
+  const [waitingSince, setWaitingSince] = useState<number | null>(null);
   const canBuy = hasPermission(session, "billing", "write");
 
-  // After paying in the Razorpay tab the service comes back by itself: keep asking until the server says it works.
+  // After paying in the Razorpay tab the service comes back by itself. Ask the server again only while a checkout started here is
+  // open, for up to WAIT_MS, and when the tab regains focus: a page left open on a service nobody is buying makes no requests.
   useEffect(() => {
-    if (!locked) return;
-    const poll = () => void refreshStaffSession();
-    const timer = setInterval(poll, 8000);
+    if (!locked || waitingSince === null) return;
+    const poll = () => {
+      if (Date.now() - waitingSince > WAIT_MS) {
+        setWaitingSince(null);
+        return;
+      }
+      void refreshStaffSession();
+    };
+    const timer = setInterval(poll, POLL_MS);
     window.addEventListener("focus", poll);
     return () => {
       clearInterval(timer);
       window.removeEventListener("focus", poll);
     };
-  }, [locked]);
+  }, [locked, waitingSince]);
 
   if (!locked) return <>{children}</>;
   const label = SERVICE_LABEL[service];
@@ -87,7 +102,8 @@ export function ServiceLock({
             </Button>
           ) : (
             <p className="mt-space-3 text-[13px] text-ink-600">
-              Ask your account administrator to {state === "ended" ? "renew" : "buy"} it.
+              Ask your account administrator to{" "}
+              {state === "ended" ? "renew" : "buy"} it.
             </p>
           )}
         </Card>
@@ -96,7 +112,10 @@ export function ServiceLock({
         open={picking}
         service={service}
         onClose={() => setPicking(false)}
-        onDone={() => void refreshStaffSession()}
+        onDone={() => {
+          setWaitingSince(Date.now());
+          void refreshStaffSession();
+        }}
       />
     </div>
   );

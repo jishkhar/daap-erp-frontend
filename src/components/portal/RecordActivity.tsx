@@ -4,19 +4,9 @@ import { History } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { ChangeList } from "@/components/portal/ChangeList";
 import { actionLabel } from "@/lib/audit";
-import { formatDateTime, humanize, qs, useErpQuery } from "@/lib/erp";
+import { useRecordActivityLog } from "@/hooks/useActivity";
+import { formatDateTime, humanize } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
-
-type Entry = {
-  id: string;
-  action: string;
-  entity_type: string;
-  actor_type: string;
-  actor_label: string | null;
-  before: Record<string, unknown> | null;
-  after: Record<string, unknown> | null;
-  created_at: string;
-};
 
 /** The audit trail of one record (entity_type + entity_id) or of one branch (branch_id), newest first. Hidden without the audit permission. */
 export function RecordActivity({
@@ -32,10 +22,9 @@ export function RecordActivity({
 }) {
   const session = useStaffSession();
   const allowed = hasPermission(session, "audit", "view");
-  const log = useErpQuery<Entry[]>(
-    allowed
-      ? `/api/v1/audit-logs${qs({ entity_type: entityType, entity_id: entityId, branch_id: branchId, limit: 50 })}`
-      : null,
+  const log = useRecordActivityLog(
+    { entity_type: entityType, entity_id: entityId, branch_id: branchId },
+    allowed,
   );
   if (!allowed || log.error) return null;
   const rows = log.data ?? [];
@@ -47,7 +36,7 @@ export function RecordActivity({
       </h2>
       {rows.length === 0 ? (
         <p className="text-[13.5px] text-ink-400">
-          {log.loading ? "Loading…" : "Nothing recorded yet."}
+          {log.isFetching ? "Loading…" : "Nothing recorded yet."}
         </p>
       ) : (
         <ul className="divide-y divide-line">

@@ -7,17 +7,8 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useErpQuery } from "@/lib/erp";
+import { useRoles, type Role } from "@/hooks/useTeam";
 import { roleDescription } from "@/lib/staffRoles";
-
-type Role = {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  is_system: boolean;
-  permissions: string[];
-};
 
 // Friendly module names for the matrix; anything not listed is shown as its raw module key.
 const MODULE_LABEL: Record<string, string> = {
@@ -43,7 +34,7 @@ const MODULE_LABEL: Record<string, string> = {
 
 export default function RolesPage() {
   const { tenant, ready } = usePortalGuard();
-  const roles = useErpQuery<Role[]>("/api/v1/roles");
+  const roles = useRoles();
 
   const modules = useMemo(() => {
     const set = new Set<string>();
@@ -70,7 +61,7 @@ export default function RolesPage() {
       />
       {roles.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {roles.error}
+          {roles.error.message}
         </p>
       )}
       {!roles.data && !roles.error ? (

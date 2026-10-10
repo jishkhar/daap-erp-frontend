@@ -1,39 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { erp, useErpQuery } from "@/lib/erp";
+import { useWhatsAppAccount, useWhatsAppTemplates } from "@/hooks/useWhatsApp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
-
-type Account =
-  | { connected: false }
-  | { connected: true; display_phone: string; approved_templates: number };
-type Template = {
-  name: string;
-  status: string;
-  category?: string;
-  language?: string;
-};
 
 /** The business's WhatsApp message templates, read from Meta. The connection itself is managed in Settings → Sales channels. */
 export function WhatsAppTemplates() {
   const session = useStaffSession();
   const allowed = hasPermission(session, "channels", "view");
-  const account = useErpQuery<Account>(
-    allowed ? "/api/v1/whatsapp/account" : null,
-  );
-  const [templates, setTemplates] = useState<Template[] | null>(null);
+  const account = useWhatsAppAccount(allowed);
+  const list = useWhatsAppTemplates(); // read from Meta only when asked for
+  const templates = list.data ?? null;
   const a = account.data;
   if (!allowed || !a) return null;
 
   async function load() {
-    const res = await erp<Template[]>("/api/v1/whatsapp/templates");
-    if (res.error) return toast.error("Couldn't load templates", res.error);
-    setTemplates(res.data ?? []);
+    const res = await list.refetch();
+    if (res.error) toast.error("Couldn't load templates", res.error.message);
   }
 
   return (

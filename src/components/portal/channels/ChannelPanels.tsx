@@ -14,65 +14,40 @@ import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/Switch";
 import { Select } from "@/components/ui/Select";
 import {
-  CHANNELS,
-  erp,
-  formatDateTime,
-  useErpQuery,
-  type Channel,
-} from "@/lib/erp";
+  useChannelBranches,
+  useChannelReadiness,
+  useTerminalSummary,
+  useToggleChannelBranch,
+  type ChannelBranch,
+  type Readiness,
+} from "@/hooks/useChannels";
+import { CHANNELS, formatDateTime, type Channel } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-/** What the Sales channels pages need of a branch: its name and its channel switches (GET /api/v1/channels/branches). */
-export type ChannelBranch = {
-  id: string;
-  branch_code: string;
-  branch_name: string;
-  status: string;
-  accepts_pos: boolean;
-  fulfilment_enabled: boolean;
-  fulfilment_priority: number;
-  pickup_enabled: boolean;
-};
+export type {
+  ChannelBranch,
+  Readiness,
+  ReadinessItem,
+} from "@/hooks/useChannels";
 
 export type ChannelStatus = {
   label: string;
   tone: "success" | "warning" | "neutral";
 };
 
-export type ReadinessItem = {
-  key: string;
-  label: string;
-  done: boolean;
-  hint: string;
-  href: string;
-  required: boolean;
-  available: boolean;
-};
-export type Readiness = {
-  channel: Channel;
-  label: string;
-  /** The channel's service works (it is on a live plan, a trial included). */
-  in_plan: boolean;
-  /** It had a plan that has ended. */
-  ended: boolean;
-  items: ReadinessItem[];
-  met: number;
-  total: number;
-  ready: boolean;
-};
-
 /** The checklist for one channel, worked out by the server from real data (see services/onboarding.py). Null without the channels permission. */
 export function useReadiness(channel: Channel) {
   const session = useStaffSession();
-  return useErpQuery<Readiness>(
-    hasPermission(session, "channels", "view")
-      ? `/api/v1/channels/${channel}/readiness`
-      : null,
+  return useChannelReadiness(
+    channel,
+    hasPermission(session, "channels", "view"),
   );
 }
 
-export const readinessStatus = (r: Readiness | null): ChannelStatus =>
+export const readinessStatus = (
+  r: Readiness | null | undefined,
+): ChannelStatus =>
   !r
     ? { label: "Not set up", tone: "neutral" }
     : !r.in_plan
@@ -89,7 +64,7 @@ export function useChannelStatuses(): Record<Channel, ChannelStatus> | null {
   const online = useReadiness("online");
   const pos = useReadiness("pos");
   const whatsapp = useReadiness("whatsapp");
-  if (online.loading || pos.loading || whatsapp.loading) return null;
+  if (online.isFetching || pos.isFetching || whatsapp.isFetching) return null;
   return {
     online: readinessStatus(online.data),
     pos: readinessStatus(pos.data),
@@ -99,7 +74,7 @@ export function useChannelStatuses(): Record<Channel, ChannelStatus> | null {
 
 /** What is left before this channel can take orders. Each line says what to do and links to where. */
 export function ChannelReadiness({ channel }: { channel: Channel }) {
-  const { data, loading } = useReadiness(channel);
+  const { data, isFetching: loading } = useReadiness(channel);
   if (loading || !data) return null;
   const status = readinessStatus(data);
   return (
@@ -163,7 +138,8 @@ export function ChannelReadiness({ channel }: { channel: Channel }) {
 /** Which branches sell through this channel, switched here instead of opening each branch (the same fields the branch form edits). */
 export function ChannelBranches({ channel }: { channel: Channel }) {
   const session = useStaffSession();
-  const branches = useErpQuery<ChannelBranch[]>("/api/v1/channels/branches");
+  const branches = useChannelBranches();
+  const toggleBranch = useToggleChannelBranch();
   const [busy, setBusy] = useState<string | null>(null);
   const canWrite = hasPermission(session, "branches", "write");
   const columns: {
@@ -184,17 +160,15 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
         ];
   const rows = branches.data ?? [];
 
-  async function toggle(
-    b: ChannelBranch,
-    field: (typeof columns)[number]["field"],
-  ) {
+  function toggle(b: ChannelBranch, field: (typeof columns)[number]["field"]) {
     setBusy(`${b.id}:${field}`);
-    const res = await erp(`/api/v1/branches/${b.id}`, "PATCH", {
-      [field]: !b[field],
-    });
-    setBusy(null);
-    if (res.error) return toast.error("Couldn't update the branch", res.error);
-    branches.reload();
+    toggleBranch.mutate(
+      { branchId: b.id, field, value: !b[field] },
+      {
+        onError: (e) => toast.error("Couldn't update the branch", e.message),
+        onSettled: () => setBusy(null),
+      },
+    );
   }
 
   return (
@@ -208,7 +182,7 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
       </p>
       {rows.length === 0 ? (
         <p className="text-[13.5px] text-ink-400">
-          {branches.loading ? "Loading…" : "No active branches."}
+          {branches.isFetching ? "Loading…" : "No active branches."}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -276,18 +250,11 @@ export function OnlineChannelPanel() {
   );
 }
 
-type TerminalSummary = {
-  branch_id: string;
-  paired: number;
-  online: number;
-  last_seen_at: string | null;
-};
-
 /** POS settings: every till branch at a glance (one summary request), then terminals and cashiers for the branch picked below it.
  * Nothing is fetched for a branch until it is picked, and the branch list is just names and switches, not whole branch rows. */
 export function PosChannelPanel() {
-  const branches = useErpQuery<ChannelBranch[]>("/api/v1/channels/branches");
-  const summary = useErpQuery<TerminalSummary[]>("/api/v1/terminals/summary");
+  const branches = useChannelBranches();
+  const summary = useTerminalSummary();
   const [picked, setPicked] = useState<string | null>(null);
   const posBranches = (branches.data ?? []).filter((b) => b.accepts_pos);
   const selected =

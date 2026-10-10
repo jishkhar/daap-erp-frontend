@@ -10,13 +10,11 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import {
-  CHANNELS,
-  erp,
-  formatDateTime,
-  useErpQuery,
-  type Channel,
-  type ChannelClient,
-} from "@/lib/erp";
+  useChannelClients,
+  useCreateChannelClient,
+  useRevokeChannelClient,
+} from "@/hooks/useChannels";
+import { CHANNELS, formatDateTime, type Channel } from "@/lib/erp";
 import {
   activeBranches,
   hasPermission,
@@ -30,41 +28,39 @@ import { SkeletonLines } from "@/components/ui/Skeleton";
 export function ChannelConnections({ channel }: { channel: Channel }) {
   const session = useStaffSession();
   const allowed = hasPermission(session, "channels", "view");
-  const clients = useErpQuery<ChannelClient[]>(
-    allowed ? "/api/v1/channel-clients" : null,
-  );
+  const clients = useChannelClients(allowed);
+  const createKey = useCreateChannelClient();
+  const revokeKey = useRevokeChannelClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [branchId, setBranchId] = useState("");
-  const [busy, setBusy] = useState(false);
+  const busy = createKey.isPending;
   const [newKey, setNewKey] = useState<string | null>(null);
 
   if (!allowed) return null;
   const mine = (clients.data ?? []).filter((c) => c.channel === channel);
   const canManage = hasPermission(session, "channels", "write");
 
-  async function create() {
-    setBusy(true);
-    const res = await erp<{ api_key: string }>(
-      "/api/v1/channel-clients",
-      "POST",
+  function create() {
+    createKey.mutate(
       { channel, name: name.trim(), branch_id: branchId || null },
+      {
+        onSuccess: (created) => {
+          setOpen(false);
+          setName("");
+          setBranchId("");
+          setNewKey(created.api_key);
+        },
+        onError: (e) => toast.error("Couldn't create the key", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error("Couldn't create the key", res.error ?? undefined);
-    setOpen(false);
-    setName("");
-    setBranchId("");
-    setNewKey(res.data.api_key);
-    clients.reload();
   }
 
-  async function revoke(id: string) {
-    const res = await erp(`/api/v1/channel-clients/${id}`, "DELETE");
-    if (res.error) return toast.error("Couldn't revoke", res.error);
-    toast.success("Key revoked");
-    clients.reload();
+  function revoke(id: string) {
+    revokeKey.mutate(id, {
+      onSuccess: () => toast.success("Key revoked"),
+      onError: (e) => toast.error("Couldn't revoke", e.message),
+    });
   }
 
   return (
@@ -87,7 +83,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
       </div>
       {mine.length === 0 ? (
         <>
-          {clients.loading ? (
+          {clients.isFetching ? (
             <SkeletonLines rows={2} />
           ) : (
             <p className="text-[13.5px] text-ink-400">{"No API keys yet."}</p>

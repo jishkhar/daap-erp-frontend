@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { formatMoney, monthRange, qs, useErpQuery } from "@/lib/erp";
+import { useFinanceReport } from "@/hooks/useFinance";
+import { useGstRegistrations } from "@/hooks/useTaxes";
+import { formatMoney, monthRange } from "@/lib/erp";
 import { CardSkeleton } from "@/components/ui/Skeleton";
 import { Help } from "@/components/erp/finance/Help";
 
@@ -63,12 +65,6 @@ type Gstr1 = {
     count: number;
   }[];
 };
-type Reg = {
-  id: string;
-  gstin: string;
-  state_name: string | null;
-  state_code: string;
-};
 
 const th =
   "p-space-2 text-left text-[12px] tracking-wide text-ink-400 uppercase";
@@ -100,12 +96,12 @@ export function GstReturnReport({ currency }: { currency: string }) {
   const [from, setFrom] = useState(range.from),
     [to, setTo] = useState(range.to),
     [registration, setRegistration] = useState("");
-  const regs = useErpQuery<{ registrations: Reg[] }>(
-    "/api/v1/tenant/gst-registrations",
-  );
-  const g = useErpQuery<Gstr1>(
-    `/api/v1/finance/reports/gstr1${qs({ date_from: from, date_to: to, registration_id: registration || null })}`,
-  );
+  const regs = useGstRegistrations();
+  const g = useFinanceReport<Gstr1>("gstr1", {
+    date_from: from,
+    date_to: to,
+    registration_id: registration || null,
+  });
   const m = (v: number) => formatMoney(v, currency);
   const d = g.data;
   const rate = (bps: number) => `${bps / 100}%`;
@@ -298,7 +294,7 @@ export function GstReturnReport({ currency }: { currency: string }) {
       </p>
       {g.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {g.error}
+          {g.error.message}
         </p>
       )}
       {!d && !g.error && (

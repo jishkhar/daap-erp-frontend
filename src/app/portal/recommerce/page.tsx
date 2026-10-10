@@ -5,24 +5,29 @@ import { Recycle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { IntakeForm } from "@/components/erp/recommerce/IntakeForm";
+import { ProductSelect } from "@/components/erp/ProductSelect";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import {
+  usePriceGuides,
+  useRecommerceAssets,
+  useRecommerceSummary,
+  useSavePriceGuide,
+} from "@/hooks/useRecommerce";
+import {
   ASSET_STATUS_TONE,
-  erp,
   formatMoney,
   humanize,
   toMinor,
-  useErpQuery,
-  type PipelineSummary,
   type PriceGuide,
   type Product,
   type RecommerceAsset,
@@ -30,6 +35,7 @@ import {
 import { useActiveBranch } from "@/lib/branch";
 import { hasGrant, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { useDebounced } from "@/lib/useDebounced";
 
 type Tab = "pipeline" | "intake" | "guides";
 const STAGES = [
@@ -53,15 +59,9 @@ export default function RecommercePage() {
   const [tab, setTab] = useState<Tab>("pipeline");
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
-  const filters = new URLSearchParams({
-    ...(status ? { status } : {}),
-    ...(q.trim() ? { q: q.trim() } : {}),
-    ...(branchId ? { branch_id: String(branchId) } : {}),
-  }).toString();
-  const summary = useErpQuery<PipelineSummary>(`/api/v1/recommerce/summary`);
-  const assets = useErpQuery<RecommerceAsset[]>(
-    `/api/v1/recommerce/assets${filters ? `?${filters}` : ""}`,
-  );
+  const query = useDebounced(q.trim());
+  const summary = useRecommerceSummary();
+  const assets = useRecommerceAssets({ status, q: query, branch_id: branchId }); // newest first, searched and paged on the server
   const cur = tenant?.currency ?? "INR";
   const branchCode = useMemo(
     () => new Map((session?.branches ?? []).map((b) => [b.id, b.branch_code])),
@@ -156,7 +156,7 @@ export default function RecommercePage() {
         <>
           {summary.error && (
             <p className="mb-space-3 text-[13px] font-medium text-error">
-              {summary.error}
+              {summary.error.message}
             </p>
           )}
           <div className="mb-space-4 grid grid-cols-2 gap-space-3 sm:grid-cols-4">
@@ -210,36 +210,22 @@ export default function RecommercePage() {
           </Card>
           {assets.error && (
             <p className="mb-space-3 text-[13px] font-medium text-error">
-              {assets.error}
+              {assets.error.message}
             </p>
           )}
           <Card className="p-space-2">
             <DataTable
               columns={columns}
-              data={assets.data ?? []}
+              data={assets.rows}
               getRowId={(a) => String(a.id)}
               onRowClick={(a) => router.push(`/portal/recommerce/${a.id}`)}
+              paginate={false}
+              loading={assets.isFetching}
               emptyMessage={
-                assets.loading ? "Loading…" : "No devices in the pipeline."
+                assets.isLoading ? "Loading…" : "No devices in the pipeline."
               }
             />
-          </Card>
-          {assets.error && (
-            <p className="mb-space-3 text-[13px] font-medium text-error">
-              {assets.error}
-            </p>
-          )}
-          <Card className="p-space-2">
-            <DataTable
-              columns={columns}
-              data={assets.data ?? []}
-              getRowId={(a) => String(a.id)}
-              onRowClick={(a) => router.push(`/portal/recommerce/${a.id}`)}
-              loading={assets.loading}
-              emptyMessage={
-                assets.loading ? "Loading…" : "No devices in the pipeline."
-              }
-            />
+            <CursorPager {...assets.pager} />
           </Card>
         </>
       )}
@@ -267,29 +253,27 @@ function PriceGuides({
   currency: string;
   canEdit: boolean;
 }) {
-  const guides = useErpQuery<PriceGuide[]>("/api/v1/recommerce/price-guides");
-  const products = useErpQuery<Product[]>("/api/v1/products?limit=500");
-  const devices = (products.data ?? []).filter(
-    (p) => p.serialization_type !== "NONE" && p.lifecycle_status === "active",
-  );
-  const [product, setProduct] = useState("");
+  const guides = usePriceGuides();
+  const saveGuide = useSavePriceGuide();
+  const [model, setModel] = useState<Product | null>(null); // searched in the catalogue (serialized models only)
+  const product = model ? String(model.id) : "";
   const [grade, setGrade] = useState("A");
   const [price, setPrice] = useState("");
-  const names = new Map((products.data ?? []).map((p) => [p.id, p.name]));
 
-  async function save() {
+  function save() {
     const minor = toMinor(price);
     if (!product || !minor)
       return toast.error("Choose a model and enter a price");
-    const res = await erp("/api/v1/recommerce/price-guides", "PUT", {
-      variant_id: product,
-      grade,
-      max_price_minor: minor,
-    });
-    if (res.error) return toast.error("Couldn't save the guide", res.error);
-    toast.success("Price guide saved");
-    setPrice("");
-    guides.reload();
+    saveGuide.mutate(
+      { variant_id: product, grade, max_price_minor: minor },
+      {
+        onSuccess: () => {
+          toast.success("Price guide saved");
+          setPrice("");
+        },
+        onError: (e) => toast.error("Couldn't save the guide", e.message),
+      },
+    );
   }
   const rows = [...(guides.data ?? [])].sort(
     (a, b) =>
@@ -300,19 +284,14 @@ function PriceGuides({
     <>
       {canEdit && (
         <Card className="mb-space-4 flex flex-wrap items-end gap-space-3 p-space-3">
-          <Select
-            value={product}
-            onChange={(e) => setProduct(e.target.value)}
-            className="w-64"
-            aria-label="Model"
-          >
-            <option value="">Model…</option>
-            {devices.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
+          <div className="w-72">
+            <ProductSelect
+              value={model}
+              onChange={setModel}
+              serialized
+              placeholder="Search device models…"
+            />
+          </div>
           <Select
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
@@ -342,8 +321,7 @@ function PriceGuides({
             {
               header: "Model",
               cell: ({ row }) =>
-                names.get(row.original.variant_id) ??
-                `#${row.original.variant_id}`,
+                row.original.product_name ?? `#${row.original.variant_id}`,
             },
             { header: "Grade", cell: ({ row }) => row.original.grade },
             {
@@ -354,9 +332,9 @@ function PriceGuides({
           ]}
           data={rows}
           getRowId={(g) => String(g.id)}
-          loading={guides.loading}
+          loading={guides.isFetching}
           emptyMessage={
-            guides.loading
+            guides.isLoading
               ? "Loading…"
               : "No price guides yet — set one before buying devices."
           }

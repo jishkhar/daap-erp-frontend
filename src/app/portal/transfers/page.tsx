@@ -13,6 +13,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -20,47 +21,27 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { useActiveBranch } from "@/lib/branch";
+import { useStockFor } from "@/hooks/useInventory";
 import {
-  erp,
+  useCreateTransfer,
+  useTransfer,
+  useTransferAction,
+  useTransferList,
+  type Transfer,
+  type TransferAction,
+  type TransferItem as Item,
+  type TransferStatus as Status,
+} from "@/hooks/useTransfers";
+import {
   formatDateTime,
   formatMoney,
   humanize,
-  qs,
-  useErpQuery,
   type Product,
   type Tone,
 } from "@/lib/erp";
 import { useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Status =
-  | "REQUESTED"
-  | "APPROVED"
-  | "REJECTED"
-  | "DISPATCHED"
-  | "RECEIVED"
-  | "CANCELLED";
-type Transfer = {
-  id: string;
-  transfer_number: string;
-  from_branch_id: string;
-  to_branch_id: string;
-  status: Status;
-  total_value_minor: number;
-  notes: string | null;
-  rejection_reason: string | null;
-  requested_at: string;
-};
-type Item = {
-  id: string;
-  variant_id: string;
-  sku: string;
-  product_name: string;
-  serialization_type: "NONE" | "SERIAL" | "IMEI";
-  quantity: number;
-  serials: { serial_number: string; received: boolean }[];
-};
-type Detail = Transfer & { items: Item[] };
 type Line = { product: Product; quantity: string };
 
 const TONE: Record<Status, Tone> = {
@@ -90,9 +71,8 @@ export default function TransfersPage() {
   const session = useStaffSession();
   const { branchId, branches } = useActiveBranch();
   const [status, setStatus] = useState("");
-  const transfers = useErpQuery<Transfer[]>(
-    `/api/v1/transfers${qs({ status, limit: 200 })}`,
-  );
+  // Paged on the server; a chosen branch narrows the list to transfers going out of, or coming into, it.
+  const transfers = useTransferList({ status, branch_id: branchId });
   const [open, setOpen] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const cur = tenant?.currency ?? "INR";
@@ -106,17 +86,7 @@ export default function TransfersPage() {
     );
     return (id: string) => m.get(id) ?? `#${id.slice(0, 6)}`;
   }, [session]);
-  // A chosen branch narrows the list to transfers going out of, or coming into, that branch.
-  const rows = useMemo(
-    () =>
-      (transfers.data ?? []).filter(
-        (t) =>
-          !branchId ||
-          t.from_branch_id === branchId ||
-          t.to_branch_id === branchId,
-      ),
-    [transfers.data, branchId],
-  );
+  const rows = transfers.rows;
 
   const columns = useMemo<ColumnDef<Transfer, unknown>[]>(
     () => [
@@ -188,7 +158,7 @@ export default function TransfersPage() {
       </Card>
       {transfers.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {transfers.error}
+          {transfers.error.message}
         </p>
       )}
       <Card className="p-space-2">
@@ -197,11 +167,13 @@ export default function TransfersPage() {
           data={rows}
           getRowId={(t) => t.id}
           onRowClick={(t) => setOpen(t.id)}
-          loading={transfers.loading}
+          paginate={false}
+          loading={transfers.isFetching}
           emptyMessage={
-            transfers.loading ? "Loading transfers…" : "No transfers yet."
+            transfers.isLoading ? "Loading transfers…" : "No transfers yet."
           }
         />
+        <CursorPager {...transfers.pager} />
       </Card>
       {creating && (
         <NewTransfer
@@ -210,7 +182,6 @@ export default function TransfersPage() {
           onClose={() => setCreating(false)}
           onDone={(id) => {
             setCreating(false);
-            transfers.reload();
             setOpen(id);
           }}
         />
@@ -221,7 +192,6 @@ export default function TransfersPage() {
           nameOf={nameOf}
           currency={cur}
           onClose={() => setOpen(null)}
-          onChanged={transfers.reload}
         />
       )}
     </PortalShell>
@@ -243,14 +213,14 @@ function NewTransfer({
   const [to, setTo] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [notes, setNotes] = useState("");
-  const [busy, setBusy] = useState(false);
-  const stock = useErpQuery<{ variant_id: string; available_qty: number }[]>(
-    from ? `/api/v1/inventory${qs({ branch_id: from, limit: 1000 })}` : null,
-  );
+  const createTransfer = useCreateTransfer();
+  const busy = createTransfer.isPending;
+  // stock of just the products on the transfer, at the sending branch
+  const stock = useStockFor(from ? lines.map((l) => l.product.id) : [], from);
   const available = (id: string) =>
     (stock.data ?? []).find((s) => s.variant_id === id)?.available_qty ?? 0;
 
-  async function submit() {
+  function submit() {
     if (!from || !to || from === to)
       return toast.error("Choose two different branches");
     if (lines.length === 0) return toast.error("Add at least one product");
@@ -260,21 +230,21 @@ function NewTransfer({
     }));
     if (items.some((i) => !i.quantity || i.quantity <= 0))
       return toast.error("Every line needs a quantity");
-    setBusy(true);
-    const res = await erp<Transfer>("/api/v1/transfers", "POST", {
-      from_branch_id: from,
-      to_branch_id: to,
-      lines: items,
-      notes: notes.trim() || null,
-    });
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error(
-        "Couldn't request the transfer",
-        res.error ?? undefined,
-      );
-    toast.success(`Transfer ${res.data.transfer_number} requested`);
-    onDone(res.data.id);
+    createTransfer.mutate(
+      {
+        from_branch_id: from,
+        to_branch_id: to,
+        lines: items,
+        notes: notes.trim() || null,
+      },
+      {
+        onSuccess: (transfer) => {
+          toast.success(`Transfer ${transfer.transfer_number} requested`);
+          onDone(transfer.id);
+        },
+        onError: (e) => toast.error("Couldn't request the transfer", e.message),
+      },
+    );
   }
 
   return (
@@ -392,16 +362,15 @@ function TransferDetail({
   nameOf,
   currency,
   onClose,
-  onChanged,
 }: {
   id: string;
   nameOf: (id: string) => string;
   currency: string;
   onClose: () => void;
-  onChanged: () => void;
 }) {
-  const detail = useErpQuery<Detail>(`/api/v1/transfers/${id}`);
-  const [busy, setBusy] = useState(false);
+  const detail = useTransfer(id);
+  const step = useTransferAction(id); // refreshes this transfer, the list and stock
+  const busy = step.isPending;
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [serials, setSerials] = useState<Record<string, string>>({}); // variant_id -> typed serials (dispatch) / confirmed serials (receive)
@@ -416,19 +385,17 @@ function TransferDetail({
       ? i.serials.map((x) => x.serial_number).join("\n")
       : "");
 
-  async function act(path: string, body?: unknown, done?: string) {
-    setBusy(true);
-    const res = await erp(
-      `/api/v1/transfers/${id}/${path}`,
-      "POST",
-      body ?? {},
+  function act(action: TransferAction, body?: unknown, done?: string) {
+    step.mutate(
+      { action, body },
+      {
+        onSuccess: () => {
+          toast.success(done ?? "Done");
+          setRejecting(false);
+        },
+        onError: (e) => toast.error("That didn't work", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error) return toast.error("That didn't work", res.error);
-    toast.success(done ?? "Done");
-    setRejecting(false);
-    detail.reload();
-    onChanged();
   }
 
   const dispatchBody = () => ({
@@ -526,7 +493,9 @@ function TransferDetail({
         )
       }
     >
-      {detail.error && <p className="text-[13px] text-error">{detail.error}</p>}
+      {detail.error && (
+        <p className="text-[13px] text-error">{detail.error.message}</p>
+      )}
       {t && (
         <>
           <div className="mb-space-3 flex items-center gap-space-2">

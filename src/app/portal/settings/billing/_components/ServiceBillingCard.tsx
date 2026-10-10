@@ -77,8 +77,8 @@ export function ServiceBillingCard({
       )}
       {sub?.cancel_at_period_end && (
         <p className="mb-space-3 rounded-md bg-warning-tint p-space-3 text-[13px] text-warning">
-          Set to cancel on <strong>{formatDate(sub.current_period_end)}</strong>.
-          {SERVICE_LABEL[service]} keeps working until then.
+          Set to cancel on <strong>{formatDate(sub.current_period_end)}</strong>
+          .{SERVICE_LABEL[service]} keeps working until then.
         </p>
       )}
       {waiting && (
@@ -98,7 +98,9 @@ export function ServiceBillingCard({
 
       <div className="flex-1 rounded-md border border-line p-space-3">
         <p className="text-[16px] font-bold text-ink-900">
-          {live || info.state === "ended" ? (plan?.name ?? "No plan") : "No plan"}
+          {live || info.state === "ended"
+            ? (plan?.name ?? "No plan")
+            : "No plan"}
         </p>
         {plan && live && (
           <p className="mt-1">
@@ -144,8 +146,8 @@ export function ServiceBillingCard({
         )}
         {info.state === "ended" && (
           <p className="mt-1 text-[13px] text-ink-600">
-            This plan has ended. Renew to use {SERVICE_LABEL[service]} again — your
-            data is kept.
+            This plan has ended. Renew to use {SERVICE_LABEL[service]} again —
+            your data is kept.
           </p>
         )}
         {info.state === "none" && (
@@ -176,7 +178,10 @@ export function ServiceBillingCard({
                 className="mt-space-3 flex w-full items-center justify-between border-t border-line pt-space-3 text-[14px] font-semibold text-ink-900"
               >
                 {showAll ? "Show fewer features" : "View all features"}
-                <ChevronRight size={16} className={showAll ? "rotate-90" : ""} />
+                <ChevronRight
+                  size={16}
+                  className={showAll ? "rotate-90" : ""}
+                />
               </button>
             )}
           </>
@@ -195,7 +200,13 @@ export function ServiceBillingCard({
             </Button>
           )}
           <Button
-            variant={live && !sub?.billed ? "secondary" : billed ? "secondary" : "primary"}
+            variant={
+              live && !sub?.billed
+                ? "secondary"
+                : billed
+                  ? "secondary"
+                  : "primary"
+            }
             onClick={onChoose}
           >
             {billed ? "Change plan" : buyLabel(info.state)}

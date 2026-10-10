@@ -1,31 +1,38 @@
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState } from "react";
 import { staffJson, type AttendanceRecord } from "@/lib/hr";
+import { queryKeys } from "@/lib/queryKeys";
 import { toast } from "@/lib/toast";
 
-/** Runs `load` once `enabled` (and again when `deps` change), deferred a tick so it isn't a synchronous
- * state update inside the effect body. */
-function useLoad(
-  enabled: boolean,
-  load: () => void | Promise<void>,
-  refreshKey = "",
-) {
-  useEffect(() => {
-    if (!enabled) return;
-    const t = setTimeout(load, 0);
-    return () => clearTimeout(t);
-  }, [enabled, load, refreshKey]);
+/** A GET for a query's queryFn: the data, or throws with a readable message (and goes to sign-in if the session has ended). */
+async function hrGet<T>(path: string): Promise<T> {
+  const { data, error, unauthorized } = await staffJson<T>(path);
+  if (unauthorized) {
+    // Hard navigation on purpose: it discards all in-memory state of a session that no longer exists.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/portal/login";
+  }
+  if (error !== null || data === null) throw new Error(error ?? "No data.");
+  return data;
 }
 
-function useSessionGuard() {
-  const router = useRouter();
-  return useCallback(
-    (unauthorized: boolean) => {
-      if (unauthorized) router.push("/portal/login");
-    },
-    [router],
-  );
+/** A write for a mutation's mutationFn: the response, or throws with a readable message. */
+async function hrSend<T = unknown>(
+  path: string,
+  body?: unknown,
+): Promise<T | null> {
+  const { data, error } = await staffJson<T>(path, "POST", body);
+  if (error !== null) throw new Error(error);
+  return data;
 }
+
+/** The message of a failed query, or null. */
+const messageOf = (error: Error | null) => error?.message ?? null;
 
 // ---------------------------------------------------------------- My Leave
 
@@ -64,59 +71,60 @@ export type LeaveForm = {
 };
 
 export function useMyLeave(canView: boolean) {
-  const guard = useSessionGuard();
-  const [balance, setBalance] = useState<LeaveBalance | null>(null);
-  const [requests, setRequests] = useState<LeaveRequest[] | null>(null);
-  const [types, setTypes] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const {
-      data,
-      error: err,
-      unauthorized,
-    } = await staffJson<{
-      balance: LeaveBalance;
-      requests: LeaveRequest[];
-      leave_types: string[];
-    }>("/api/portal/leave/mine");
-    guard(unauthorized);
-    if (err || !data) return setError(err);
-    setError(null);
-    setBalance(data.balance);
-    setRequests(data.requests);
-    setTypes(data.leave_types);
-  }, [guard]);
-  useLoad(canView, load);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.hrLeaveMine,
+    queryFn: () =>
+      hrGet<{
+        balance: LeaveBalance;
+        requests: LeaveRequest[];
+        leave_types: string[];
+      }>("/api/portal/leave/mine"),
+    enabled: canView,
+  });
+  const reload = () => qc.invalidateQueries({ queryKey: queryKeys.hrLeave });
+  const applyMutation = useMutation({
+    mutationFn: (form: LeaveForm) =>
+      hrSend<{ over_allowance: boolean }>("/api/portal/leave/mine", form),
+    onSuccess: reload,
+  });
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => hrSend(`/api/portal/leave/mine/${id}/cancel`),
+    onSettled: reload,
+  });
 
   async function apply(form: LeaveForm): Promise<string | null> {
-    const { data, error: err } = await staffJson<{ over_allowance: boolean }>(
-      "/api/portal/leave/mine",
-      "POST",
-      form,
-    );
-    if (err) return err;
-    toast.success(
-      "Leave requested",
-      data?.over_allowance
-        ? "This goes over your yearly allowance -- a Manager will decide."
-        : "A Manager will review it.",
-    );
-    await load();
-    return null;
+    try {
+      const data = await applyMutation.mutateAsync(form);
+      toast.success(
+        "Leave requested",
+        data?.over_allowance
+          ? "This goes over your yearly allowance -- a Manager will decide."
+          : "A Manager will review it.",
+      );
+      return null;
+    } catch (e) {
+      return (e as Error).message;
+    }
   }
 
   async function cancel(id: string) {
-    const { error: err } = await staffJson(
-      `/api/portal/leave/mine/${id}/cancel`,
-      "POST",
-    );
-    if (err) toast.error("Couldn't withdraw", err);
-    else toast.success("Request withdrawn");
-    await load();
+    try {
+      await cancelMutation.mutateAsync(id);
+      toast.success("Request withdrawn");
+    } catch (e) {
+      toast.error("Couldn't withdraw", (e as Error).message);
+    }
   }
 
-  return { balance, requests, types, error, apply, cancel };
+  return {
+    balance: query.data?.balance ?? null,
+    requests: query.data?.requests ?? null,
+    types: query.data?.leave_types ?? [],
+    error: messageOf(query.error),
+    apply,
+    cancel,
+  };
 }
 
 // ---------------------------------------------------------------- Leave Requests (review)
@@ -129,62 +137,70 @@ export type LeaveSummary = {
 };
 
 export function useLeaveRequests(canView: boolean, status: string) {
-  const guard = useSessionGuard();
-  const [requests, setRequests] = useState<LeaveRequest[] | null>(null);
-  const [summary, setSummary] = useState<LeaveSummary | null>(null);
-  const [allowance, setAllowance] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const q = status ? `?status=${encodeURIComponent(status)}` : "";
-    const {
-      data,
-      error: err,
-      unauthorized,
-    } = await staffJson<{
-      requests: LeaveRequest[];
-      summary: LeaveSummary;
-      annual_leave_days: number;
-    }>(`/api/portal/leave/requests${q}`);
-    guard(unauthorized);
-    if (err || !data) return setError(err);
-    setError(null);
-    setRequests(data.requests);
-    setSummary(data.summary);
-    setAllowance(data.annual_leave_days);
-  }, [guard, status]);
-  useLoad(canView, load);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.hrLeaveRequests(status),
+    queryFn: () =>
+      hrGet<{
+        requests: LeaveRequest[];
+        summary: LeaveSummary;
+        annual_leave_days: number;
+      }>(
+        `/api/portal/leave/requests${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+      ),
+    enabled: canView,
+    placeholderData: keepPreviousData,
+  });
+  const reload = () => qc.invalidateQueries({ queryKey: queryKeys.hrLeave });
+  const decideMutation = useMutation({
+    mutationFn: (input: {
+      id: string;
+      action: "approve" | "reject";
+      note: string;
+    }) =>
+      hrSend(`/api/portal/leave/requests/${input.id}/${input.action}`, {
+        note: input.note,
+      }),
+    onSettled: reload, // a refused decision also reloads: the request may have changed under the reviewer
+  });
+  const allowanceMutation = useMutation({
+    mutationFn: (days: number) =>
+      hrSend("/api/portal/leave/policy", { annual_leave_days: days }),
+    onSuccess: reload,
+  });
 
   async function decide(
     id: string,
     action: "approve" | "reject",
     note: string,
   ): Promise<string | null> {
-    const { error: err } = await staffJson(
-      `/api/portal/leave/requests/${id}/${action}`,
-      "POST",
-      { note },
-    );
-    if (err) {
-      await load();
-      return err;
+    try {
+      await decideMutation.mutateAsync({ id, action, note });
+    } catch (e) {
+      return (e as Error).message;
     }
     toast.success(action === "approve" ? "Leave approved" : "Leave declined");
-    await load();
     return null;
   }
 
   async function saveAllowance(days: number): Promise<string | null> {
-    const { error: err } = await staffJson("/api/portal/leave/policy", "POST", {
-      annual_leave_days: days,
-    });
-    if (err) return err;
+    try {
+      await allowanceMutation.mutateAsync(days);
+    } catch (e) {
+      return (e as Error).message;
+    }
     toast.success("Yearly allowance updated");
-    await load();
     return null;
   }
 
-  return { requests, summary, allowance, error, decide, saveAllowance };
+  return {
+    requests: query.data?.requests ?? null,
+    summary: query.data?.summary ?? null,
+    allowance: query.data?.annual_leave_days ?? null,
+    error: messageOf(query.error),
+    decide,
+    saveAllowance,
+  };
 }
 
 // ---------------------------------------------------------------- Clock in / out
@@ -222,31 +238,32 @@ function currentPosition(): Promise<{
 }
 
 export function useClock(canView: boolean) {
-  const guard = useSessionGuard();
-  const [today, setToday] = useState<ClockToday | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.hrClockToday,
+    queryFn: () => hrGet<ClockToday>("/api/portal/attendance/today"),
+    enabled: canView,
+  });
+  const [actError, setActError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    const {
-      data,
-      error: err,
-      unauthorized,
-    } = await staffJson<ClockToday>("/api/portal/attendance/today");
-    guard(unauthorized);
-    if (err || !data) return setError(err);
-    setToday(data);
-  }, [guard]);
-  useLoad(canView, load);
+  const today = query.data ?? null;
+  const step = useMutation({
+    mutationFn: (input: { path: string; body: unknown }) =>
+      hrSend(input.path, input.body),
+    // Clocking in or out changes today's state and the month's attendance list.
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.hrAttendance }),
+  });
 
   async function act(path: string, body?: unknown, success?: string) {
     setBusy(true);
-    setError(null);
-    const { error: err } = await staffJson(path, "POST", body ?? {});
+    setActError(null);
+    try {
+      await step.mutateAsync({ path, body: body ?? {} });
+      if (success) toast.success(success);
+    } catch (e) {
+      setActError((e as Error).message);
+    }
     setBusy(false);
-    if (err) setError(err);
-    else if (success) toast.success(success);
-    await load();
   }
 
   async function checkIn() {
@@ -258,9 +275,9 @@ export function useClock(canView: boolean) {
 
   return {
     today,
-    error,
+    error: actError ?? messageOf(query.error),
     busy,
-    reload: load,
+    reload: () => void query.refetch(),
     checkIn,
     checkOut: () => act("/api/portal/attendance/check-out", {}, "Clocked out"),
     breakStart: () =>
@@ -299,32 +316,23 @@ export function useMyMonthlyAttendance(
   month: string,
   refreshKey = "",
 ) {
-  const guard = useSessionGuard();
-  const [records, setRecords] = useState<MyMonthRow[] | null>(null);
-  const [stats, setStats] = useState<MyMonthStats | null>(null);
-  const [weeklyTrend, setWeeklyTrend] = useState<
-    { label: string; pct: number }[]
-  >([]);
-  const [error, setError] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    const {
-      data,
-      error: err,
-      unauthorized,
-    } = await staffJson<{
-      records: MyMonthRow[];
-      stats: MyMonthStats;
-      weekly_trend: { label: string; pct: number }[];
-    }>(`/api/portal/attendance/my-summary?month=${month}`);
-    guard(unauthorized);
-    if (err || !data) return setError(err);
-    setError(null);
-    setRecords(data.records);
-    setStats(data.stats);
-    setWeeklyTrend(data.weekly_trend);
-  }, [guard, month]);
-  useLoad(canView, load, refreshKey);
-  return { records, stats, weeklyTrend, error };
+  const query = useQuery({
+    queryKey: queryKeys.hrMyMonth(month, refreshKey),
+    queryFn: () =>
+      hrGet<{
+        records: MyMonthRow[];
+        stats: MyMonthStats;
+        weekly_trend: { label: string; pct: number }[];
+      }>(`/api/portal/attendance/my-summary?month=${month}`),
+    enabled: canView,
+    placeholderData: keepPreviousData,
+  });
+  return {
+    records: query.data?.records ?? null,
+    stats: query.data?.stats ?? null,
+    weeklyTrend: query.data?.weekly_trend ?? [],
+    error: messageOf(query.error),
+  };
 }
 
 // ---------------------------------------------------------------- Team attendance (Owner / Manager)
@@ -358,48 +366,55 @@ export function useTeamAttendance(
   date: string,
   month: string,
 ) {
-  const guard = useSessionGuard();
-  const [rows, setRows] = useState<OverviewRow[] | null>(null);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [summary, setSummary] = useState<SummaryRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const [day, mon] = await Promise.all([
-      staffJson<{ rows: OverviewRow[]; counts: Record<string, number> }>(
+  const qc = useQueryClient();
+  const day = useQuery({
+    queryKey: queryKeys.hrTeamDay(date),
+    queryFn: () =>
+      hrGet<{ rows: OverviewRow[]; counts: Record<string, number> }>(
         `/api/portal/attendance/overview?date=${date}`,
       ),
-      staffJson<{ rows: SummaryRow[] }>(
+    enabled: canView,
+    placeholderData: keepPreviousData,
+  });
+  const summary = useQuery({
+    queryKey: queryKeys.hrTeamMonth(month),
+    queryFn: () =>
+      hrGet<{ rows: SummaryRow[] }>(
         `/api/portal/attendance/summary?month=${month}`,
       ),
-    ]);
-    guard(day.unauthorized);
-    setError(day.error || mon.error);
-    if (day.data) {
-      setRows(day.data.rows);
-      setCounts(day.data.counts);
-    }
-    if (mon.data) setSummary(mon.data.rows);
-  }, [guard, date, month]);
-  useLoad(canView, load);
+    enabled: canView,
+    placeholderData: keepPreviousData,
+  });
+  const correction = useMutation({
+    mutationFn: (input: { recordId: string; time: string; note: string }) =>
+      hrSend(`/api/portal/attendance/${input.recordId}/correct`, {
+        check_out_time: input.time,
+        note: input.note,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.hrAttendance }),
+  });
 
   async function correct(
     recordId: string,
     time: string,
     note: string,
   ): Promise<string | null> {
-    const { error: err } = await staffJson(
-      `/api/portal/attendance/${recordId}/correct`,
-      "POST",
-      { check_out_time: time, note },
-    );
-    if (err) return err;
+    try {
+      await correction.mutateAsync({ recordId, time, note });
+    } catch (e) {
+      return (e as Error).message;
+    }
     toast.success("Clock-out corrected", "They've been notified.");
-    await load();
     return null;
   }
 
-  return { rows, counts, summary, error, correct };
+  return {
+    rows: day.data?.rows ?? null,
+    counts: day.data?.counts ?? {},
+    summary: summary.data?.rows ?? null,
+    error: messageOf(day.error) || messageOf(summary.error),
+    correct,
+  };
 }
 
 // ---------------------------------------------------------------- Attendance settings
@@ -415,33 +430,31 @@ export type AttendanceSettings = {
 };
 
 export function useAttendanceSettings(canView: boolean) {
-  const guard = useSessionGuard();
-  const [settings, setSettings] = useState<AttendanceSettings | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    const {
-      data,
-      error: err,
-      unauthorized,
-    } = await staffJson<AttendanceSettings>("/api/portal/attendance/settings");
-    guard(unauthorized);
-    if (err || !data) return setError(err);
-    setError(null);
-    setSettings(data);
-  }, [guard]);
-  useLoad(canView, load);
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.hrAttendanceSettings,
+    queryFn: () => hrGet<AttendanceSettings>("/api/portal/attendance/settings"),
+    enabled: canView,
+  });
+  const saveMutation = useMutation({
+    mutationFn: (next: AttendanceSettings) =>
+      hrSend<AttendanceSettings>("/api/portal/attendance/settings", next),
+    onSuccess: (saved) => {
+      if (saved) qc.setQueryData(queryKeys.hrAttendanceSettings, saved);
+      // The shift and location rules decide what "late" and "in range" mean on every attendance screen.
+      return qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
+    },
+  });
 
   async function save(next: AttendanceSettings): Promise<string | null> {
-    const { data, error: err } = await staffJson<AttendanceSettings>(
-      "/api/portal/attendance/settings",
-      "POST",
-      next,
-    );
-    if (err) return err;
-    if (data) setSettings(data);
+    try {
+      await saveMutation.mutateAsync(next);
+    } catch (e) {
+      return (e as Error).message;
+    }
     toast.success("Attendance settings saved");
     return null;
   }
 
-  return { settings, error, save };
+  return { settings: query.data ?? null, error: messageOf(query.error), save };
 }

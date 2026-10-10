@@ -2,23 +2,34 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/Input";
-import { qs, useErpQuery, type Product } from "@/lib/erp";
+import { useProductSearch } from "@/hooks/useProducts";
+import type { Product } from "@/lib/erp";
+import { useDebounced } from "@/lib/useDebounced";
 
-/** Search-as-you-type product chooser: type a name, SKU or barcode, click a result. */
+/** Search-as-you-type product chooser: type a name, SKU or barcode, click a result. The server searches the whole catalogue (8 results
+ * at a time), so it works with any number of products. `serialized`: only devices tracked by IMEI / serial (true) or only ordinary stock
+ * (false); `exclude`: ids not to offer (e.g. already on the form). */
 export function ProductPicker({
   onPick,
   placeholder = "Search products by name, SKU or barcode…",
   id,
+  serialized,
+  exclude = [],
 }: {
   onPick: (p: Product) => void;
   placeholder?: string;
   id?: string;
+  serialized?: boolean;
+  exclude?: string[];
 }) {
   const [q, setQ] = useState("");
-  const results = useErpQuery<Product[]>(
-    q.trim()
-      ? `/api/v1/products${qs({ q: q.trim(), lifecycle_status: "active", limit: 8 })}`
-      : null,
+  const query = useDebounced(q.trim());
+  const results = useProductSearch(
+    { q: query, lifecycle_status: "active", serialized },
+    Boolean(query),
+  );
+  const shown = (results.data ?? []).filter(
+    (p) => !exclude.includes(String(p.id)),
   );
   return (
     <div className="relative">
@@ -31,7 +42,7 @@ export function ProductPicker({
       />
       {q.trim() && (
         <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-card shadow-[var(--shadow-md)]">
-          {(results.data ?? []).map((p) => (
+          {shown.map((p) => (
             <li key={p.id}>
               <button
                 type="button"
@@ -53,9 +64,9 @@ export function ProductPicker({
               </button>
             </li>
           ))}
-          {results.data?.length === 0 && (
+          {results.data && shown.length === 0 && (
             <li className="px-space-3 py-space-2 text-[13px] text-ink-400">
-              {results.loading ? "Searching…" : "No products match."}
+              {results.isFetching ? "Searching…" : "No products match."}
             </li>
           )}
         </ul>

@@ -13,10 +13,11 @@ import {
   formatMoney,
   humanize,
   monthRange,
-  qs,
-  useErpQuery,
   type Channel,
 } from "@/lib/erp";
+import { useBranches } from "@/hooks/useBranches";
+import { useFinanceReport } from "@/hooks/useFinance";
+import { useGstRegistrations } from "@/hooks/useTaxes";
 import { SkeletonLines, CardSkeleton } from "@/components/ui/Skeleton";
 import { InfoTip } from "@/components/ui/InfoTip";
 import { Help } from "@/components/erp/finance/Help";
@@ -96,8 +97,9 @@ function ProfitAndLoss({ currency }: { currency: string }) {
     [to, setTo] = useState(range.to),
     [group, setGroup] = useState("none");
   const { branchId } = useActiveBranch();
-  const pl = useErpQuery<{ rows: PlRow[]; total: PlRow }>(
-    `/api/v1/finance/reports/profit-and-loss${qs({ date_from: from, date_to: to, group_by: group, branch_id: branchId })}`,
+  const pl = useFinanceReport<{ rows: PlRow[]; total: PlRow }>(
+    "profit-and-loss",
+    { date_from: from, date_to: to, group_by: group, branch_id: branchId },
   );
   const m = (v: number) => formatMoney(v, currency);
   const label = (r: PlRow) =>
@@ -193,7 +195,7 @@ function ProfitAndLoss({ currency }: { currency: string }) {
       </div>
       {pl.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {pl.error}
+          {pl.error.message}
         </p>
       )}
       <Card className="no-scrollbar overflow-x-auto p-space-2">
@@ -257,9 +259,10 @@ function SalesMatrix({ currency }: { currency: string }) {
   const range = monthRange();
   const [from, setFrom] = useState(range.from),
     [to, setTo] = useState(range.to);
-  const mx = useErpQuery<Matrix>(
-    `/api/v1/finance/reports/sales-matrix${qs({ date_from: from, date_to: to })}`,
-  );
+  const mx = useFinanceReport<Matrix>("sales-matrix", {
+    date_from: from,
+    date_to: to,
+  });
   const m = (v: unknown) => formatMoney(Number(v) || 0, currency);
   return (
     <>
@@ -273,7 +276,7 @@ function SalesMatrix({ currency }: { currency: string }) {
       />
       {mx.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {mx.error}
+          {mx.error.message}
         </p>
       )}
       {!mx.data && !mx.error && <CardSkeleton rows={5} />}
@@ -387,15 +390,13 @@ function BsSection({
 
 function BalanceSheet({ currency }: { currency: string }) {
   const { branchId } = useActiveBranch();
-  const bs = useErpQuery<Bs>(
-    `/api/v1/finance/reports/balance-sheet${qs({ branch_id: branchId })}`,
-  );
+  const bs = useFinanceReport<Bs>("balance-sheet", { branch_id: branchId });
   const d = bs.data;
   return (
     <>
       {bs.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {bs.error}
+          {bs.error.message}
         </p>
       )}
       {!d && !bs.error && (
@@ -471,12 +472,6 @@ type Gst = {
     net_payable_minor: number;
   }[];
 };
-type RegistrationOption = {
-  id: string;
-  gstin: string;
-  state_name: string | null;
-  state_code: string;
-};
 
 function GstReport({ currency }: { currency: string }) {
   const range = monthRange();
@@ -484,16 +479,14 @@ function GstReport({ currency }: { currency: string }) {
     [to, setTo] = useState(range.to);
   const [registration, setRegistration] = useState(""),
     [branch, setBranch] = useState("");
-  const regs = useErpQuery<{ registrations: RegistrationOption[] }>(
-    "/api/v1/tenant/gst-registrations",
-  );
-  const branches =
-    useErpQuery<{ id: string; branch_code: string; branch_name: string }[]>(
-      "/api/v1/branches",
-    );
-  const g = useErpQuery<Gst>(
-    `/api/v1/finance/reports/gst${qs({ date_from: from, date_to: to, registration_id: registration || null, branch_id: branch || null })}`,
-  );
+  const regs = useGstRegistrations();
+  const branches = useBranches();
+  const g = useFinanceReport<Gst>("gst", {
+    date_from: from,
+    date_to: to,
+    registration_id: registration || null,
+    branch_id: branch || null,
+  });
   const m = (v: number) => formatMoney(v, currency);
   const d = g.data;
   const line = (k: string, v: number) => (
@@ -549,7 +542,7 @@ function GstReport({ currency }: { currency: string }) {
       </div>
       {g.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {g.error}
+          {g.error.message}
         </p>
       )}
       {!d && !g.error && (
@@ -724,9 +717,11 @@ function ProductReport({ currency }: { currency: string }) {
   const [from, setFrom] = useState(range.from),
     [to, setTo] = useState(range.to),
     [group, setGroup] = useState("product");
-  const r = useErpQuery<{ rows: ProductRow[] }>(
-    `/api/v1/finance/reports/product-performance${qs({ date_from: from, date_to: to, group_by: group })}`,
-  );
+  const r = useFinanceReport<{ rows: ProductRow[] }>("product-performance", {
+    date_from: from,
+    date_to: to,
+    group_by: group,
+  });
   const m = (v: number) => formatMoney(v, currency);
   return (
     <>
@@ -753,7 +748,7 @@ function ProductReport({ currency }: { currency: string }) {
       </div>
       {r.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {r.error}
+          {r.error.message}
         </p>
       )}
       <Card className="no-scrollbar overflow-x-auto p-space-2">
@@ -867,7 +862,7 @@ function Buckets({
 }
 
 function AgingReports({ currency }: { currency: string }) {
-  const ar = useErpQuery<
+  const ar = useFinanceReport<
     Aging & {
       customer_credits_minor: number;
       items: {
@@ -877,8 +872,8 @@ function AgingReports({ currency }: { currency: string }) {
         channel: string;
       }[];
     }
-  >("/api/v1/finance/reports/receivables-aging");
-  const ap = useErpQuery<
+  >("receivables-aging");
+  const ap = useFinanceReport<
     Aging & {
       suppliers: {
         supplier: string;
@@ -886,7 +881,7 @@ function AgingReports({ currency }: { currency: string }) {
         buckets: Record<string, number>;
       }[];
     }
-  >("/api/v1/finance/reports/payables-aging");
+  >("payables-aging");
   const m = (v: number) => formatMoney(v, currency);
   return (
     <div className="space-y-space-4">
@@ -894,8 +889,8 @@ function AgingReports({ currency }: { currency: string }) {
         currency={currency}
         title="Customers owe us"
         hint="Delivered orders not yet fully paid (e.g. cash on delivery), aged from delivery."
-        a={ar.data}
-        error={ar.error}
+        a={ar.data ?? null}
+        error={ar.error?.message ?? null}
       />
       {ar.data && ar.data.customer_credits_minor > 0 && (
         <p className="text-[13px] text-ink-600">
@@ -907,8 +902,8 @@ function AgingReports({ currency }: { currency: string }) {
         currency={currency}
         title="We owe suppliers"
         hint="Goods received and not yet paid, aged from each bill's due date; payments are applied to the oldest bill first."
-        a={ap.data}
-        error={ap.error}
+        a={ap.data ?? null}
+        error={ap.error?.message ?? null}
       />
       {ap.data && ap.data.suppliers.length > 0 && (
         <Card className="p-space-4">

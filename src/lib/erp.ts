@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { staffFetch } from "@/lib/staffAuth";
 
 // ---------------------------------------------------------------------------------------------- channels
@@ -43,6 +42,10 @@ export type Order = {
   fulfilment_branch_id: string | null;
   channel: Channel;
   customer_id: string | null;
+  /** In list responses: the customer's name, so a list never needs the customer list to label its rows. */
+  customer_name?: string | null;
+  /** In list responses: where the next page starts after this row (usePagedQuery). */
+  cursor?: string;
   status:
     | "pending"
     | "confirmed"
@@ -306,39 +309,40 @@ export async function erpUpload<T = unknown>(
   return { data: result.data as T, error: null, unauthorized: false };
 }
 
-/** Load-on-mount (and on reload / path change) GET. Redirects to sign-in if the session has ended. */
-export function useErpQuery<T>(path: string | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(path !== null);
-  const [tick, setTick] = useState(0);
-  const latest = useRef(0);
+/** A failed ERP call, for TanStack Query: queries and mutations fail by throwing. `message` is the server's message, ready to show. */
+export class ErpError extends Error {}
 
-  useEffect(() => {
-    if (path === null) return;
-    const id = ++latest.current;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const res = await erp<T>(path);
-      if (cancelled || id !== latest.current) return;
-      if (res.unauthorized) {
-        // Hard navigation on purpose: it discards all in-memory state of a session that no longer exists.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.href = "/portal/login";
-        return;
-      }
-      setData(res.data);
-      setError(res.error);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [path, tick]);
+function orThrow<T>(res: ApiResult<T>): T {
+  if (res.unauthorized) {
+    // Hard navigation on purpose: it discards all in-memory state of a session that no longer exists.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = "/portal/login";
+  }
+  if (res.error !== null) throw new ErpError(res.error);
+  return res.data as T;
+}
 
-  const reload = useCallback(() => setTick((t) => t + 1), []);
-  return { data, error, loading, reload };
+/** A GET for a query's queryFn: the data, or throws an ErpError (and goes to sign-in if the session has ended). */
+export async function erpGet<T>(path: string): Promise<T> {
+  return orThrow(await erp<T>(path));
+}
+
+/** A write for a mutation's mutationFn: the response, or throws an ErpError. */
+export async function erpSend<T = unknown>(
+  path: string,
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
+  body?: unknown,
+  headers?: Record<string, string>,
+): Promise<T> {
+  return orThrow(await erp<T>(path, method, body, headers));
+}
+
+/** A file upload for a mutation's mutationFn: the response, or throws an ErpError. */
+export async function erpSendFile<T = unknown>(
+  path: string,
+  file: File,
+): Promise<T> {
+  return orThrow(await erpUpload<T>(path, file));
 }
 
 export function qs(

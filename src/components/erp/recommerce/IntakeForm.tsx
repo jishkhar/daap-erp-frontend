@@ -1,17 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ProductSelect } from "@/components/erp/ProductSelect";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import {
-  erp,
-  useErpQuery,
-  type Product,
-  type RecommerceAsset,
-} from "@/lib/erp";
+import { useIntake } from "@/hooks/useRecommerce";
+import type { Product, RecommerceAsset } from "@/lib/erp";
 import { activeBranches, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
@@ -24,15 +21,7 @@ export function IntakeForm({
   onDone: (asset: RecommerceAsset) => void;
 }) {
   const session = useStaffSession();
-  const products = useErpQuery<Product[]>("/api/v1/products?limit=500");
-  const devices = useMemo(
-    () =>
-      (products.data ?? []).filter(
-        (p) =>
-          p.serialization_type !== "NONE" && p.lifecycle_status === "active",
-      ),
-    [products.data],
-  );
+  const [device, setDevice] = useState<Product | null>(null); // chosen by searching the catalogue (serialized models only)
   const buyBranches = activeBranches(session).filter((b) =>
     hasGrantAt(session, "recommerce:acquire", b.id),
   );
@@ -54,7 +43,8 @@ export function IntakeForm({
     faults: "",
     notes: "",
   });
-  const [busy, setBusy] = useState(false);
+  const intake = useIntake();
+  const busy = intake.isPending;
   const set = (patch: Partial<typeof f>) => setF({ ...f, ...patch });
   const branchValue =
     branch || (buyBranches[0] ? String(buyBranches[0].id) : "");
@@ -64,12 +54,9 @@ export function IntakeForm({
     branchValue &&
     (f.source === "BUYBACK" || f.name.trim());
 
-  async function submit() {
-    setBusy(true);
+  function submit() {
     const battery = f.battery.trim() === "" ? null : parseInt(f.battery, 10);
-    const res = await erp<RecommerceAsset>(
-      "/api/v1/recommerce/intake",
-      "POST",
+    intake.mutate(
       {
         branch_id: branchValue,
         variant_id: f.product,
@@ -92,19 +79,19 @@ export function IntakeForm({
           notes: f.notes.trim() || null,
         },
       },
+      {
+        onSuccess: (asset) => {
+          toast.success(
+            asset.status === "REJECTED"
+              ? "Device rejected"
+              : "Inspection recorded",
+          );
+          onDone(asset);
+        },
+        onError: (e) =>
+          toast.error("Couldn't record the inspection", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error(
-        "Couldn't record the inspection",
-        res.error ?? undefined,
-      );
-    toast.success(
-      res.data.status === "REJECTED"
-        ? "Device rejected"
-        : "Inspection recorded",
-    );
-    onDone(res.data);
   }
 
   return (
@@ -141,18 +128,16 @@ export function IntakeForm({
           </Select>
         </Field>
         <Field label="Device model" htmlFor="i_prod" required>
-          <Select
+          <ProductSelect
             id="i_prod"
-            value={f.product}
-            onChange={(e) => set({ product: e.target.value })}
-          >
-            <option value="">Select…</option>
-            {devices.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.sku})
-              </option>
-            ))}
-          </Select>
+            value={device}
+            serialized
+            placeholder="Search device models by name or SKU…"
+            onChange={(p) => {
+              setDevice(p);
+              set({ product: p ? String(p.id) : "" });
+            }}
+          />
         </Field>
         <Field label="IMEI / serial" htmlFor="i_serial" required>
           <Input

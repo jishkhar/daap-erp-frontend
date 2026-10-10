@@ -19,14 +19,14 @@ import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { displayPhone, type BranchRow } from "@/lib/branchSchema";
-import { useErpQuery } from "@/lib/erp";
+import { useBranches } from "@/hooks/useBranches";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 
 export default function BranchesPage() {
   const { tenant, ready } = usePortalGuard();
   const router = useRouter();
   const session = useStaffSession();
-  const branches = useErpQuery<BranchRow[]>("/api/v1/branches");
+  const branches = useBranches();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState<BranchRow | null>(null);
   const canWrite = hasPermission(session, "branches", "write");
@@ -182,7 +182,7 @@ export default function BranchesPage() {
       )}
       {branches.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {branches.error}
+          {branches.error.message}
         </p>
       )}
       <Card className="p-space-2">
@@ -191,9 +191,9 @@ export default function BranchesPage() {
           data={branches.data ?? []}
           getRowId={(b) => b.id}
           onRowClick={(b) => router.push(`/portal/settings/branches/${b.id}`)}
-          loading={branches.loading}
+          loading={branches.isFetching}
           emptyMessage={
-            branches.loading ? "Loading branches…" : "No branches yet."
+            branches.isFetching ? "Loading branches…" : "No branches yet."
           }
         />
       </Card>
@@ -209,7 +209,6 @@ export default function BranchesPage() {
           onSaved={(saved) => {
             setAdding(false);
             if (saved) setAdded(saved);
-            branches.reload();
           }}
         />
       )}

@@ -10,35 +10,16 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { erp, formatDateTime, useErpQuery } from "@/lib/erp";
+import {
+  useCheckWhatsAppAccount,
+  useDisconnectWhatsApp,
+  useSaveWhatsAppAccount,
+  useWhatsAppAccount,
+  type WhatsAppForm as Form,
+} from "@/hooks/useWhatsApp";
+import { formatDateTime } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
-
-type Account =
-  | { connected: false; webhook_url: string }
-  | {
-      connected: true;
-      waba_id: string;
-      phone_number_id: string;
-      display_phone: string;
-      verified_name: string | null;
-      quality_rating: string | null;
-      access_token_hint: string;
-      approved_templates: number;
-      last_checked_at: string | null;
-      last_error: string | null;
-      webhook_url: string;
-      verify_token: string;
-      webhook_verified_at: string | null;
-      last_message_at: string | null;
-      connected_at: string;
-    };
-type Form = {
-  waba_id: string;
-  phone_number_id: string;
-  access_token: string;
-  app_secret: string;
-};
 
 const QUALITY_TONE = {
   GREEN: "success",
@@ -51,11 +32,12 @@ export function WhatsAppConnect() {
   const session = useStaffSession();
   const allowed = hasPermission(session, "channels", "view");
   const canManage = hasPermission(session, "channels", "write");
-  const account = useErpQuery<Account>(
-    allowed ? "/api/v1/whatsapp/account" : null,
-  );
+  const account = useWhatsAppAccount(allowed);
+  const saveAccount = useSaveWhatsAppAccount();
+  const checkAccount = useCheckWhatsAppAccount();
+  const disconnectAccount = useDisconnectWhatsApp();
   const [form, setForm] = useState<Form | null>(null);
-  const [busy, setBusy] = useState(false);
+  const busy = saveAccount.isPending || checkAccount.isPending;
   const [confirmOff, setConfirmOff] = useState(false);
   const [guide, setGuide] = useState(false);
   const a = account.data;
@@ -69,7 +51,7 @@ export function WhatsAppConnect() {
   if (!a)
     return (
       <Card className="mt-space-5 p-space-4 text-[13.5px] text-ink-400">
-        {account.error ?? "Loading…"}
+        {account.error?.message ?? "Loading…"}
       </Card>
     );
 
@@ -83,36 +65,35 @@ export function WhatsAppConnect() {
   };
   const editing = a.connected;
 
-  async function save() {
+  function save() {
     if (!form) return;
-    setBusy(true);
-    const res = await erp("/api/v1/whatsapp/account", "PUT", form);
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't connect", res.error);
-    toast.success(
-      editing ? "WhatsApp details updated" : "WhatsApp connected",
-      "Now finish the webhook in Meta.",
-    );
-    setForm(null);
-    account.reload();
+    saveAccount.mutate(form, {
+      onSuccess: () => {
+        toast.success(
+          editing ? "WhatsApp details updated" : "WhatsApp connected",
+          "Now finish the webhook in Meta.",
+        );
+        setForm(null);
+      },
+      onError: (e) => toast.error("Couldn't connect", e.message),
+    });
   }
-  async function check() {
-    setBusy(true);
-    const res = await erp<Account>("/api/v1/whatsapp/account/check", "POST");
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't check", res.error);
-    const d = res.data;
-    if (d && d.connected && d.last_error)
-      toast.error("Meta rejected the saved details", d.last_error);
-    else toast.success("Connection is working");
-    account.reload();
+  function check() {
+    checkAccount.mutate(undefined, {
+      onSuccess: (d) => {
+        if (d && d.connected && d.last_error)
+          toast.error("Meta rejected the saved details", d.last_error);
+        else toast.success("Connection is working");
+      },
+      onError: (e) => toast.error("Couldn't check", e.message),
+    });
   }
-  async function disconnect() {
+  function disconnect() {
     setConfirmOff(false);
-    const res = await erp("/api/v1/whatsapp/account", "DELETE");
-    if (res.error) return toast.error("Couldn't disconnect", res.error);
-    toast.success("WhatsApp disconnected");
-    account.reload();
+    disconnectAccount.mutate(undefined, {
+      onSuccess: () => toast.success("WhatsApp disconnected"),
+      onError: (e) => toast.error("Couldn't disconnect", e.message),
+    });
   }
 
   const formModal = (

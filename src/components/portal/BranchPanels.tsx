@@ -7,17 +7,17 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import type { BranchRow } from "@/lib/branchSchema";
-import { erp, fromMinor, humanize, toMinor, useErpQuery } from "@/lib/erp";
+import {
+  useBranchSchedule,
+  useSaveAreas,
+  useSaveHours,
+  type Area,
+  type Hour,
+} from "@/hooks/useBranches";
+import { fromMinor, humanize, toMinor } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
-type Hour = {
-  weekday: number;
-  opens_at: string;
-  closes_at: string;
-  channel: string | null;
-};
-type Area = { pincode: string; delivery_fee_minor: number | null };
 const areasToText = (areas: Area[]) =>
   areas
     .map((a) =>
@@ -45,9 +45,9 @@ export function BranchPanels({
   canWrite: boolean;
   currency: string;
 }) {
-  const schedule = useErpQuery<{ hours: Hour[]; areas: Area[] }>(
-    `/api/v1/branches/${branch.id}/schedule`,
-  );
+  const schedule = useBranchSchedule(branch.id);
+  const saveHoursMutation = useSaveHours(branch.id);
+  const saveAreasMutation = useSaveAreas(branch.id);
   const [hours, setHours] = useState<Hour[] | null>(null); // null = not edited yet: show what the server has
   const [pins, setPins] = useState<string | null>(null);
   const [slot, setSlot] = useState({
@@ -57,11 +57,11 @@ export function BranchPanels({
   });
   const [dirtyHours, setDirtyHours] = useState(false);
   const [dirtyPins, setDirtyPins] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const busy = saveHoursMutation.isPending || saveAreasMutation.isPending;
 
   const shownHours = hours ?? schedule.data?.hours ?? [];
   const shownPins = pins ?? areasToText(schedule.data?.areas ?? []);
-  const loadingSchedule = schedule.loading && !schedule.data;
+  const loadingSchedule = schedule.isFetching && !schedule.data;
 
   function addSlot() {
     if (slot.opens_at >= slot.closes_at)
@@ -82,22 +82,18 @@ export function BranchPanels({
     );
   }
 
-  async function saveHours() {
-    setBusy(true);
-    const res = await erp<Hour[]>(
-      `/api/v1/branches/${branch.id}/hours`,
-      "PUT",
-      { hours: shownHours },
-    );
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't save the hours", res.error);
-    toast.success("Opening hours saved");
-    setHours(res.data ?? shownHours); // keep showing what was saved; don't fall back to the stale copy while reloading
-    setDirtyHours(false);
-    schedule.reload();
+  function saveHours() {
+    saveHoursMutation.mutate(shownHours, {
+      onSuccess: (saved) => {
+        toast.success("Opening hours saved");
+        setHours(saved ?? shownHours); // keep showing what was saved; don't fall back to the stale copy while reloading
+        setDirtyHours(false);
+      },
+      onError: (e) => toast.error("Couldn't save the hours", e.message),
+    });
   }
 
-  async function savePins() {
+  function savePins() {
     const areas: Area[] = [];
     for (const line of shownPins
       .split("\n")
@@ -112,31 +108,29 @@ export function BranchPanels({
         );
       areas.push({ pincode, delivery_fee_minor: minor });
     }
-    setBusy(true);
-    const res = await erp<Area[]>(
-      `/api/v1/branches/${branch.id}/serviceable-areas`,
-      "PUT",
-      { areas },
-    );
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't save the pincodes", res.error);
-    toast.success("Serviceable pincodes saved");
-    setPins(areasToText(res.data ?? areas));
-    setDirtyPins(false);
-    schedule.reload();
+    saveAreasMutation.mutate(areas, {
+      onSuccess: (saved) => {
+        toast.success("Serviceable pincodes saved");
+        setPins(areasToText(saved ?? areas));
+        setDirtyPins(false);
+      },
+      onError: (e) => toast.error("Couldn't save the pincodes", e.message),
+    });
   }
 
   return (
     <div className="flex flex-col gap-space-4">
       {schedule.error && (
-        <p className="mb-space-3 text-[13px] text-error">{schedule.error}</p>
+        <p className="mb-space-3 text-[13px] text-error">
+          {schedule.error.message}
+        </p>
       )}
       <Card className="p-space-4">
         <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
           Opening hours
         </h2>
         {shownHours.length === 0 &&
-          (schedule.loading ? (
+          (schedule.isFetching ? (
             <SkeletonLines rows={2} />
           ) : (
             <p className="mb-space-3 text-[13.5px] text-ink-400">

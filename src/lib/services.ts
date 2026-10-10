@@ -18,13 +18,7 @@ export const SERVICE_BLURB: Record<Service, string> = {
 
 /** none | trialing | active | past_due | pending | ended | comped (the server's word for what each service is doing right now). */
 export type ServiceState =
-  | "none"
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "pending"
-  | "ended"
-  | "comped";
+  "none" | "trialing" | "active" | "past_due" | "pending" | "ended" | "comped";
 
 export type ServiceInfo = {
   state: ServiceState;

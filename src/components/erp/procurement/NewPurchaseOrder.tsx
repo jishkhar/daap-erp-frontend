@@ -2,25 +2,34 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { ProductSelect } from "@/components/erp/ProductSelect";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
+import { useCreatePurchaseOrder, useSuppliers } from "@/hooks/useProcurement";
 import {
-  erp,
   formatMoney,
   toMinor,
-  useErpQuery,
   type Product,
   type PurchaseOrder,
-  type Supplier,
 } from "@/lib/erp";
 import { activeBranches, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Row = { variant_id: string; quantity: string; cost: string };
-const EMPTY_ROW: Row = { variant_id: "", quantity: "", cost: "" };
+type Row = {
+  product: Product | null;
+  variant_id: string;
+  quantity: string;
+  cost: string;
+};
+const EMPTY_ROW: Row = {
+  product: null,
+  variant_id: "",
+  quantity: "",
+  cost: "",
+};
 
 /** Create a purchase order: pick supplier and receiving branch, add lines at their negotiated cost, optionally note freight. */
 export function NewPurchaseOrder({
@@ -35,16 +44,14 @@ export function NewPurchaseOrder({
   currency: string;
 }) {
   const session = useStaffSession();
-  const suppliers = useErpQuery<Supplier[]>(open ? "/api/v1/suppliers" : null);
-  const products = useErpQuery<Product[]>(
-    open ? "/api/v1/products?limit=500" : null,
-  );
+  const suppliers = useSuppliers(open);
+  const createPo = useCreatePurchaseOrder();
   const [supplierId, setSupplierId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [rows, setRows] = useState<Row[]>([{ ...EMPTY_ROW }]);
   const [freight, setFreight] = useState("");
   const [notes, setNotes] = useState("");
-  const [busy, setBusy] = useState(false);
+  const busy = createPo.isPending;
 
   const branches = activeBranches(session);
   const lineTotal = rows.reduce(
@@ -64,31 +71,32 @@ export function NewPurchaseOrder({
   const setRow = (i: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
-  async function submit() {
-    setBusy(true);
-    const res = await erp<PurchaseOrder>("/api/v1/purchase-orders", "POST", {
-      supplier_id: supplierId,
-      branch_id: branchId || branches[0]?.id,
-      lines: rows.map((r) => ({
-        variant_id: r.variant_id,
-        quantity: parseInt(r.quantity, 10),
-        unit_cost_minor: toMinor(r.cost),
-      })),
-      additional_costs_minor: freight ? (toMinor(freight) ?? 0) : 0,
-      notes: notes.trim() || null,
-    });
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error(
-        "Couldn't create the purchase order",
-        res.error ?? undefined,
-      );
-    toast.success(`${res.data.po_number} created`);
-    setRows([{ ...EMPTY_ROW }]);
-    setFreight("");
-    setNotes("");
-    setSupplierId("");
-    onCreated(res.data);
+  function submit() {
+    createPo.mutate(
+      {
+        supplier_id: supplierId,
+        branch_id: branchId || branches[0]?.id,
+        lines: rows.map((r) => ({
+          variant_id: r.variant_id,
+          quantity: parseInt(r.quantity, 10),
+          unit_cost_minor: toMinor(r.cost),
+        })),
+        additional_costs_minor: freight ? (toMinor(freight) ?? 0) : 0,
+        notes: notes.trim() || null,
+      },
+      {
+        onSuccess: (po) => {
+          toast.success(`${po.po_number} created`);
+          setRows([{ ...EMPTY_ROW }]);
+          setFreight("");
+          setNotes("");
+          setSupplierId("");
+          onCreated(po);
+        },
+        onError: (e) =>
+          toast.error("Couldn't create the purchase order", e.message),
+      },
+    );
   }
 
   return (
@@ -150,25 +158,17 @@ export function NewPurchaseOrder({
             key={i}
             className="grid grid-cols-[1fr_90px_130px_36px] items-center gap-space-2"
           >
-            <Select
-              aria-label="Product"
-              value={r.variant_id}
-              onChange={(e) => setRow(i, { variant_id: e.target.value })}
-            >
-              <option value="">Product…</option>
-              {(products.data ?? [])
-                .filter(
-                  (p) =>
-                    !rows.some(
-                      (o, j) => j !== i && o.variant_id === String(p.id),
-                    ),
-                )
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} · {p.sku}
-                  </option>
-                ))}
-            </Select>
+            <ProductSelect
+              value={r.product}
+              placeholder="Search product…"
+              exclude={rows
+                .filter((_, j) => j !== i)
+                .map((o) => o.variant_id)
+                .filter(Boolean)}
+              onChange={(p) =>
+                setRow(i, { product: p, variant_id: p ? String(p.id) : "" })
+              }
+            />
             <Input
               aria-label="Quantity"
               inputMode="numeric"

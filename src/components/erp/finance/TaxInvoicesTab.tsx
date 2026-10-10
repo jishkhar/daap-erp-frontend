@@ -6,23 +6,17 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { useActiveBranch } from "@/lib/branch";
-import {
-  formatDateTime,
-  formatMoney,
-  qs,
-  useErpQuery,
-  type TaxDocument,
-} from "@/lib/erp";
+import { useTaxDocuments } from "@/hooks/useFinance";
+import { formatDateTime, formatMoney, type TaxDocument } from "@/lib/erp";
 
 /** GST tax invoices and credit notes, with a printable view. */
 export function TaxInvoicesTab({ currency }: { currency: string }) {
   const { branchId: activeBranch } = useActiveBranch();
-  const docs = useErpQuery<TaxDocument[]>(
-    `/api/v1/finance/tax-documents${qs({ branch_id: activeBranch, limit: 200 })}`,
-  );
+  const docs = useTaxDocuments({ branch_id: activeBranch }); // newest first, paged on the server
   const [open, setOpen] = useState<TaxDocument | null>(null);
   const m = (v: number) => formatMoney(v, currency);
 
@@ -97,22 +91,24 @@ export function TaxInvoicesTab({ currency }: { currency: string }) {
     <>
       {docs.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {docs.error}
+          {docs.error.message}
         </p>
       )}
       <Card className="p-space-2">
         <DataTable
           columns={columns}
-          data={docs.data ?? []}
+          data={docs.rows}
           getRowId={(d) => String(d.id)}
           onRowClick={setOpen}
-          loading={docs.loading}
+          paginate={false}
+          loading={docs.isFetching}
           emptyMessage={
-            docs.loading
+            docs.isLoading
               ? "Loading…"
               : "No tax documents yet — one is issued when goods are delivered."
           }
         />
+        <CursorPager {...docs.pager} />
       </Card>
       <Modal
         open={open !== null}

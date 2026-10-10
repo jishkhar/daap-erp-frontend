@@ -34,6 +34,9 @@ type DataTableProps<TData> = {
    * since every /api/portal/* list route this feeds still returns its whole
    * tenant-scoped result set in one shot. */
   pageSize?: number;
+  /** Set false to show every row in `data` with no footer: for a list whose own pager (CursorPager, usePagedQuery) already limits what is
+   * fetched, so the table must not page it a second time. Defaults to true; `pageSize` is ignored when false. */
+  paginate?: boolean;
   /** Renders an extra full-width row directly under a data row when it
    * returns true for that row -- this table's one hook for the inline
    * reschedule/cancel/follow-up panels several portal pages already show
@@ -74,6 +77,7 @@ export function DataTable<TData>({
   data,
   getRowId,
   pageSize = 25,
+  paginate = true,
   isRowExpanded,
   renderRowDetail,
   rowClassName,
@@ -89,7 +93,7 @@ export function DataTable<TData>({
     columns,
     getRowId: getRowId as ((row: TData, index: number) => string) | undefined,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(paginate ? { getPaginationRowModel: getPaginationRowModel() } : {}),
     initialState: { pagination: { pageSize } },
   });
 
@@ -199,7 +203,7 @@ export function DataTable<TData>({
         )}
       </Table>
 
-      {totalRows > currentPageSize && (
+      {paginate && totalRows > currentPageSize && (
         <div className="mt-space-3 flex flex-col items-center justify-between gap-space-2 border-t border-line pt-space-3 sm:flex-row">
           <p className="text-[12px] text-ink-400">
             Showing {pageIndex * currentPageSize + 1}–

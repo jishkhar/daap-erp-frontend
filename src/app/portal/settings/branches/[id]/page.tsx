@@ -16,8 +16,9 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { displayPhone, type BranchRow } from "@/lib/branchSchema";
-import { formatMoney, useErpQuery } from "@/lib/erp";
+import { displayPhone } from "@/lib/branchSchema";
+import { useBranch } from "@/hooks/useBranches";
+import { formatMoney } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
@@ -67,7 +68,7 @@ export default function BranchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const branch = useErpQuery<BranchRow>(`/api/v1/branches/${id}`);
+  const branch = useBranch(id);
   const canWrite = hasPermission(session, "branches", "write");
   const canViewGst = hasPermission(session, "settings", "view");
   const [editing, setEditing] = useState(false);
@@ -88,7 +89,9 @@ export default function BranchDetailPage() {
         <ArrowLeft size={14} /> All branches
       </Link>
       {branch.error && (
-        <p className="text-[14px] font-medium text-error">{branch.error}</p>
+        <p className="text-[14px] font-medium text-error">
+          {branch.error.message}
+        </p>
       )}
       {!b && !branch.error && <SkeletonLines rows={3} />}
       {b && (
@@ -208,7 +211,6 @@ export default function BranchDetailPage() {
               onClose={() => setEditing(false)}
               onSaved={() => {
                 setEditing(false);
-                branch.reload();
               }}
             />
           )}

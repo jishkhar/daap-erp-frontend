@@ -22,24 +22,28 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
+import { useReceiveStock, useStockFor } from "@/hooks/useInventory";
 import {
-  erp,
-  erpUpload,
+  useAddVariant,
+  useImportProducts,
+  useProductList,
+  useSaveProduct,
+  type ImportResult,
+} from "@/hooks/useProducts";
+import { useTaxRules } from "@/hooks/useTaxes";
+import {
   formatMoney,
   fromMinor,
   humanize,
-  qs,
   toMinor,
-  useErpQuery,
   type Product,
-  type StockSummary,
-  type TaxRule,
 } from "@/lib/erp";
 import {
   activeBranches,
@@ -47,6 +51,7 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { useActiveBranch } from "@/lib/branch";
+import { useDebounced } from "@/lib/useDebounced";
 import { toast } from "@/lib/toast";
 import {
   BARCODE_SPECS,
@@ -94,28 +99,24 @@ const EMPTY: Draft = {
   lifecycle_status: "active",
 };
 
-type ImportResult = {
-  total: number;
-  created: number;
-  failed: number;
-  errors: { row: number; sku: string | null; error: string }[];
-};
-
 export default function ProductsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
   const [search, setSearch] = useState("");
-  const products = useErpQuery<Product[]>(
-    `/api/v1/products${qs({ q: search, limit: 500 })}`,
-  );
+  // Paged on the server; stock is read for just the products on the page.
+  const query = useDebounced(search.trim());
+  const products = useProductList(query);
   const { branchId: activeBranch } = useActiveBranch();
   // "All branches" shows the consolidated total; a chosen branch shows only that branch's stock.
-  const stock = useErpQuery<StockSummary[]>(
-    activeBranch
-      ? `/api/v1/inventory${qs({ branch_id: activeBranch, limit: 1000 })}`
-      : "/api/v1/inventory/consolidated",
+  const stock = useStockFor(
+    products.rows.map((p) => p.id),
+    activeBranch ?? "",
   );
-  const taxes = useErpQuery<TaxRule[]>("/api/v1/tax-rules");
+  const taxes = useTaxRules();
+  const saveProduct = useSaveProduct();
+  const importProducts = useImportProducts();
+  const addVariantTo = useAddVariant();
+  const receiveStock = useReceiveStock();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [receiving, setReceiving] = useState<Product | null>(null);
   const [variantOf, setVariantOf] = useState<Product | null>(null);
@@ -124,8 +125,9 @@ export default function ProductsPage() {
   const [recvBranch, setRecvBranch] = useState("");
   const [recvQty, setRecvQty] = useState("");
   const [recvSerials, setRecvSerials] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const busy =
+    saveProduct.isPending || addVariantTo.isPending || receiveStock.isPending;
+  const importing = importProducts.isPending;
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -284,7 +286,7 @@ export default function ProductsPage() {
 
   if (!ready) return null;
 
-  async function save() {
+  function save() {
     if (!draft) return;
     const price = toMinor(draft.price);
     if (price === null)
@@ -313,57 +315,57 @@ export default function ProductsPage() {
       serialization_type: draft.serialization_type,
       lifecycle_status: draft.lifecycle_status,
     };
-    setBusy(true);
-    const res = draft.id
-      ? await erp(`/api/v1/products/${draft.id}`, "PATCH", body)
-      : await erp("/api/v1/products", "POST", {
-          sku: draft.sku.trim(),
-          ...body,
-        });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't save the product", res.error);
-    toast.success(draft.id ? "Product updated" : "Product created");
-    setDraft(null);
-    products.reload();
+    const editing = Boolean(draft.id);
+    saveProduct.mutate(
+      editing
+        ? { id: draft.id, body }
+        : { body: { sku: draft.sku.trim(), ...body } },
+      {
+        onSuccess: () => {
+          toast.success(editing ? "Product updated" : "Product created");
+          setDraft(null);
+        },
+        onError: (e) => toast.error("Couldn't save the product", e.message),
+      },
+    );
   }
 
-  async function importFile(file: File | undefined) {
+  function importFile(file: File | undefined) {
     if (fileInput.current) fileInput.current.value = "";
     if (!file) return;
-    setImporting(true);
-    let res;
-    try {
-      res = await erpUpload<ImportResult>("/api/v1/products/import", file);
-    } finally {
-      setImporting(false);
-    }
-    if (res.error || !res.data)
-      return toast.error("Couldn't import the file", res.error ?? undefined);
-    setImportResult(res.data);
-    if (res.data.created > 0) products.reload();
+    importProducts.mutate(file, {
+      onSuccess: setImportResult,
+      onError: (e) => toast.error("Couldn't import the file", e.message),
+    });
   }
 
-  async function addVariant() {
+  function addVariant() {
     if (!variantOf) return;
     const price = toMinor(variant.price);
     if (price === null)
       return toast.error("Enter a valid price", "e.g. 1299.00");
-    setBusy(true);
-    const res = await erp(`/api/v1/products/${variantOf.id}/variants`, "POST", {
-      sku: variant.sku.trim(),
-      variant_name: variant.name.trim(),
-      price_minor: price,
-      tax_code: variantOf.tax_code,
-      serialization_type: variantOf.serialization_type,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't add the variant", res.error);
-    toast.success("Variant added");
-    setVariantOf(null);
-    products.reload();
+    addVariantTo.mutate(
+      {
+        productId: variantOf.id,
+        body: {
+          sku: variant.sku.trim(),
+          variant_name: variant.name.trim(),
+          price_minor: price,
+          tax_code: variantOf.tax_code,
+          serialization_type: variantOf.serialization_type,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Variant added");
+          setVariantOf(null);
+        },
+        onError: (e) => toast.error("Couldn't add the variant", e.message),
+      },
+    );
   }
 
-  async function receive() {
+  function receive() {
     if (!receiving) return;
     const qty = parseInt(recvQty, 10);
     if (!qty || qty <= 0) return toast.error("Enter a quantity");
@@ -371,24 +373,27 @@ export default function ProductsPage() {
       .split(/[\n,]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    setBusy(true);
-    const res = await erp("/api/v1/inventory/receipts", "POST", {
-      branch_id: recvBranch,
-      lines: [
-        {
-          variant_id: receiving.id,
-          quantity: qty,
-          ...(receiving.serialization_type !== "NONE"
-            ? { serial_numbers: serials }
-            : {}),
+    receiveStock.mutate(
+      {
+        branch_id: recvBranch,
+        lines: [
+          {
+            variant_id: receiving.id,
+            quantity: qty,
+            ...(receiving.serialization_type !== "NONE"
+              ? { serial_numbers: serials }
+              : {}),
+          },
+        ],
+      },
+      {
+        onSuccess: () => {
+          toast.success(`${qty} unit(s) received`);
+          setReceiving(null);
         },
-      ],
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't receive stock", res.error);
-    toast.success(`${qty} unit(s) received`);
-    setReceiving(null);
-    stock.reload();
+        onError: (e) => toast.error("Couldn't receive stock", e.message),
+      },
+    );
   }
 
   const set = (patch: Partial<Draft>) =>
@@ -437,19 +442,21 @@ export default function ProductsPage() {
       </Card>
       {products.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {products.error}
+          {products.error.message}
         </p>
       )}
       <Card className="p-space-2">
         <DataTable
           columns={columns}
-          data={products.data ?? []}
+          data={products.rows}
           getRowId={(p) => String(p.id)}
-          loading={products.loading}
+          paginate={false}
+          loading={products.isFetching}
           emptyMessage={
-            products.loading ? "Loading products…" : "No products yet."
+            products.isLoading ? "Loading products…" : "No products yet."
           }
         />
+        <CursorPager {...products.pager} />
       </Card>
 
       <Modal
@@ -630,10 +637,7 @@ export default function ProductsPage() {
             </Field>
             {draft.id && (
               <ExtraBarcodes
-                product={
-                  (products.data ?? []).find((p) => p.id === draft.id) ?? null
-                }
-                onChanged={products.reload}
+                product={products.rows.find((p) => p.id === draft.id) ?? null}
               />
             )}
             <Field
@@ -653,9 +657,8 @@ export default function ProductsPage() {
       </Modal>
 
       <ProductImagesModal
-        product={(products.data ?? []).find((p) => p.id === imagesOf) ?? null}
+        product={products.rows.find((p) => p.id === imagesOf) ?? null}
         onClose={() => setImagesOf(null)}
-        onChanged={products.reload}
       />
 
       <Modal

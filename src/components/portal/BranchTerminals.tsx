@@ -8,76 +8,26 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { erp, formatDateTime, humanize, useErpQuery } from "@/lib/erp";
+import {
+  useBranchCashiers,
+  type Cashier,
+  useBranchTerminals,
+  useCancelPairingCode,
+  useClearCashierPin,
+  useIssuePairingCode,
+  useRenameTerminal,
+  useRevokeTerminal,
+  useSetCashierPin,
+  useTerminal,
+  type Issued,
+  type Terminal,
+} from "@/hooks/useBranches";
+import { formatDateTime, humanize } from "@/lib/erp";
 import { hasGrantAt, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { SyncHealthModal } from "@/components/portal/TerminalSyncHealth";
-
-type TerminalEvent = {
-  id: number;
-  event: string;
-  actor_type: string;
-  ip: string | null;
-  detail: Record<string, unknown>;
-  created_at: string;
-};
-type Terminal = {
-  id: string;
-  code: string;
-  name: string;
-  status: "active" | "revoked";
-  platform: string;
-  install_id_hint: string;
-  os_version: string | null;
-  manufacturer: string | null;
-  model: string | null;
-  hardware_id: string | null;
-  serial_number: string | null;
-  app_version: string | null;
-  app_build: string | null;
-  locale: string | null;
-  timezone: string | null;
-  device_info: Record<string, unknown>;
-  paired_at: string;
-  paired_ip: string | null;
-  last_seen_at: string | null;
-  last_ip: string | null;
-  last_sync_at: string | null;
-  revoked_at: string | null;
-  revoke_reason: string | null;
-  events?: TerminalEvent[];
-  /** What this till has sent the server (list only). */
-  uploads?: {
-    accepted: number;
-    rejected: number;
-    flagged: number;
-    last_received_at: string | null;
-  };
-};
-type PairingCode = {
-  id: string;
-  terminal_name: string | null;
-  created_at: string;
-  expires_at: string;
-};
-type Issued = {
-  id: string;
-  code: string;
-  terminal_name: string | null;
-  expires_at: string;
-};
-type Listing = { terminals: Terminal[]; pairing_codes: PairingCode[] };
-type Cashier = {
-  id: string;
-  name: string;
-  email: string;
-  status: "active" | "disabled";
-  roles: string[];
-  has_pin: boolean;
-  pin_updated_at: string | null;
-};
 
 function ago(iso: string | null): string {
   if (!iso) return "never";
@@ -167,7 +117,7 @@ function CodeModal({
 }
 
 function Detail({ id, onClose }: { id: string; onClose: () => void }) {
-  const q = useErpQuery<Terminal>(`/api/v1/terminals/${id}`);
+  const q = useTerminal(id);
   const t = q.data;
   const rows: [string, string | null][] = t
     ? [
@@ -221,7 +171,7 @@ function Detail({ id, onClose }: { id: string; onClose: () => void }) {
         </Button>
       }
     >
-      {q.error && <p className="text-[13px] text-error">{q.error}</p>}
+      {q.error && <p className="text-[13px] text-error">{q.error.message}</p>}
       {t && (
         <>
           <dl className="grid gap-x-space-4 gap-y-space-2 sm:grid-cols-2">
@@ -288,7 +238,7 @@ const nameSchema = z
 export function TerminalsPanel({ branchId }: { branchId: string }) {
   const session = useStaffSession();
   const canManage = hasGrantAt(session, "terminals:manage", branchId);
-  const list = useErpQuery<Listing>(`/api/v1/branches/${branchId}/terminals`);
+  const list = useBranchTerminals(branchId);
   const [nextName, setNextName] = useState("");
   const [issued, setIssued] = useState<Issued | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
@@ -300,50 +250,47 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
     name: string;
     error?: string;
   } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const issueCode = useIssuePairingCode(branchId);
+  const cancelPairing = useCancelPairingCode();
+  const revokeTerminal = useRevokeTerminal();
+  const renameTerminal = useRenameTerminal();
+  const busy =
+    issueCode.isPending || revokeTerminal.isPending || renameTerminal.isPending;
 
-  async function generate() {
+  function generate() {
     const checked = nextName.trim() ? nameSchema.safeParse(nextName) : null;
     if (checked && !checked.success)
       return toast.error(checked.error.issues[0].message);
-    setBusy(true);
-    const res = await erp<Issued>(
-      `/api/v1/branches/${branchId}/terminals/pairing-codes`,
-      "POST",
-      nextName.trim() ? { terminal_name: nextName.trim() } : {},
-    );
-    setBusy(false);
-    if (res.error || !res.data)
-      return toast.error(
-        "Couldn't create a pairing code",
-        res.error ?? undefined,
-      );
-    setIssued(res.data);
-    setNextName("");
-    list.reload();
-  }
-  async function cancelCode(id: string) {
-    const res = await erp(`/api/v1/terminals/pairing-codes/${id}`, "DELETE");
-    if (res.error) return toast.error("Couldn't cancel the code", res.error);
-    list.reload();
-  }
-  async function revoke() {
-    if (!revoking) return;
-    setBusy(true);
-    const res = await erp(`/api/v1/terminals/${revoking.id}/revoke`, "POST", {
-      reason: reason.trim() || null,
+    issueCode.mutate(nextName.trim() || null, {
+      onSuccess: (code) => {
+        setIssued(code);
+        setNextName("");
+      },
+      onError: (e) => toast.error("Couldn't create a pairing code", e.message),
     });
-    setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't revoke the terminal", res.error);
-    toast.success(
-      `${revoking.name} revoked. The terminal will lock and wipe itself.`,
-    );
-    setRevoking(null);
-    setReason("");
-    list.reload();
   }
-  async function rename() {
+  function cancelCode(id: string) {
+    cancelPairing.mutate(id, {
+      onError: (e) => toast.error("Couldn't cancel the code", e.message),
+    });
+  }
+  function revoke() {
+    if (!revoking) return;
+    revokeTerminal.mutate(
+      { id: revoking.id, reason: reason.trim() || null },
+      {
+        onSuccess: () => {
+          toast.success(
+            `${revoking.name} revoked. The terminal will lock and wipe itself.`,
+          );
+          setRevoking(null);
+          setReason("");
+        },
+        onError: (e) => toast.error("Couldn't revoke the terminal", e.message),
+      },
+    );
+  }
+  function rename() {
     if (!renaming) return;
     const checked = nameSchema.safeParse(renaming.name);
     if (!checked.success)
@@ -351,15 +298,13 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         ...renaming,
         error: checked.error.issues[0].message,
       });
-    setBusy(true);
-    const res = await erp(`/api/v1/terminals/${renaming.t.id}`, "PATCH", {
-      name: checked.data,
-    });
-    setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't rename the terminal", res.error);
-    setRenaming(null);
-    list.reload();
+    renameTerminal.mutate(
+      { id: renaming.t.id, name: checked.data },
+      {
+        onSuccess: () => setRenaming(null),
+        onError: (e) => toast.error("Couldn't rename the terminal", e.message),
+      },
+    );
   }
 
   const terminals = list.data?.terminals ?? [];
@@ -412,10 +357,12 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         </ul>
       )}
       {list.error && (
-        <p className="mb-space-3 text-[13px] text-error">{list.error}</p>
+        <p className="mb-space-3 text-[13px] text-error">
+          {list.error.message}
+        </p>
       )}
       {terminals.length === 0 &&
-        (list.loading ? (
+        (list.isFetching ? (
           <SkeletonLines rows={2} />
         ) : (
           <p className="text-[13.5px] text-ink-400">
@@ -588,14 +535,16 @@ const pinSchema = z
 export function CashiersPanel({ branchId }: { branchId: string }) {
   const session = useStaffSession();
   const canSetPin = hasTenantWide(session, "users:update");
-  const list = useErpQuery<Cashier[]>(`/api/v1/branches/${branchId}/cashiers`);
+  const list = useBranchCashiers(branchId);
   const [target, setTarget] = useState<Cashier | null>(null);
   const [form, setForm] = useState({ pin: "", again: "" });
   const [errors, setErrors] = useState<{ pin?: string; again?: string }>({});
-  const [busy, setBusy] = useState(false);
+  const setPin = useSetCashierPin();
+  const clearPin = useClearCashierPin();
+  const busy = setPin.isPending;
   const digits = (v: string) => v.replace(/\D/g, "").slice(0, 6);
 
-  async function save() {
+  function save() {
     if (!target) return;
     const parsed = pinSchema.safeParse(form);
     if (!parsed.success) {
@@ -604,23 +553,25 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
         e[i.path[0] as "pin" | "again"] ??= i.message;
       return setErrors(e);
     }
-    setBusy(true);
-    const res = await erp(`/api/v1/users/${target.id}/pin`, "PUT", {
-      pin: parsed.data.pin,
-    });
-    setBusy(false);
-    if (res.error) return setErrors({ pin: res.error });
-    toast.success(
-      `PIN set for ${target.name}. The terminal gets it on its next sync.`,
+    setPin.mutate(
+      { userId: target.id, pin: parsed.data.pin },
+      {
+        onSuccess: () => {
+          toast.success(
+            `PIN set for ${target.name}. The terminal gets it on its next sync.`,
+          );
+          setTarget(null);
+        },
+        onError: (e) => setErrors({ pin: e.message }),
+      },
     );
-    setTarget(null);
-    list.reload();
   }
-  async function clear(c: Cashier) {
-    const res = await erp(`/api/v1/users/${c.id}/pin`, "DELETE");
-    if (res.error) return toast.error("Couldn't remove the PIN", res.error);
-    toast.success(`${c.name} can no longer sign in at the POS terminal.`);
-    list.reload();
+  function clear(c: Cashier) {
+    clearPin.mutate(c.id, {
+      onSuccess: () =>
+        toast.success(`${c.name} can no longer sign in at the POS terminal.`),
+      onError: (e) => toast.error("Couldn't remove the PIN", e.message),
+    });
   }
 
   const cashiers = list.data ?? [];
@@ -636,10 +587,12 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
         .
       </p>
       {list.error && (
-        <p className="mb-space-3 text-[13px] text-error">{list.error}</p>
+        <p className="mb-space-3 text-[13px] text-error">
+          {list.error.message}
+        </p>
       )}
       {cashiers.length === 0 &&
-        (list.loading ? (
+        (list.isFetching ? (
           <SkeletonLines rows={2} />
         ) : (
           <p className="text-[13.5px] text-ink-400">

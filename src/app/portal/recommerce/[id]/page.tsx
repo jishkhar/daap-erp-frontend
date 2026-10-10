@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { ProductSelect } from "@/components/erp/ProductSelect";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -16,15 +17,17 @@ import { Select } from "@/components/ui/Select";
 import {
   ASSET_STATUS_TONE,
   QC_CHECKS,
-  erp,
   formatDateTime,
   formatMoney,
   humanize,
   toMinor,
-  useErpQuery,
   type Product,
-  type RecommerceAssetDetail,
 } from "@/lib/erp";
+import {
+  useAssetAction,
+  useRecommerceAsset,
+  type AssetAction,
+} from "@/hooks/useRecommerce";
 import { activeBranches, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
@@ -44,12 +47,11 @@ export default function AssetPage() {
   const { id } = useParams<{ id: string }>();
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const asset = useErpQuery<RecommerceAssetDetail>(
-    `/api/v1/recommerce/assets/${id}`,
-  );
-  const parts = useErpQuery<Product[]>("/api/v1/products?limit=500");
+  const asset = useRecommerceAsset(id);
+  const step = useAssetAction(id);
+  const [part, setPart] = useState<Product | null>(null); // chosen by searching the catalogue (ordinary stock, not devices)
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [busy, setBusy] = useState(false);
+  const busy = step.isPending;
   const [f, setF] = useState({
     price: "",
     method: "UPI",
@@ -87,18 +89,17 @@ export default function AssetPage() {
     (b) => a && b.id !== a.current_branch_id,
   );
 
-  async function act(path: string, body: unknown, ok: string) {
-    setBusy(true);
-    const res = await erp(
-      `/api/v1/recommerce/assets/${id}/${path}`,
-      "POST",
-      body ?? {},
+  function act(action: AssetAction, body: unknown, ok: string) {
+    step.mutate(
+      { action, body },
+      {
+        onSuccess: () => {
+          toast.success(ok);
+          setDialog(null);
+        },
+        onError: (e) => toast.error("That didn't work", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error) return toast.error("That didn't work", res.error);
-    toast.success(ok);
-    setDialog(null);
-    asset.reload();
   }
   const close = () => setDialog(null);
   const cancel = (
@@ -113,9 +114,6 @@ export default function AssetPage() {
     st === "GRADED" ||
     st === "IN_REFURBISHMENT" ||
     st === "QC_FAILED";
-  const sparePartChoices = (parts.data ?? []).filter(
-    (p) => p.serialization_type === "NONE" && p.lifecycle_status === "active",
-  );
 
   return (
     <PortalShell tenant={tenant} active="recommerce">
@@ -126,7 +124,9 @@ export default function AssetPage() {
         <ArrowLeft size={14} /> ReCommerce
       </Link>
       {asset.error && (
-        <p className="text-[14px] font-medium text-error">{asset.error}</p>
+        <p className="text-[14px] font-medium text-error">
+          {asset.error.message}
+        </p>
       )}
       {!a && !asset.error && <SkeletonLines rows={3} />}
       {a && (
@@ -504,18 +504,16 @@ export default function AssetPage() {
             }
           >
             <Field label="Part" htmlFor="p_part">
-              <Select
+              <ProductSelect
                 id="p_part"
-                value={f.part}
-                onChange={(e) => set({ part: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {sparePartChoices.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
+                value={part}
+                serialized={false}
+                placeholder="Search spare parts by name or SKU…"
+                onChange={(p) => {
+                  setPart(p);
+                  set({ part: p ? String(p.id) : "" });
+                }}
+              />
             </Field>
             <Field label="Quantity" htmlFor="p_qty">
               <Input

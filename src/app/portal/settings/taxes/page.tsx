@@ -15,14 +15,22 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
+import { useLinkBranchGst } from "@/hooks/useBranches";
 import {
-  erp,
-  formatMoney,
-  fromMinor,
-  toMinor,
-  useErpQuery,
-  type TaxRule,
-} from "@/lib/erp";
+  useDeleteGstRegistration,
+  useGstRegistrations,
+  useSaveGstRegistration,
+  useSaveTaxBands,
+  useTaxBands,
+  useTaxRules,
+  type GstRegistration as Registration,
+} from "@/hooks/useTaxes";
+import {
+  useOnboardingStep,
+  useSaveSettings,
+  useTenantView,
+} from "@/hooks/useTenantSettings";
+import { formatMoney, fromMinor, toMinor } from "@/lib/erp";
 import {
   hasPermission,
   refreshStaffSession,
@@ -31,29 +39,6 @@ import {
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
-type Registration = {
-  id: string;
-  gstin: string;
-  state_code: string;
-  state_name: string | null;
-  pan: string;
-  legal_name: string;
-  trade_name: string | null;
-  registration_type: "regular" | "composition";
-  registered_address: string | null;
-  is_default: boolean;
-  is_active: boolean;
-  branch_count: number;
-};
-type Listing = {
-  registrations: Registration[];
-  unlinked_branches: {
-    id: string;
-    branch_code: string;
-    branch_name: string;
-    state: string | null;
-  }[];
-};
 type Draft = {
   id?: string;
   gstin: string;
@@ -78,18 +63,20 @@ const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 export default function TaxesPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const listing = useErpQuery<Listing>("/api/v1/tenant/gst-registrations");
-  const rules = useErpQuery<TaxRule[]>("/api/v1/tax-rules");
-  const bandsQuery = useErpQuery<
-    Record<string, { up_to_minor: number | null; rate_bps: number }[]>
-  >("/api/v1/tax-rule-bands");
+  const listing = useGstRegistrations();
+  const rules = useTaxRules();
+  const bandsQuery = useTaxBands();
+  const saveRegistration = useSaveGstRegistration();
+  const deleteRegistration = useDeleteGstRegistration();
+  const saveBandsMutation = useSaveTaxBands();
+  const linkBranch = useLinkBranchGst();
+  const saveSettings = useSaveSettings();
+  const confirmStep = useOnboardingStep();
   const [bandEdit, setBandEdit] = useState<{
     code: string;
     rows: { limit: string; rate: string }[];
   } | null>(null);
-  const tenantView = useErpQuery<{
-    settings: { tax_inclusive_prices: boolean };
-  }>("/api/v1/tenant");
+  const tenantView = useTenantView();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [assign, setAssign] = useState<{
     id: string;
@@ -97,7 +84,11 @@ export default function TaxesPage() {
     registrationId: string;
   } | null>(null);
   const [removing, setRemoving] = useState<Registration | null>(null);
-  const [busy, setBusy] = useState(false);
+  const busy =
+    saveRegistration.isPending ||
+    saveSettings.isPending ||
+    saveBandsMutation.isPending ||
+    linkBranch.isPending;
   const canWrite = hasPermission(session, "settings", "write");
 
   if (!ready) return null;
@@ -109,7 +100,7 @@ export default function TaxesPage() {
   const gstin = draft?.gstin.trim().toUpperCase() ?? "";
   const gstinOk = GSTIN.test(gstin);
 
-  async function save() {
+  function save() {
     if (!draft) return;
     const body = {
       gstin,
@@ -119,36 +110,39 @@ export default function TaxesPage() {
       registered_address: draft.registered_address.trim() || null,
       is_default: draft.is_default,
     };
-    setBusy(true);
-    const res = draft.id
-      ? await erp(`/api/v1/tenant/gst-registrations/${draft.id}`, "PATCH", {
-          ...body,
-          is_active: draft.is_active,
-        })
-      : await erp("/api/v1/tenant/gst-registrations", "POST", body);
-    setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't save the registration", res.error);
-    toast.success(draft.id ? "Registration updated" : "Registration added");
-    setDraft(null);
-    listing.reload();
+    const editing = Boolean(draft.id);
+    saveRegistration.mutate(
+      { id: draft.id, body, is_active: draft.is_active },
+      {
+        onSuccess: () => {
+          toast.success(
+            editing ? "Registration updated" : "Registration added",
+          );
+          setDraft(null);
+        },
+        onError: (e) =>
+          toast.error("Couldn't save the registration", e.message),
+      },
+    );
   }
 
   async function setPricing(value: boolean) {
-    setBusy(true);
-    const res = await erp("/api/v1/tenant/settings", "PATCH", {
-      tax_inclusive_prices: value,
-    });
-    setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't change the pricing mode", res.error);
+    try {
+      await saveSettings.mutateAsync({ tax_inclusive_prices: value });
+    } catch (e) {
+      return toast.error(
+        "Couldn't change the pricing mode",
+        (e as Error).message,
+      );
+    }
     toast.success(value ? "Prices now include tax" : "Prices now exclude tax");
-    await erp("/api/v1/onboarding/steps/prices", "POST", { action: "confirm" }); // choosing a mode counts as confirming it for the setup guide
-    tenantView.reload();
+    await confirmStep
+      .mutateAsync({ key: "prices", action: "confirm" }) // choosing a mode counts as confirming it for the setup guide
+      .catch(() => undefined);
     await refreshStaffSession(); // the New order screen reads the mode from the stored session
   }
 
-  async function saveBands() {
+  function saveBands() {
     if (!bandEdit) return;
     const bands: { up_to_minor: number | null; rate_bps: number }[] = [];
     for (const r of bandEdit.rows) {
@@ -167,44 +161,41 @@ export default function TaxesPage() {
         );
       bands.push({ up_to_minor: limit, rate_bps: Math.round(rate * 100) });
     }
-    setBusy(true);
-    const res = await erp(
-      `/api/v1/tax-rules/${encodeURIComponent(bandEdit.code)}/bands`,
-      "PUT",
-      { bands },
+    saveBandsMutation.mutate(
+      { code: bandEdit.code, bands },
+      {
+        onSuccess: () => {
+          toast.success("Price bands saved");
+          setBandEdit(null);
+        },
+        onError: (e) => toast.error("Couldn't save the bands", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't save the bands", res.error);
-    toast.success("Price bands saved");
-    setBandEdit(null);
-    bandsQuery.reload();
   }
 
-  async function assignBranch() {
+  function assignBranch() {
     if (!assign) return;
-    setBusy(true);
-    const res = await erp(
-      `/api/v1/branches/${assign.id}/gst-registration`,
-      "PUT",
-      { gst_registration_id: assign.registrationId || null },
+    linkBranch.mutate(
+      { branchId: assign.id, gstRegistrationId: assign.registrationId || null },
+      {
+        onSuccess: () => {
+          toast.success("Branch updated");
+          setAssign(null);
+        },
+        onError: (e) => toast.error("Couldn't assign the branch", e.message),
+      },
     );
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't assign the branch", res.error);
-    toast.success("Branch updated");
-    setAssign(null);
-    listing.reload();
   }
 
-  async function remove() {
+  function remove() {
     if (!removing) return;
-    const res = await erp(
-      `/api/v1/tenant/gst-registrations/${removing.id}`,
-      "DELETE",
-    );
-    if (res.error) return toast.error("Couldn't delete", res.error);
-    toast.success("Registration deleted");
-    setRemoving(null);
-    listing.reload();
+    deleteRegistration.mutate(removing.id, {
+      onSuccess: () => {
+        toast.success("Registration deleted");
+        setRemoving(null);
+      },
+      onError: (e) => toast.error("Couldn't delete", e.message),
+    });
   }
 
   return (
@@ -226,7 +217,7 @@ export default function TaxesPage() {
       />
       {listing.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {listing.error}
+          {listing.error.message}
         </p>
       )}
 
@@ -273,7 +264,7 @@ export default function TaxesPage() {
                 );
               })}
             </div>
-          ) : tenantView.loading ? (
+          ) : tenantView.isFetching ? (
             <SkeletonLines rows={2} />
           ) : null}
         </Card>
@@ -288,7 +279,7 @@ export default function TaxesPage() {
           </p>
           {regs.length === 0 ? (
             <>
-              {listing.loading ? (
+              {listing.isFetching ? (
                 <SkeletonLines rows={2} />
               ) : (
                 <p className="rounded-md border border-line px-space-3 py-space-4 text-[13.5px] text-ink-400">
@@ -439,7 +430,7 @@ export default function TaxesPage() {
             Tax rates
           </h2>
           {(rules.data ?? []).length === 0 ? (
-            rules.loading ? (
+            rules.isFetching ? (
               <SkeletonLines rows={2} />
             ) : (
               <p className="text-[13.5px] text-ink-400">

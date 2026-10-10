@@ -1,10 +1,9 @@
 "use client";
 
 import { ClipboardCheck } from "lucide-react";
-import { useState } from "react";
 import {
   ProgressBar,
-  sendStepAction,
+  useStepAction,
   SetupStatusRow,
   useGuide,
   type GuideStep,
@@ -14,7 +13,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { erp } from "@/lib/erp";
+import { useDismissOnboarding } from "@/hooks/useTenantSettings";
 import { toast } from "@/lib/toast";
 
 const GROUPS: { title: string; keys: string[] }[] = [
@@ -29,19 +28,15 @@ const GROUPS: { title: string; keys: string[] }[] = [
 /** Settings → Setup: what is configured, what is not, and where to change it. A reference, not a to-do list: nothing here blocks you. */
 export default function SetupPage() {
   const { tenant, ready } = usePortalGuard();
-  const { data, error, loading, reload, allowed } = useGuide();
-  const [busy, setBusy] = useState(false);
+  const { data, error, isFetching: loading, allowed } = useGuide();
+  const { busy, send: act } = useStepAction();
+  const dismiss = useDismissOnboarding();
   if (!ready) return null;
 
-  async function act(key: string, action: "skip" | "unskip" | "confirm") {
-    setBusy(true);
-    await sendStepAction(key, action, reload);
-    setBusy(false);
-  }
-  async function setDismissed(dismissed: boolean) {
-    const res = await erp("/api/v1/onboarding/dismissed", "PUT", { dismissed });
-    if (res.error) return toast.error("Couldn't update", res.error);
-    reload();
+  function setDismissed(dismissed: boolean) {
+    dismiss.mutate(dismissed, {
+      onError: (e) => toast.error("Couldn't update", e.message),
+    });
   }
 
   return (
@@ -57,7 +52,9 @@ export default function SetupPage() {
         </p>
       )}
       {error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">
+          {error.message}
+        </p>
       )}
       {data && (
         <div className="space-y-space-4">

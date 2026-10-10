@@ -10,12 +10,15 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonLines } from "@/components/ui/Skeleton";
-import { erp, useErpQuery } from "@/lib/erp";
+import { useBilling, useCancelService } from "@/hooks/useBilling";
 import { formatDate } from "@/lib/formatDate";
 import { SERVICE_LABEL, SERVICES, type Service } from "@/lib/services";
-import { refreshStaffSession, hasPermission, useStaffSession } from "@/lib/staffAuth";
+import {
+  refreshStaffSession,
+  hasPermission,
+  useStaffSession,
+} from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
-import type { BillingView } from "./_components/billing-types";
 import { createPaymentColumns } from "./_components/payment-columns";
 import { ServiceBillingCard } from "./_components/ServiceBillingCard";
 
@@ -51,16 +54,19 @@ function Meter({
 export default function BillingPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
-  const view = useErpQuery<BillingView>("/api/v1/billing");
+  const view = useBilling();
   const canManage = hasPermission(session, "billing", "write");
   // The chooser: open on one service's plans ("pos"), or on the service step (null service); closed when `choosing` is false.
-  const [choosing, setChoosing] = useState<{ service: Service | null } | null>(null);
+  const [choosing, setChoosing] = useState<{ service: Service | null } | null>(
+    null,
+  );
   const [cancelling, setCancelling] = useState<Service | null>(null);
-  const [busy, setBusy] = useState(false);
+  const cancelService = useCancelService();
+  const busy = cancelService.isPending;
   const columns = useMemo(() => createPaymentColumns(), []);
 
   // Checkout opens in a new tab (Razorpay's Subscriptions API cannot redirect back), so refresh when the person returns.
-  const { reload } = view;
+  const { refetch: reload } = view;
   useEffect(() => {
     const refresh = () => {
       reload();
@@ -81,17 +87,15 @@ export default function BillingPage() {
   if (!ready) return null;
   const data = view.data;
 
-  async function cancel(service: Service) {
-    setBusy(true);
-    const res = await erp(`/api/v1/billing/${service}/cancel`, "POST", {
-      at_cycle_end: true,
+  function cancel(service: Service) {
+    cancelService.mutate(service, {
+      onSuccess: () => {
+        toast.success("Cancellation scheduled.");
+        void refreshStaffSession();
+      },
+      onError: (e) => toast.error("Couldn't complete that", e.message),
+      onSettled: () => setCancelling(null),
     });
-    setBusy(false);
-    setCancelling(null);
-    if (res.error) return toast.error("Couldn't complete that", res.error);
-    toast.success("Cancellation scheduled.");
-    reload();
-    void refreshStaffSession();
   }
 
   return (
@@ -103,7 +107,7 @@ export default function BillingPage() {
       />
       {view.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {view.error}
+          {view.error.message}
         </p>
       )}
       {data && !data.billing_configured && (
@@ -126,7 +130,7 @@ export default function BillingPage() {
             />
           ))}
         </div>
-      ) : view.loading ? (
+      ) : view.isFetching ? (
         <Card className="p-space-4">
           <SkeletonLines rows={3} />
         </Card>
@@ -134,7 +138,7 @@ export default function BillingPage() {
 
       <Card className="mt-space-4 p-space-4">
         <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Usage</h2>
-        {!data && view.loading && <SkeletonLines rows={3} />}
+        {!data && view.isFetching && <SkeletonLines rows={3} />}
         {data && (
           <div className="space-y-space-3 rounded-md border border-line p-space-3">
             <Meter
@@ -182,8 +186,8 @@ export default function BillingPage() {
           data={data?.payments ?? []}
           getRowId={(p) => p.id}
           pageSize={10}
-          loading={view.loading}
-          emptyMessage={view.loading ? "Loading…" : "No payments yet."}
+          loading={view.isFetching}
+          emptyMessage={view.isFetching ? "Loading…" : "No payments yet."}
         />
       </Card>
 
@@ -191,7 +195,9 @@ export default function BillingPage() {
         open={cancelling !== null}
         destructive
         busy={busy}
-        title={cancelling ? `Cancel ${SERVICE_LABEL[cancelling]}?` : "Cancel plan?"}
+        title={
+          cancelling ? `Cancel ${SERVICE_LABEL[cancelling]}?` : "Cancel plan?"
+        }
         confirmLabel="Cancel at period end"
         message={
           cancelling

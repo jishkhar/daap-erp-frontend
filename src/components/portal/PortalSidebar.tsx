@@ -399,14 +399,15 @@ export function PortalSidebar({
                   >
                     <Icon size={18} strokeWidth={2} className="shrink-0" />
                     {label}
-                    {item.service && session?.services?.[item.service]?.locked && (
-                      <Lock
-                        size={13}
-                        strokeWidth={2.25}
-                        aria-label="Not active"
-                        className="ml-auto shrink-0 opacity-70"
-                      />
-                    )}
+                    {item.service &&
+                      session?.services?.[item.service]?.locked && (
+                        <Lock
+                          size={13}
+                          strokeWidth={2.25}
+                          aria-label="Not active"
+                          className="ml-auto shrink-0 opacity-70"
+                        />
+                      )}
                   </Link>
                 )}
               </div>

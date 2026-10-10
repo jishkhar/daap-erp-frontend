@@ -14,7 +14,10 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { erp, formatDateTime, qs, useErpQuery, type Customer } from "@/lib/erp";
+import { CursorPager } from "@/components/ui/CursorPager";
+import { useCreateCustomer, useCustomerList } from "@/hooks/useCustomers";
+import { formatDateTime, type Customer } from "@/lib/erp";
+import { useDebounced } from "@/lib/useDebounced";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
@@ -23,12 +26,12 @@ export default function CustomersPage() {
   const session = useStaffSession();
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const customers = useErpQuery<Customer[]>(
-    `/api/v1/customers${qs({ q: search, limit: 200 })}`,
-  );
+  const query = useDebounced(search.trim());
+  const customers = useCustomerList(query); // paged and searched on the server
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
-  const [busy, setBusy] = useState(false);
+  const createCustomer = useCreateCustomer();
+  const busy = createCustomer.isPending;
   const canCreate = hasPermission(session, "customers", "write");
 
   const columns = useMemo<ColumnDef<Customer, unknown>[]>(
@@ -75,19 +78,22 @@ export default function CustomersPage() {
 
   if (!ready) return null;
 
-  async function create() {
-    setBusy(true);
-    const res = await erp("/api/v1/customers", "POST", {
-      name: form.name.trim(),
-      phone: form.phone.trim() || null,
-      email: form.email.trim() || null,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't add the customer", res.error);
-    toast.success("Customer added");
-    setOpen(false);
-    setForm({ name: "", phone: "", email: "" });
-    customers.reload();
+  function create() {
+    createCustomer.mutate(
+      {
+        name: form.name.trim(),
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Customer added");
+          setOpen(false);
+          setForm({ name: "", phone: "", email: "" });
+        },
+        onError: (e) => toast.error("Couldn't add the customer", e.message),
+      },
+    );
   }
 
   return (
@@ -115,20 +121,22 @@ export default function CustomersPage() {
       </Card>
       {customers.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {customers.error}
+          {customers.error.message}
         </p>
       )}
       <Card className="p-space-2">
         <DataTable
           columns={columns}
-          data={customers.data ?? []}
+          data={customers.rows}
           getRowId={(c) => String(c.id)}
           onRowClick={(c) => router.push(`/portal/customers/${c.id}`)}
-          loading={customers.loading}
+          paginate={false}
+          loading={customers.isFetching}
           emptyMessage={
-            customers.loading ? "Loading customers…" : "No customers yet."
+            customers.isLoading ? "Loading customers…" : "No customers yet."
           }
         />
+        <CursorPager {...customers.pager} />
       </Card>
       <Modal
         open={open}

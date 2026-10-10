@@ -5,45 +5,23 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { erp, useErpQuery } from "@/lib/erp";
+import {
+  useDismissOnboarding,
+  useOnboarding,
+  useOnboardingStep,
+  type Guide,
+  type GuideStep,
+} from "@/hooks/useTenantSettings";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-export type GuideStep = {
-  key: string;
-  title: string;
-  why: string;
-  href: string;
-  status: "done" | "in_progress" | "todo" | "skipped";
-  detail: string | null;
-  warning: string | null;
-  skippable: boolean;
-  confirmable: boolean;
-  channels?: {
-    channel: string;
-    label: string;
-    in_plan: boolean;
-    ended?: boolean;
-    met: number;
-    total: number;
-    ready: boolean;
-  }[];
-};
-export type Guide = {
-  steps: GuideStep[];
-  done: number;
-  total: number;
-  essentials_done: boolean;
-  complete: boolean;
-  dismissed: boolean;
-  planned_channels: string[];
-};
+export type { Guide, GuideStep };
 
 /** The setup guide for the signed-in owner/admin. Null data (and no request) for people who can't see tenant settings. */
 export function useGuide() {
   const session = useStaffSession();
   const allowed = hasPermission(session, "settings", "view");
-  const q = useErpQuery<Guide>(allowed ? "/api/v1/onboarding" : null);
+  const q = useOnboarding(allowed);
   return { ...q, allowed };
 }
 
@@ -233,14 +211,17 @@ export function SetupStatusRow({
   );
 }
 
-export async function sendStepAction(
-  key: string,
-  action: "skip" | "unskip" | "confirm",
-  reload: () => void,
-) {
-  const res = await erp(`/api/v1/onboarding/steps/${key}`, "POST", { action });
-  if (res.error) return toast.error("Couldn't update the step", res.error);
-  reload();
+/** Skip, un-skip or confirm a guide step, with the error toast. Refreshes the guide itself. */
+export function useStepAction() {
+  const step = useOnboardingStep();
+  return {
+    busy: step.isPending,
+    send: (key: string, action: "skip" | "unskip" | "confirm") =>
+      step.mutate(
+        { key, action },
+        { onError: (e) => toast.error("Couldn't update the step", e.message) },
+      ),
+  };
 }
 
 /** The four things a brand-new business needs before anything else works. Shown on the dashboard until they are done or dismissed;
@@ -248,20 +229,20 @@ export async function sendStepAction(
 const FIRST_RUN = ["profile", "locations", "products", "channels"];
 
 export function FirstRunChecklist() {
-  const { data, reload, allowed } = useGuide();
+  const { data, allowed } = useGuide();
+  const dismiss = useDismissOnboarding();
   if (!allowed || !data || data.dismissed) return null;
   const steps = FIRST_RUN.map((k) =>
     data.steps.find((s) => s.key === k),
   ).filter((s): s is GuideStep => Boolean(s));
   const done = steps.filter((s) => s.status === "done").length;
   if (steps.length === 0 || done === steps.length) return null;
-  async function hide() {
-    const res = await erp("/api/v1/onboarding/dismissed", "PUT", {
-      dismissed: true,
+  function hide() {
+    dismiss.mutate(true, {
+      onSuccess: () =>
+        toast.success("Hidden", "The full list stays under Settings → Setup."),
+      onError: (e) => toast.error("Couldn't hide this", e.message),
     });
-    if (res.error) return toast.error("Couldn't hide this", res.error);
-    toast.success("Hidden", "The full list stays under Settings → Setup.");
-    reload();
   }
   return (
     <Card className="mb-space-4 p-space-4">

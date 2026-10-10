@@ -10,6 +10,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -18,42 +19,19 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
+import { useDebounced } from "@/lib/useDebounced";
 import {
-  erp,
-  formatDateTime,
-  humanize,
-  qs,
-  useErpQuery,
-  type Product,
-} from "@/lib/erp";
+  useAdjustStock,
+  useReceiveStock,
+  useSetReorderLevel,
+  useStockLevels,
+  useStockMovements,
+  type StockLevel as Level,
+  type StockMovement as LedgerRow,
+} from "@/hooks/useInventory";
+import { formatDateTime, humanize, type Product } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
-type Level = {
-  branch_id: string;
-  branch_code: string;
-  variant_id: string;
-  sku: string;
-  product_name: string;
-  serialization_type: "NONE" | "SERIAL" | "IMEI";
-  available_qty: number;
-  reserved_qty: number;
-  in_transit_qty: number;
-  reorder_level: number | null;
-};
-type LedgerRow = {
-  id: string;
-  branch_code: string;
-  sku: string;
-  product_name: string;
-  movement_type: string;
-  available_delta: number;
-  reserved_delta: number;
-  in_transit_delta: number;
-  available_after: number;
-  ref_type: string | null;
-  reason: string | null;
-  created_at: string;
-};
 type Target = {
   branch_id: string;
   variant_id: string;
@@ -75,14 +53,20 @@ export default function InventoryPage() {
   const [tab, setTab] = useState<"stock" | "movements">("stock");
   const [search, setSearch] = useState("");
   const [lowOnly, setLowOnly] = useState(false);
-  const levels = useErpQuery<Level[]>(
-    `/api/v1/inventory${qs({ branch_id: branchId, low_stock: lowOnly, limit: 1000 })}`,
+  // Both lists are searched and paged on the server.
+  const query = useDebounced(search.trim());
+  const levels = useStockLevels({
+    branch_id: branchId,
+    low_stock: lowOnly,
+    q: query,
+  });
+  const ledger = useStockMovements(
+    { branch_id: branchId },
+    tab === "movements",
   );
-  const ledger = useErpQuery<LedgerRow[]>(
-    tab === "movements"
-      ? `/api/v1/inventory/ledger${qs({ branch_id: branchId, limit: 200 })}`
-      : null,
-  );
+  const receiveStock = useReceiveStock();
+  const adjustStock = useAdjustStock();
+  const setReorderLevel = useSetReorderLevel();
 
   const [receive, setReceive] = useState<{
     branch_id: string;
@@ -102,17 +86,12 @@ export default function InventoryPage() {
   const [reorder, setReorder] = useState<(Target & { level: string }) | null>(
     null,
   );
-  const [busy, setBusy] = useState(false);
+  const busy =
+    receiveStock.isPending ||
+    adjustStock.isPending ||
+    setReorderLevel.isPending;
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (levels.data ?? []).filter(
-      (l) =>
-        !q ||
-        l.product_name.toLowerCase().includes(q) ||
-        l.sku.toLowerCase().includes(q),
-    );
-  }, [levels.data, search]);
+  const rows = levels.rows;
 
   const columns = useMemo<ColumnDef<Level, unknown>[]>(
     () => [
@@ -275,30 +254,33 @@ export default function InventoryPage() {
 
   if (!ready) return null;
 
-  async function submitReceive() {
+  function submitReceive() {
     if (!receive?.product) return;
     const qty = parseInt(receive.qty, 10);
     if (!qty || qty <= 0) return toast.error("Enter a quantity");
     const tracked = receive.product.serialization_type !== "NONE";
-    setBusy(true);
-    const res = await erp("/api/v1/inventory/receipts", "POST", {
-      branch_id: receive.branch_id,
-      lines: [
-        {
-          variant_id: receive.product.id,
-          quantity: qty,
-          ...(tracked ? { serial_numbers: serialList(receive.serials) } : {}),
+    receiveStock.mutate(
+      {
+        branch_id: receive.branch_id,
+        lines: [
+          {
+            variant_id: receive.product.id,
+            quantity: qty,
+            ...(tracked ? { serial_numbers: serialList(receive.serials) } : {}),
+          },
+        ],
+      },
+      {
+        onSuccess: () => {
+          toast.success(`${qty} unit(s) received`);
+          setReceive(null);
         },
-      ],
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't receive stock", res.error);
-    toast.success(`${qty} unit(s) received`);
-    setReceive(null);
-    levels.reload();
+        onError: (e) => toast.error("Couldn't receive stock", e.message),
+      },
+    );
   }
 
-  async function submitAdjust() {
+  function submitAdjust() {
     if (!adjust) return;
     const delta = parseInt(adjust.delta, 10);
     if (!delta)
@@ -306,39 +288,45 @@ export default function InventoryPage() {
         "Enter how many units to add (positive) or remove (negative)",
       );
     if (!adjust.reason.trim()) return toast.error("A reason is required");
-    setBusy(true);
-    const res = await erp("/api/v1/inventory/adjustments", "POST", {
-      branch_id: adjust.branch_id,
-      variant_id: adjust.variant_id,
-      delta,
-      reason: adjust.reason.trim(),
-      serial_numbers: adjust.tracked ? serialList(adjust.serials) : [],
-      write_off: delta < 0 && adjust.write_off,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't adjust stock", res.error);
-    toast.success("Stock adjusted");
-    setAdjust(null);
-    levels.reload();
+    adjustStock.mutate(
+      {
+        branch_id: adjust.branch_id,
+        variant_id: adjust.variant_id,
+        delta,
+        reason: adjust.reason.trim(),
+        serial_numbers: adjust.tracked ? serialList(adjust.serials) : [],
+        write_off: delta < 0 && adjust.write_off,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Stock adjusted");
+          setAdjust(null);
+        },
+        onError: (e) => toast.error("Couldn't adjust stock", e.message),
+      },
+    );
   }
 
-  async function submitReorder() {
+  function submitReorder() {
     if (!reorder) return;
     const level =
       reorder.level.trim() === "" ? null : parseInt(reorder.level, 10);
     if (level !== null && (Number.isNaN(level) || level < 0))
       return toast.error("Enter a whole number, or leave empty for none");
-    setBusy(true);
-    const res = await erp("/api/v1/inventory/reorder-level", "PUT", {
-      branch_id: reorder.branch_id,
-      variant_id: reorder.variant_id,
-      reorder_level: level,
-    });
-    setBusy(false);
-    if (res.error) return toast.error("Couldn't save", res.error);
-    toast.success("Reorder level saved");
-    setReorder(null);
-    levels.reload();
+    setReorderLevel.mutate(
+      {
+        branch_id: reorder.branch_id,
+        variant_id: reorder.variant_id,
+        reorder_level: level,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Reorder level saved");
+          setReorder(null);
+        },
+        onError: (e) => toast.error("Couldn't save", e.message),
+      },
+    );
   }
 
   return (
@@ -392,7 +380,7 @@ export default function InventoryPage() {
           </Card>
           {levels.error && (
             <p className="mb-space-3 text-[13px] font-medium text-error">
-              {levels.error}
+              {levels.error.message}
             </p>
           )}
           <Card className="p-space-2">
@@ -400,43 +388,32 @@ export default function InventoryPage() {
               columns={columns}
               data={rows}
               getRowId={(l) => `${l.branch_id}-${l.variant_id}`}
+              paginate={false}
+              loading={levels.isFetching}
               emptyMessage={
-                levels.loading
+                levels.isLoading
                   ? "Loading stock…"
                   : "No stock recorded yet. Use Receive stock to add some."
               }
             />
-          </Card>
-          {levels.error && (
-            <p className="mb-space-3 text-[13px] font-medium text-error">
-              {levels.error}
-            </p>
-          )}
-          <Card className="p-space-2">
-            <DataTable
-              columns={columns}
-              data={rows}
-              getRowId={(l) => `${l.branch_id}-${l.variant_id}`}
-              loading={levels.loading}
-              emptyMessage={
-                levels.loading
-                  ? "Loading stock…"
-                  : "No stock recorded yet. Use Receive stock to add some."
-              }
-            />
+            <CursorPager {...levels.pager} />
           </Card>
         </>
       ) : (
         <Card className="p-space-2">
           <DataTable
             columns={ledgerColumns}
-            data={ledger.data ?? []}
+            data={ledger.rows}
             getRowId={(r) => String(r.id)}
-            loading={ledger.loading}
+            paginate={false}
+            loading={ledger.isFetching}
             emptyMessage={
-              ledger.loading ? "Loading movements…" : "No stock movements yet."
+              ledger.isLoading
+                ? "Loading movements…"
+                : "No stock movements yet."
             }
           />
+          <CursorPager {...ledger.pager} />
         </Card>
       )}
 

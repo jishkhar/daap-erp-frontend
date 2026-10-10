@@ -21,8 +21,9 @@ import {
   type AuditEntry,
 } from "@/lib/audit";
 import { useActiveBranch } from "@/lib/branch";
-import { erp, humanize, qs, useErpQuery } from "@/lib/erp";
-import { useCursorPager } from "@/lib/useCursorPager";
+import { fetchActivityForExport, useActivityLog } from "@/hooks/useActivity";
+import { humanize } from "@/lib/erp";
+import { toast } from "@/lib/toast";
 
 const filterClass = "h-10 text-[13px]";
 
@@ -119,24 +120,21 @@ export default function ActivityPage() {
   });
   const d = useDebounced(f);
   const filters = { ...d, branch_id: activeBranch };
-  const pager = useCursorPager(JSON.stringify(filters));
-  // One row more than a page tells us whether a next page exists. The cursor is the id of the last entry already seen.
-  const log = useErpQuery<AuditEntry[]>(
-    `/api/v1/audit-logs${qs({ ...filters, cursor: pager.cursor, limit: pager.size + 1 })}`,
-  );
-  const rows = (log.data ?? []).slice(0, pager.size);
-  const hasNext = (log.data?.length ?? 0) > pager.size;
+  const log = useActivityLog(filters); // paged on the server by the id of the last entry seen
+  const rows = log.rows;
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) =>
     setF((p) => ({ ...p, [k]: e.target.value }));
   if (!ready) return null;
 
   async function exportCsv() {
-    const all = await erp<AuditEntry[]>(
-      `/api/v1/audit-logs${qs({ ...filters, limit: 500 })}`,
-    ); // up to 500 entries matching the filters, not just this page
-    if (!all.data) return;
+    let all;
+    try {
+      all = await fetchActivityForExport(filters); // up to 500 entries matching the filters, not just this page
+    } catch (e) {
+      return toast.error("Couldn't export", (e as Error).message);
+    }
     const url = URL.createObjectURL(
-      new Blob([auditCsv(all.data)], { type: "text/csv" }),
+      new Blob([auditCsv(all)], { type: "text/csv" }),
     );
     const a = Object.assign(document.createElement("a"), {
       href: url,
@@ -218,7 +216,7 @@ export default function ActivityPage() {
       </Card>
       {log.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
-          {log.error}
+          {log.error.message}
         </p>
       )}
       <DataTable
@@ -228,17 +226,7 @@ export default function ActivityPage() {
         pageSize={100}
         emptyMessage={log.data ? "Nothing recorded yet." : "Loading…"}
       />
-      <CursorPager
-        page={pager.page}
-        shown={rows.length}
-        size={pager.size}
-        onSize={pager.setSize}
-        hasNext={hasNext}
-        onPrev={pager.prev}
-        onNext={() =>
-          rows.length && pager.next(String(rows[rows.length - 1]!.id))
-        }
-      />
+      <CursorPager {...log.pager} />
     </PortalShell>
   );
 }
