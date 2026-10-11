@@ -1,14 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  Copy,
-  ImageIcon,
-  PackagePlus,
-  Package,
-  Pencil,
-  PackageOpen,
-} from "lucide-react";
+import { ImageIcon, PackagePlus, Package, Pencil } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
@@ -29,9 +22,10 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
-import { useReceiveStock, useStockFor } from "@/hooks/useInventory";
+import { useStockFor } from "@/hooks/useInventory";
 import {
-  useAddVariant,
+  useCreateProductCategory,
+  useProductCategories,
   useImportProducts,
   useProductList,
   useSaveProduct,
@@ -45,11 +39,7 @@ import {
   toMinor,
   type Product,
 } from "@/lib/erp";
-import {
-  activeBranches,
-  hasPermission,
-  useStaffSession,
-} from "@/lib/staffAuth";
+import { hasGrant, hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { useActiveBranch } from "@/lib/branch";
 import { useDebounced } from "@/lib/useDebounced";
 import { toast } from "@/lib/toast";
@@ -75,6 +65,9 @@ type Draft = {
   name: string;
   variant_name: string;
   description: string;
+  category_id: string;
+  color_hex: string;
+  variant_attributes: Record<string, unknown>;
   price: string;
   mrp: string;
   cost: string;
@@ -89,6 +82,9 @@ const EMPTY: Draft = {
   name: "",
   variant_name: "",
   description: "",
+  category_id: "",
+  color_hex: "",
+  variant_attributes: {},
   price: "",
   mrp: "",
   cost: "",
@@ -113,27 +109,19 @@ export default function ProductsPage() {
     activeBranch ?? "",
   );
   const taxes = useTaxRules();
+  const categories = useProductCategories();
+  const createCategory = useCreateProductCategory();
+  const [newCategory, setNewCategory] = useState("");
   const saveProduct = useSaveProduct();
   const importProducts = useImportProducts();
-  const addVariantTo = useAddVariant();
-  const receiveStock = useReceiveStock();
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [receiving, setReceiving] = useState<Product | null>(null);
-  const [variantOf, setVariantOf] = useState<Product | null>(null);
   const [imagesOf, setImagesOf] = useState<string | null>(null);
-  const [variant, setVariant] = useState({ sku: "", name: "", price: "" });
-  const [recvBranch, setRecvBranch] = useState("");
-  const [recvQty, setRecvQty] = useState("");
-  const [recvSerials, setRecvSerials] = useState("");
-  const busy =
-    saveProduct.isPending || addVariantTo.isPending || receiveStock.isPending;
+  const busy = saveProduct.isPending || createCategory.isPending;
   const importing = importProducts.isPending;
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const canWrite = hasPermission(session, "products", "write");
-  const canReceive =
-    !!session && Object.keys(session.permissions).includes("inventory:receive");
   const stockBy = useMemo(
     () => new Map((stock.data ?? []).map((s) => [s.variant_id, s])),
     [stock.data],
@@ -164,6 +152,31 @@ export default function ProductsPage() {
             </div>
           </div>
         ),
+      },
+      {
+        header: "Category",
+        cell: ({ row }) =>
+          row.original.category_name ??
+          categories.data?.find((c) => c.id === row.original.category_id)
+            ?.name ??
+          "—",
+      },
+      {
+        header: "Color",
+        cell: ({ row }) => {
+          const hex = row.original.variant_attributes?.color_hex;
+          return typeof hex === "string" && /^#[0-9a-f]{6}$/i.test(hex) ? (
+            <span className="flex items-center gap-space-2">
+              <span
+                className="h-4 w-4 rounded border border-line"
+                style={{ backgroundColor: hex }}
+              />
+              {hex.toUpperCase()}
+            </span>
+          ) : (
+            "—"
+          );
+        },
       },
       {
         header: "Price",
@@ -210,36 +223,6 @@ export default function ProductsPage() {
         id: "actions",
         cell: ({ row }) => (
           <div className="flex justify-end gap-space-1">
-            {canReceive && row.original.lifecycle_status !== "archived" && (
-              <Button
-                variant="ghost"
-                aria-label={`Receive stock for ${row.original.name}`}
-                onClick={() => {
-                  setReceiving(row.original);
-                  setRecvBranch(String(activeBranches(session)[0]?.id ?? ""));
-                  setRecvQty("");
-                  setRecvSerials("");
-                }}
-              >
-                <PackageOpen size={16} /> Receive
-              </Button>
-            )}
-            {canWrite && row.original.lifecycle_status !== "archived" && (
-              <Button
-                variant="ghost"
-                aria-label={`Add a variant of ${row.original.name}`}
-                onClick={() => {
-                  setVariantOf(row.original);
-                  setVariant({
-                    sku: "",
-                    name: "",
-                    price: fromMinor(row.original.price_minor),
-                  });
-                }}
-              >
-                <Copy size={15} /> Variant
-              </Button>
-            )}
             {canWrite && (
               <Button
                 variant="ghost"
@@ -263,6 +246,13 @@ export default function ProductsPage() {
                         ? ""
                         : row.original.variant_name,
                     description: row.original.description ?? "",
+                    category_id: row.original.category_id ?? "",
+                    color_hex:
+                      typeof row.original.variant_attributes?.color_hex ===
+                      "string"
+                        ? row.original.variant_attributes.color_hex
+                        : "",
+                    variant_attributes: row.original.variant_attributes ?? {},
                     price: fromMinor(row.original.price_minor),
                     mrp: fromMinor(row.original.mrp_minor),
                     cost: fromMinor(row.original.cost_minor),
@@ -281,7 +271,7 @@ export default function ProductsPage() {
         ),
       },
     ],
-    [cur, stockBy, canReceive, canWrite, session],
+    [cur, stockBy, canWrite, categories.data],
   );
 
   if (!ready) return null;
@@ -300,7 +290,21 @@ export default function ProductsPage() {
       draft.barcode.trim(),
     );
     if (barcodeError) return toast.error("Check the barcode", barcodeError);
+    if (
+      draft.color_hex.trim() &&
+      !/^#[0-9a-f]{6}$/i.test(draft.color_hex.trim())
+    )
+      return toast.error(
+        "Enter a valid color",
+        "Use a six-digit hex code, e.g. #FF5733.",
+      );
+    const attributes = { ...draft.variant_attributes };
+    if (draft.color_hex.trim())
+      attributes.color_hex = draft.color_hex.trim().toUpperCase();
+    else delete attributes.color_hex;
     const body = {
+      category_id: draft.category_id || null,
+      variant_attributes: attributes,
       name: draft.name.trim(),
       ...(draft.variant_name.trim()
         ? { variant_name: draft.variant_name.trim() }
@@ -337,63 +341,6 @@ export default function ProductsPage() {
       onSuccess: setImportResult,
       onError: (e) => toast.error("Couldn't import the file", e.message),
     });
-  }
-
-  function addVariant() {
-    if (!variantOf) return;
-    const price = toMinor(variant.price);
-    if (price === null)
-      return toast.error("Enter a valid price", "e.g. 1299.00");
-    addVariantTo.mutate(
-      {
-        productId: variantOf.id,
-        body: {
-          sku: variant.sku.trim(),
-          variant_name: variant.name.trim(),
-          price_minor: price,
-          tax_code: variantOf.tax_code,
-          serialization_type: variantOf.serialization_type,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success("Variant added");
-          setVariantOf(null);
-        },
-        onError: (e) => toast.error("Couldn't add the variant", e.message),
-      },
-    );
-  }
-
-  function receive() {
-    if (!receiving) return;
-    const qty = parseInt(recvQty, 10);
-    if (!qty || qty <= 0) return toast.error("Enter a quantity");
-    const serials = recvSerials
-      .split(/[\n,]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    receiveStock.mutate(
-      {
-        branch_id: recvBranch,
-        lines: [
-          {
-            variant_id: receiving.id,
-            quantity: qty,
-            ...(receiving.serialization_type !== "NONE"
-              ? { serial_numbers: serials }
-              : {}),
-          },
-        ],
-      },
-      {
-        onSuccess: () => {
-          toast.success(`${qty} unit(s) received`);
-          setReceiving(null);
-        },
-        onError: (e) => toast.error("Couldn't receive stock", e.message),
-      },
-    );
   }
 
   const set = (patch: Partial<Draft>) =>
@@ -518,6 +465,81 @@ export default function ProductsPage() {
                 />
               </Field>
             )}
+            <Field label="Category" htmlFor="p_category">
+              <Select
+                id="p_category"
+                value={draft.category_id}
+                onChange={(e) => set({ category_id: e.target.value })}
+                disabled={categories.isLoading}
+              >
+                <option value="">No category</option>
+                {(categories.data ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              {categories.error && (
+                <p className="text-[13px] text-error">
+                  {categories.error.message}
+                </p>
+              )}
+              {hasGrant(session, "products:create") && (
+                <div className="mt-space-2 flex gap-space-2">
+                  <Input
+                    aria-label="New category name"
+                    placeholder="New category name"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                  />
+                  <Button
+                    variant="secondary"
+                    disabled={busy || !newCategory.trim()}
+                    onClick={() =>
+                      createCategory.mutate(newCategory.trim(), {
+                        onSuccess: (category) => {
+                          set({ category_id: category.id });
+                          setNewCategory("");
+                          toast.success("Category added");
+                        },
+                        onError: (e) =>
+                          toast.error("Couldn't add the category", e.message),
+                      })
+                    }
+                  >
+                    Add category
+                  </Button>
+                </div>
+              )}
+            </Field>
+            <Field
+              label="Color (hex code)"
+              htmlFor="p_color"
+              hint="Use # followed by six hex digits, e.g. #FF5733. Leave empty for none."
+            >
+              <div className="flex items-center gap-space-2">
+                <input
+                  type="color"
+                  aria-label="Choose product color"
+                  value={
+                    /^#[0-9a-f]{6}$/i.test(draft.color_hex)
+                      ? draft.color_hex
+                      : "#000000"
+                  }
+                  onChange={(e) =>
+                    set({ color_hex: e.target.value.toUpperCase() })
+                  }
+                  className="h-10 w-12 shrink-0 cursor-pointer rounded border border-line"
+                />
+                <Input
+                  id="p_color"
+                  placeholder="#FF5733"
+                  maxLength={7}
+                  value={draft.color_hex}
+                  onChange={(e) => set({ color_hex: e.target.value })}
+                />
+              </div>
+            </Field>
             <Field label={`Selling price (${cur})`} htmlFor="p_price" required>
               <Input
                 id="p_price"
@@ -703,119 +725,6 @@ export default function ProductsPage() {
             Download sample file
           </a>
         </p>
-      </Modal>
-
-      <Modal
-        open={variantOf !== null}
-        onClose={() => setVariantOf(null)}
-        title={`Add a variant — ${variantOf?.product_name ?? ""}`}
-        description="A variant is its own SKU: it has its own price and its own stock."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setVariantOf(null)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={
-                busy ||
-                !variant.sku.trim() ||
-                !variant.name.trim() ||
-                !variant.price
-              }
-              onClick={addVariant}
-            >
-              Add variant
-            </Button>
-          </>
-        }
-      >
-        <Field label="SKU" htmlFor="v_sku" required>
-          <Input
-            id="v_sku"
-            value={variant.sku}
-            onChange={(e) => setVariant({ ...variant, sku: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Variant name"
-          htmlFor="v_name"
-          required
-          hint="e.g. 256GB, Red, XL."
-        >
-          <Input
-            id="v_name"
-            value={variant.name}
-            onChange={(e) => setVariant({ ...variant, name: e.target.value })}
-          />
-        </Field>
-        <Field label={`Selling price (${cur})`} htmlFor="v_price" required>
-          <Input
-            id="v_price"
-            inputMode="decimal"
-            value={variant.price}
-            onChange={(e) => setVariant({ ...variant, price: e.target.value })}
-          />
-        </Field>
-      </Modal>
-
-      <Modal
-        open={receiving !== null}
-        onClose={() => setReceiving(null)}
-        title={`Receive stock — ${receiving?.name ?? ""}`}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setReceiving(null)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={busy || !recvQty || !recvBranch}
-              onClick={receive}
-            >
-              Receive
-            </Button>
-          </>
-        }
-      >
-        <Field label="Branch" htmlFor="r_branch">
-          <Select
-            id="r_branch"
-            value={recvBranch}
-            onChange={(e) => setRecvBranch(e.target.value)}
-          >
-            {activeBranches(session).map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.branch_name} ({b.branch_code})
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Quantity" htmlFor="r_qty">
-          <Input
-            id="r_qty"
-            inputMode="numeric"
-            value={recvQty}
-            onChange={(e) => setRecvQty(e.target.value)}
-          />
-        </Field>
-        {receiving && receiving.serialization_type !== "NONE" && (
-          <Field
-            label={
-              receiving.serialization_type === "IMEI"
-                ? "IMEI numbers"
-                : "Serial numbers"
-            }
-            htmlFor="r_serials"
-            hint="One per line (or comma separated) — exactly as many as the quantity."
-            required
-          >
-            <Textarea
-              id="r_serials"
-              rows={4}
-              value={recvSerials}
-              onChange={(e) => setRecvSerials(e.target.value)}
-            />
-          </Field>
-        )}
       </Modal>
     </PortalShell>
   );

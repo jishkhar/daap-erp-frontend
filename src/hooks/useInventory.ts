@@ -43,6 +43,7 @@ export type StockMovement = {
 /** The stock list, paged and searched (product, variant, SKU) on the server. Empty `branch_id` = every branch. */
 export function useStockLevels(filters: {
   branch_id?: string | null;
+  availability?: "in_stock" | "out_of_stock" | null;
   low_stock?: boolean;
   q?: string;
 }) {

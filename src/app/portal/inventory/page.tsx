@@ -3,7 +3,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PackageReceiveIcon, WarehouseIcon } from "@hugeicons/core-free-icons";
-import { useMemo, useState } from "react";
+import { Copy, PackageOpen } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { ProductPicker } from "@/components/erp/ProductPicker";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -29,7 +30,16 @@ import {
   type StockLevel as Level,
   type StockMovement as LedgerRow,
 } from "@/hooks/useInventory";
-import { formatDateTime, humanize, type Product } from "@/lib/erp";
+import { useAddVariant } from "@/hooks/useProducts";
+import {
+  erpGet,
+  formatDateTime,
+  fromMinor,
+  humanize,
+  toMinor,
+  type Product,
+} from "@/lib/erp";
+import { hasGrant, hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 type Target = {
@@ -49,7 +59,27 @@ const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 export default function InventoryPage() {
   const { tenant, ready } = usePortalGuard();
-  const { branchId, branches } = useActiveBranch();
+  const session = useStaffSession();
+  const canReceive = hasGrant(session, "inventory:receive");
+  const canWriteProducts = hasPermission(session, "products", "write");
+  const cur = tenant?.currency ?? "INR";
+  const addVariantTo = useAddVariant();
+  const [variantOpen, setVariantOpen] = useState(false);
+  const [variantOf, setVariantOf] = useState<Product | null>(null);
+  const [variant, setVariant] = useState({ sku: "", name: "", price: "" });
+  const [loadingProduct, setLoadingProduct] = useState(false);
+  const selectVariantProduct = useCallback((product: Product) => {
+    setVariantOf(product);
+    setVariant({ sku: "", name: "", price: fromMinor(product.price_minor) });
+  }, []);
+  const closeVariant = () => {
+    setVariantOpen(false);
+    setVariantOf(null);
+  };
+  const { branchId, branches, setBranch } = useActiveBranch();
+  const [availability, setAvailability] = useState<
+    "" | "in_stock" | "out_of_stock"
+  >("");
   const [tab, setTab] = useState<"stock" | "movements">("stock");
   const [search, setSearch] = useState("");
   const [lowOnly, setLowOnly] = useState(false);
@@ -57,6 +87,7 @@ export default function InventoryPage() {
   const query = useDebounced(search.trim());
   const levels = useStockLevels({
     branch_id: branchId,
+    availability: availability || null,
     low_stock: lowOnly,
     q: query,
   });
@@ -87,9 +118,45 @@ export default function InventoryPage() {
     null,
   );
   const busy =
+    loadingProduct ||
+    addVariantTo.isPending ||
     receiveStock.isPending ||
     adjustStock.isPending ||
     setReorderLevel.isPending;
+
+  const openProductAction = useCallback(
+    async (level: Level, action: "receive" | "variant") => {
+      setLoadingProduct(true);
+      try {
+        const product = await erpGet<Product>(
+          `/api/v1/products/${level.variant_id}`,
+        );
+        if (product.lifecycle_status === "archived") {
+          toast.error("Archived products cannot receive stock or new variants");
+          return;
+        }
+        if (action === "receive") {
+          setReceive({
+            branch_id: level.branch_id,
+            product,
+            qty: "",
+            serials: "",
+          });
+        } else {
+          selectVariantProduct(product);
+          setVariantOpen(true);
+        }
+      } catch (error) {
+        toast.error(
+          "Couldn't load the product",
+          error instanceof Error ? error.message : undefined,
+        );
+      } finally {
+        setLoadingProduct(false);
+      }
+    },
+    [selectVariantProduct],
+  );
 
   const rows = levels.rows;
 
@@ -154,6 +221,26 @@ export default function InventoryPage() {
           };
           return (
             <div className="flex justify-end gap-space-1">
+              {canReceive && (
+                <Button
+                  variant="ghost"
+                  disabled={loadingProduct}
+                  aria-label={`Receive stock for ${l.product_name}`}
+                  onClick={() => void openProductAction(l, "receive")}
+                >
+                  <PackageOpen size={16} /> Receive
+                </Button>
+              )}
+              {canWriteProducts && (
+                <Button
+                  variant="ghost"
+                  disabled={loadingProduct}
+                  aria-label={`Add a variant of ${l.product_name}`}
+                  onClick={() => void openProductAction(l, "variant")}
+                >
+                  <Copy size={15} /> Variant
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 onClick={() =>
@@ -185,7 +272,7 @@ export default function InventoryPage() {
         },
       },
     ],
-    [branchId],
+    [branchId, canReceive, canWriteProducts, loadingProduct, openProductAction],
   );
 
   const ledgerColumns = useMemo<ColumnDef<LedgerRow, unknown>[]>(
@@ -254,8 +341,34 @@ export default function InventoryPage() {
 
   if (!ready) return null;
 
+  function addVariant() {
+    if (!variantOf || !canWriteProducts) return;
+    const price = toMinor(variant.price);
+    if (price === null)
+      return toast.error("Enter a valid price", "e.g. 1299.00");
+    addVariantTo.mutate(
+      {
+        productId: variantOf.id,
+        body: {
+          sku: variant.sku.trim(),
+          variant_name: variant.name.trim(),
+          price_minor: price,
+          tax_code: variantOf.tax_code,
+          serialization_type: variantOf.serialization_type,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Variant added");
+          closeVariant();
+        },
+        onError: (e) => toast.error("Couldn't add the variant", e.message),
+      },
+    );
+  }
+
   function submitReceive() {
-    if (!receive?.product) return;
+    if (!receive?.product || !canReceive) return;
     const qty = parseInt(receive.qty, 10);
     if (!qty || qty <= 0) return toast.error("Enter a quantity");
     const tracked = receive.product.serialization_type !== "NONE";
@@ -337,18 +450,35 @@ export default function InventoryPage() {
         title="Inventory"
         description={`Stock ${branchId ? "at the selected branch" : "across all your branches"}.`}
         actions={
-          <Button
-            onClick={() =>
-              setReceive({
-                branch_id: branchId ?? branches[0]?.id ?? "",
-                product: null,
-                qty: "",
-                serials: "",
-              })
-            }
-          >
-            <HugeiconsIcon icon={PackageReceiveIcon} size={16} /> Receive stock
-          </Button>
+          <div className="flex flex-wrap gap-space-2">
+            {canWriteProducts && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setVariantOf(null);
+                  setVariant({ sku: "", name: "", price: "" });
+                  setVariantOpen(true);
+                }}
+              >
+                <Copy size={16} /> Add variant
+              </Button>
+            )}
+            {canReceive && (
+              <Button
+                onClick={() =>
+                  setReceive({
+                    branch_id: branchId ?? branches[0]?.id ?? "",
+                    product: null,
+                    qty: "",
+                    serials: "",
+                  })
+                }
+              >
+                <HugeiconsIcon icon={PackageReceiveIcon} size={16} /> Receive
+                stock
+              </Button>
+            )}
+          </div>
         }
       />
       <Tabs
@@ -362,6 +492,35 @@ export default function InventoryPage() {
       {tab === "stock" ? (
         <>
           <Card className="mb-space-4 flex flex-wrap items-center gap-space-3 p-space-3">
+            <label className="flex items-center gap-space-2 text-[14px] text-ink-900">
+              Branch
+              <Select
+                aria-label="Filter inventory by branch"
+                value={branchId ?? ""}
+                onChange={(e) => setBranch(e.target.value || null)}
+              >
+                <option value="">All branches</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.branch_name} ({b.branch_code})
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="flex items-center gap-space-2 text-[14px] text-ink-900">
+              Availability
+              <Select
+                aria-label="Filter inventory by availability"
+                value={availability}
+                onChange={(e) =>
+                  setAvailability(e.target.value as typeof availability)
+                }
+              >
+                <option value="">All availability</option>
+                <option value="in_stock">In stock</option>
+                <option value="out_of_stock">Out of stock</option>
+              </Select>
+            </label>
             <Input
               placeholder="Search name or SKU…"
               value={search}
@@ -393,7 +552,9 @@ export default function InventoryPage() {
               emptyMessage={
                 levels.isLoading
                   ? "Loading stock…"
-                  : "No stock recorded yet. Use Receive stock to add some."
+                  : branchId || availability || lowOnly || query
+                    ? "No products match these filters."
+                    : "No stock recorded yet. Use Receive stock to add some."
               }
             />
             <CursorPager {...levels.pager} />
@@ -416,6 +577,83 @@ export default function InventoryPage() {
           <CursorPager {...ledger.pager} />
         </Card>
       )}
+
+      <Modal
+        open={variantOpen}
+        onClose={closeVariant}
+        title={
+          variantOf
+            ? `Add a variant — ${variantOf.product_name}`
+            : "Add a variant"
+        }
+        description="A variant is its own SKU: it has its own price and its own stock."
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeVariant}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                busy ||
+                !variantOf ||
+                !variant.sku.trim() ||
+                !variant.name.trim() ||
+                !variant.price
+              }
+              onClick={addVariant}
+            >
+              Add variant
+            </Button>
+          </>
+        }
+      >
+        <Field label="Product" htmlFor="v_product" required>
+          {variantOf ? (
+            <div className="flex items-center justify-between rounded-md border border-line p-space-3 text-[14px]">
+              <span>
+                <strong>{variantOf.name}</strong>{" "}
+                <span className="text-ink-400">{variantOf.sku}</span>
+              </span>
+              <button
+                type="button"
+                className="text-[13px] font-semibold text-brand-600"
+                onClick={() => setVariantOf(null)}
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <ProductPicker id="v_product" onPick={selectVariantProduct} />
+          )}
+        </Field>
+        <Field label="SKU" htmlFor="v_sku" required>
+          <Input
+            id="v_sku"
+            value={variant.sku}
+            onChange={(e) => setVariant({ ...variant, sku: e.target.value })}
+          />
+        </Field>
+        <Field
+          label="Variant name"
+          htmlFor="v_name"
+          required
+          hint="e.g. 256GB, Red, XL."
+        >
+          <Input
+            id="v_name"
+            value={variant.name}
+            onChange={(e) => setVariant({ ...variant, name: e.target.value })}
+          />
+        </Field>
+        <Field label={`Selling price (${cur})`} htmlFor="v_price" required>
+          <Input
+            id="v_price"
+            inputMode="decimal"
+            value={variant.price}
+            onChange={(e) => setVariant({ ...variant, price: e.target.value })}
+          />
+        </Field>
+      </Modal>
 
       <Modal
         open={receive !== null}
