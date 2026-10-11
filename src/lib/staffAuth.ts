@@ -503,7 +503,7 @@ const PAGE_MODULE: Record<string, string> = {
   branches: "branches",
   products: "products",
   customers: "customers",
-  discounts: "orders",
+  discounts: "discounts",
   whatsapp: "customers",
   reports: "reports",
   feedback: "customers",
