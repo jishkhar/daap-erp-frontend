@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
+import { Eye, MoreHorizontal, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   ChannelBadge,
@@ -11,6 +12,12 @@ import {
 import { Card } from "@/components/ui/Card";
 import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useOrderList } from "@/hooks/useOrders";
@@ -24,6 +31,7 @@ import {
   type Order,
 } from "@/lib/erp";
 import { useDebounced } from "@/lib/useDebounced";
+import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 
 const STATUSES: Order["status"][] = [
   "pending",
@@ -53,6 +61,8 @@ type Props = {
 /** The orders list: filters + table. Orders from every channel live here; the channel is a filter. */
 export function OrdersView({ initialChannel = "" }: Props) {
   const router = useRouter();
+  const session = useStaffSession();
+  const canUpdate = hasPermission(session, "orders", "write");
   const { branchId, branches } = useActiveBranch();
   const [status, setStatus] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
@@ -128,8 +138,44 @@ export function OrdersView({ initialChannel = "" }: Props) {
           </span>
         ),
       },
+      {
+        header: "Actions",
+        id: "actions",
+        cell: ({ row }) => (
+          <div onClick={(event) => event.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={`Actions for ${row.original.order_number}`}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-ink-600 hover:bg-black/[0.04] hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+              >
+                <MoreHorizontal size={20} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.push(`/portal/orders/${row.original.id}`)
+                  }
+                >
+                  <Eye size={16} /> View
+                </DropdownMenuItem>
+                {canUpdate && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      router.push(
+                        `/portal/orders/${row.original.id}#order-actions`,
+                      )
+                    }
+                  >
+                    <Pencil size={16} /> Edit
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
+      },
     ],
-    [branchCode],
+    [branchCode, canUpdate, router],
   );
 
   return (

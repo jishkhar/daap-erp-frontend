@@ -33,7 +33,7 @@ Sign in at `/portal/login` with **company code + email + password** (a tenant is
 | Financial reports: P&L (by branch / channel), branch × channel, balance sheet, GST, product margin, aging | `/portal/analytics` → *Financial reports* | `/api/v1/finance/reports/*` |
 | Settings, Team & Access, Roles & Permissions, Activity log, Online Storefront | `/portal/settings/*` | tenant, users, roles, audit-logs, channel keys |
 
-**Not built yet (shown in the sidebar, but say so on the page):** WhatsApp Inbox, WhatsApp Automation, Discounts, Feedback — they depend on later backend phases.
+**Not built yet (shown in the sidebar, but say so on the page):** WhatsApp Inbox, WhatsApp Automation, Discounts — they depend on later backend phases.
 Growth is listed but disabled. **Workforce** (Attendance, Check-in/out, My Leave, Team Attendance, Leave Requests) is kept in the navigation as designed, but the ERP
 backend has no attendance/leave module yet, so those pages show "Something went wrong" until it exists.
 
@@ -45,3 +45,5 @@ backend has no attendance/leave module yet, so those pages show "Something went 
   Hiding a menu item is a convenience only; the server enforces every permission and branch scope.
 - The **branch switcher** (top bar) only narrows what list pages request; access itself is decided server-side from the person's role grants.
 - Browser-only state (session, sidebar collapse) is read with `useSyncExternalStore` (`src/lib/useStorageValue.ts`), not effects, so server and client markup always agree.
+
+Product reviews now appear in ERP Feedback with product/customer/order details and branch/rating filters. See [Product reviews](../docs/PRODUCT_REVIEWS.md) for eligibility, API contracts and testing.
