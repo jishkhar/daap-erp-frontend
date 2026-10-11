@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { staffFetch } from "@/lib/staffAuth";
 
 // ---------------------------------------------------------------------------------------------- channels
@@ -73,6 +74,10 @@ export type Order = {
   refunded_minor: number;
   placed_at: string;
   cancel_reason: string | null;
+  /** Present on the orders list: who bought it (with customer_name above), from which branch, and how many units. */
+  customer_phone?: string | null;
+  branch_name?: string | null;
+  item_count?: number;
 };
 
 export type OrderItem = {
@@ -152,7 +157,26 @@ export type Customer = {
   email: string | null;
   status: "active" | "blocked";
   notes: string | null;
+  gstin?: string | null;
+  tags?: string[];
+  whatsapp_opt_in?: boolean;
+  total_orders?: number;
+  total_spent_minor?: number;
+  last_order_at?: string | null;
   created_at: string;
+};
+export type CustomerAddress = {
+  id: string;
+  label: string | null;
+  line1: string;
+  line2: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  is_default: boolean;
+  /** Who the address delivers to, when it differs from the customer. */
+  name: string | null;
+  phone: string | null;
 };
 export type Interaction = {
   id: string;
@@ -343,6 +367,42 @@ export async function erpSendFile<T = unknown>(
   file: File,
 ): Promise<T> {
   return orThrow(await erpUpload<T>(path, file));
+}
+
+/** Load-on-mount (and on reload / path change) GET. Redirects to sign-in if the session has ended.
+ * Removed from main in favour of the TanStack Query hooks in src/hooks; kept here only for the CRM screens that still call it. */
+export function useErpQuery<T>(path: string | null) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(path !== null);
+  const [tick, setTick] = useState(0);
+  const latest = useRef(0);
+
+  useEffect(() => {
+    if (path === null) return;
+    const id = ++latest.current;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const res = await erp<T>(path);
+      if (cancelled || id !== latest.current) return;
+      if (res.unauthorized) {
+        // Hard navigation on purpose: it discards all in-memory state of a session that no longer exists.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.href = "/portal/login";
+        return;
+      }
+      setData(res.data);
+      setError(res.error);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [path, tick]);
+
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  return { data, error, loading, reload };
 }
 
 export function qs(
@@ -625,3 +685,24 @@ export const QC_CHECKS: { key: string; label: string }[] = [
   { key: "factory_reset", label: "Factory reset done" },
   { key: "no_activation_lock", label: "No activation lock" },
 ];
+
+export type DiscountKind = "percent" | "flat" | "free_delivery" | "bogo";
+
+export type Discount = {
+  id: string;
+  code: string | null;
+  name: string;
+  kind: DiscountKind;
+  /** percent: 0–100; flat: minor units. */
+  value: number;
+  max_discount_minor: number | null;
+  min_order_minor: number;
+  channels: Channel[];
+  branch_ids: string[] | null;
+  usage_limit: number | null;
+  per_customer_limit: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  times_used: number;
+};

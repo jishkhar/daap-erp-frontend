@@ -8,6 +8,7 @@ import {
   Timer,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChannelBadge, OrderStatusBadge } from "@/components/erp/StatusBadges";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { FirstRunChecklist } from "@/components/portal/onboarding/guide";
@@ -16,7 +17,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveBranch } from "@/lib/branch";
-import { CHANNEL_ORDER, formatMoney } from "@/lib/erp";
+import { CHANNEL_ORDER, formatMoney, humanize } from "@/lib/erp";
 import { useTodaySummary } from "@/hooks/useAnalytics";
 import { useLowStock } from "@/hooks/useInventory";
 import { useRecentOrders } from "@/hooks/useOrders";
@@ -25,6 +26,7 @@ import { Skeleton, SkeletonLines } from "@/components/ui/Skeleton";
 
 export default function DashboardPage() {
   const { tenant, ready } = usePortalGuard();
+  const router = useRouter();
   const { branchId } = useActiveBranch();
   const today = useTodaySummary(branchId);
   const orders = useRecentOrders(branchId);
@@ -121,7 +123,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-space-4 lg:grid-cols-3">
-        <Card className="p-space-4 lg:col-span-2">
+        <Card className="p-space-4 lg:col-span-3">
           <div className="mb-space-2 flex items-center justify-between">
             <h2 className="text-[15px] font-bold text-ink-900">
               Recent orders
@@ -139,32 +141,73 @@ export default function DashboardPage() {
             ) : (
               <p className="text-[13.5px] text-ink-400">{"No orders yet."}</p>
             ))}
-          <ul className="divide-y divide-line">
-            {recent.map((o) => (
-              <li key={o.id}>
-                <Link
-                  href={`/portal/orders/${o.id}`}
-                  className="flex flex-wrap items-center justify-between gap-space-2 py-space-2 text-[13.5px] hover:bg-black/[0.02]"
-                >
-                  <span className="flex items-center gap-space-2">
-                    <span className="font-semibold text-ink-900">
-                      {o.order_number}
-                    </span>
-                    <ChannelBadge channel={o.channel} />
-                  </span>
-                  <span className="flex items-center gap-space-3">
-                    <span className="text-ink-600">
-                      {formatDateTime(o.placed_at)}
-                    </span>
-                    <span className="font-medium">
-                      {formatMoney(o.total_minor, o.currency)}
-                    </span>
-                    <OrderStatusBadge status={o.status} />
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {recent.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full whitespace-nowrap text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-line text-[11px] font-bold uppercase tracking-wide text-ink-400">
+                    <th className="py-space-2 pr-space-3">Order</th>
+                    <th className="py-space-2 pr-space-3">Customer</th>
+                    <th className="py-space-2 pr-space-3">Channel</th>
+                    <th className="py-space-2 pr-space-3">Date</th>
+                    <th className="py-space-2 pr-space-3 text-right">Qty</th>
+                    <th className="py-space-2 pr-space-3 text-right">Amount</th>
+                    <th className="py-space-2 pr-space-3">Payment</th>
+                    <th className="py-space-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {recent.map((o) => (
+                    <tr
+                      key={o.id}
+                      onClick={() => router.push(`/portal/orders/${o.id}`)}
+                      className="cursor-pointer hover:bg-black/[0.02]"
+                    >
+                      <td className="py-space-2 pr-space-3 font-semibold text-ink-900">
+                        <Link href={`/portal/orders/${o.id}`}>
+                          {o.order_number}
+                        </Link>
+                      </td>
+                      <td className="py-space-2 pr-space-3">
+                        {o.customer_name || o.customer_phone ? (
+                          <>
+                            <span className="block font-medium text-ink-900">
+                              {o.customer_name ?? o.customer_phone}
+                            </span>
+                            {o.customer_name && o.customer_phone && (
+                              <span className="block text-[12px] text-ink-600">
+                                {o.customer_phone}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-ink-400">Walk-in</span>
+                        )}
+                      </td>
+                      <td className="py-space-2 pr-space-3">
+                        <ChannelBadge channel={o.channel} />
+                      </td>
+                      <td className="py-space-2 pr-space-3 text-ink-600">
+                        {formatDateTime(o.placed_at)}
+                      </td>
+                      <td className="py-space-2 pr-space-3 text-right">
+                        {o.item_count ?? 0}
+                      </td>
+                      <td className="py-space-2 pr-space-3 text-right font-medium">
+                        {formatMoney(o.total_minor, o.currency)}
+                      </td>
+                      <td className="py-space-2 pr-space-3 capitalize text-ink-600">
+                        {humanize(o.payment_status)}
+                      </td>
+                      <td className="py-space-2">
+                        <OrderStatusBadge status={o.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
         <Card className="p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
