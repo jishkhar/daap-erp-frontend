@@ -12,6 +12,7 @@ export function ProductSelect({
   id,
   placeholder,
   serialized,
+  categoryId,
   exclude,
 }: {
   value: Product | null;
@@ -19,6 +20,7 @@ export function ProductSelect({
   id?: string;
   placeholder?: string;
   serialized?: boolean;
+  categoryId?: string;
   exclude?: string[];
 }) {
   if (!value)
@@ -28,6 +30,7 @@ export function ProductSelect({
         onPick={onChange}
         placeholder={placeholder}
         serialized={serialized}
+        categoryId={categoryId}
         exclude={exclude}
       />
     );

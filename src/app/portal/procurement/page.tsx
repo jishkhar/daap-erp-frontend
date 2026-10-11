@@ -22,9 +22,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
 import {
   useCreateSupplier,
-  useDecidePurchaseRequest,
   usePurchaseOrders,
-  usePurchaseRequests,
   useSuppliers,
 } from "@/hooks/useProcurement";
 import {
@@ -33,26 +31,12 @@ import {
   formatMoney,
   humanize,
   type PurchaseOrder,
-  type PurchaseRequest,
   type Supplier,
 } from "@/lib/erp";
-import {
-  hasGrant,
-  hasPermission,
-  hasTenantWide,
-  useStaffSession,
-} from "@/lib/staffAuth";
+import { hasGrant, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Tab = "orders" | "requests" | "suppliers";
-const REQUEST_TONE = {
-  SUBMITTED: "warning",
-  APPROVED: "clay",
-  REJECTED: "neutral",
-  CONVERTED: "success",
-  CANCELLED: "neutral",
-} as const;
-
+type Tab = "orders" | "suppliers";
 export default function ProcurementPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
@@ -62,13 +46,8 @@ export default function ProcurementPage() {
   const { branchId: activeBranch } = useActiveBranch();
   // newest first, paged on the server
   const pos = usePurchaseOrders({ status, branch_id: activeBranch });
-  const requests = usePurchaseRequests(
-    { branch_id: activeBranch },
-    tab === "requests",
-  );
   const suppliers = useSuppliers();
   const createSupplierMutation = useCreateSupplier();
-  const decideRequest = useDecidePurchaseRequest();
   const [newPo, setNewPo] = useState(false);
   const [openSupplier, setOpenSupplier] = useState<string | null>(null);
   const [addSupplier, setAddSupplier] = useState(false);
@@ -143,92 +122,7 @@ export default function ProcurementPage() {
     [supplierName, branchCode],
   );
 
-  const requestColumns = useMemo<ColumnDef<PurchaseRequest, unknown>[]>(
-    () => [
-      {
-        header: "Request",
-        cell: ({ row }) => (
-          <span className="font-semibold text-ink-900">
-            {row.original.request_number}
-          </span>
-        ),
-      },
-      {
-        header: "Branch",
-        cell: ({ row }) =>
-          branchCode.get(row.original.branch_id) ??
-          `#${row.original.branch_id}`,
-      },
-      {
-        header: "Notes",
-        cell: ({ row }) =>
-          row.original.notes ?? <span className="text-ink-400">—</span>,
-      },
-      {
-        header: "Status",
-        cell: ({ row }) => (
-          <Badge tone={REQUEST_TONE[row.original.status]}>
-            {humanize(row.original.status)}
-          </Badge>
-        ),
-      },
-      {
-        header: "Raised",
-        cell: ({ row }) => (
-          <span className="text-ink-600">
-            {formatDateTime(row.original.created_at)}
-          </span>
-        ),
-      },
-      {
-        header: "",
-        id: "act",
-        cell: ({ row }) =>
-          row.original.status === "SUBMITTED" &&
-          hasPermission(session, "procurement", "write") ? (
-            <div
-              className="flex justify-end gap-space-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                variant="ghost"
-                onClick={() => decide(row.original.id, "approve")}
-              >
-                Approve
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => decide(row.original.id, "reject")}
-              >
-                Reject
-              </Button>
-            </div>
-          ) : null,
-      },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    ],
-    [branchCode, session],
-  );
-
   if (!ready) return null;
-
-  function decide(id: string, action: "approve" | "reject") {
-    const reason =
-      action === "reject"
-        ? window.prompt("Reason for rejecting this request?")
-        : null;
-    if (action === "reject" && !reason) return;
-    decideRequest.mutate(
-      { id, action, reason },
-      {
-        onSuccess: () =>
-          toast.success(
-            action === "approve" ? "Request approved" : "Request rejected",
-          ),
-        onError: (e) => toast.error("Couldn't update the request", e.message),
-      },
-    );
-  }
 
   function createSupplier() {
     createSupplierMutation.mutate(
@@ -319,7 +213,6 @@ export default function ProcurementPage() {
       <Tabs<Tab>
         tabs={[
           { key: "orders", label: "Purchase orders" },
-          { key: "requests", label: "Requests" },
           { key: "suppliers", label: "Suppliers" },
         ]}
         value={tab}
@@ -372,21 +265,6 @@ export default function ProcurementPage() {
             <CursorPager {...pos.pager} />
           </Card>
         </>
-      )}
-      {tab === "requests" && (
-        <Card className="p-space-2">
-          <DataTable
-            columns={requestColumns}
-            data={requests.rows}
-            getRowId={(o) => String(o.id)}
-            paginate={false}
-            loading={requests.isFetching}
-            emptyMessage={
-              requests.isLoading ? "Loading…" : "No purchase requests."
-            }
-          />
-          <CursorPager {...requests.pager} />
-        </Card>
       )}
       {tab === "suppliers" && (
         <>

@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageIcon, ImagePlus, Star, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useProductImages } from "@/hooks/useProducts";
@@ -9,8 +9,8 @@ import type { Product } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
 // Mirrors the server's rules (services/product_images.py); the server is what actually enforces them.
-const MAX_BYTES = 5 * 1024 * 1024;
-const MAX_IMAGES = 10;
+const MAX_BYTES = 1024 * 1024;
+const MAX_IMAGES = 6;
 const ACCEPT = "image/jpeg,image/png,image/webp";
 
 /** The small cover picture shown in the products table. */
@@ -47,6 +47,17 @@ export function ProductImagesModal({
   );
   const gallery = useProductImages(product?.id ?? "");
   const [uploading, setUploading] = useState(false);
+  const [previews, setPreviews] = useState<{
+    id: string;
+    urls: string[];
+  } | null>(null);
+  const previewUrls = useRef(new Set<string>());
+  useEffect(() => {
+    const urls = previewUrls.current;
+    return () => {
+      for (const url of urls) URL.revokeObjectURL(url);
+    };
+  }, []);
   const busy =
     uploading || gallery.remove.isPending || gallery.reorder.isPending;
   const input = useRef<HTMLInputElement>(null);
@@ -61,38 +72,57 @@ export function ProductImagesModal({
   };
 
   async function upload(files: FileList | null) {
+    // FileList belongs to the input: clearing its value also clears that list.
+    const selected = Array.from(files ?? []);
     if (input.current) input.current.value = "";
-    if (!product || !files?.length) return;
-    setUploading(true);
-    let current = images;
-    for (const file of Array.from(files)) {
-      if (current.length >= MAX_IMAGES) {
-        toast.error(`At most ${MAX_IMAGES} images per product`);
-        break;
-      }
+    if (!product || !selected.length || busy) return;
+    const accepted: { file: File; url: string }[] = [];
+    for (const file of selected) {
       if (!ACCEPT.split(",").includes(file.type)) {
         toast.error(`${file.name}: use a JPEG, PNG or WebP image`);
         continue;
       }
       if (file.size > MAX_BYTES) {
-        toast.error(`${file.name}: images can be at most 5 MB`);
+        toast.error(`${file.name}: images can be at most 1 MB`);
         continue;
       }
+      if (images.length + accepted.length >= MAX_IMAGES) {
+        toast.error(`At most ${MAX_IMAGES} images per product`);
+        break;
+      }
+      const url = URL.createObjectURL(file);
+      previewUrls.current.add(url);
+      accepted.push({ file, url });
+    }
+    if (!accepted.length) return;
+    setUploading(true);
+    setPreviews({ id: product.id, urls: accepted.map(({ url }) => url) });
+    for (const { file, url } of accepted) {
       try {
         const result = await gallery.upload.mutateAsync(file); // one at a time, in order
-        current = result.images;
         apply(result);
       } catch (e) {
         toast.error(`Couldn't upload ${file.name}`, (e as Error).message);
+      } finally {
+        setPreviews((p) =>
+          p ? { ...p, urls: p.urls.filter((u) => u !== url) } : p,
+        );
+        URL.revokeObjectURL(url);
+        previewUrls.current.delete(url);
       }
     }
     setUploading(false);
   }
 
   function remove(url: string) {
+    const before = images;
+    apply({ images: images.filter((u) => u !== url) });
     gallery.remove.mutate(url, {
       onSuccess: apply,
-      onError: (e) => toast.error("Couldn't remove the image", e.message),
+      onError: (e) => {
+        apply({ images: before });
+        toast.error("Couldn't remove the image", e.message);
+      },
     });
   }
 
@@ -103,13 +133,16 @@ export function ProductImagesModal({
     });
   }
 
+  const pending = previews?.id === product?.id ? (previews?.urls ?? []) : [];
+  const displayed = [...images, ...pending];
+
   return (
     <Modal
       open={product !== null}
       onClose={onClose}
       width="lg"
       title={`Images — ${product?.name ?? ""}`}
-      description="Shown on the online store. The first image is the cover. JPEG, PNG or WebP, up to 5 MB each."
+      description="Shown on the online store. The first image is the cover. Maximum 6 images per product. JPEG, PNG or WebP, up to 1 MB each."
       footer={
         <>
           <input
@@ -132,14 +165,17 @@ export function ProductImagesModal({
         </>
       }
     >
-      {images.length === 0 ? (
+      <p className="mb-space-3 text-[13px] text-ink-400">
+        {displayed.length} / {MAX_IMAGES} images
+      </p>
+      {displayed.length === 0 ? (
         <p className="py-space-6 text-center text-[13px] text-ink-400">
           No images yet. Upload at least one so the product looks right on the
           store.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-space-3 sm:grid-cols-3">
-          {images.map((url, i) => (
+          {displayed.map((url, i) => (
             <li
               key={url}
               className="relative overflow-hidden rounded-lg border border-ink-100 bg-ink-50"
@@ -151,10 +187,19 @@ export function ProductImagesModal({
                 className="aspect-[3/4] w-full object-cover"
                 loading="lazy"
               />
-              {i === 0 && (
-                <span className="absolute left-2 top-2 rounded-full bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-white">
-                  Cover
+              {pending.includes(url) ? (
+                <span
+                  className="absolute left-2 top-2 rounded-full bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-white"
+                  role="status"
+                >
+                  Uploading…
                 </span>
+              ) : (
+                i === 0 && (
+                  <span className="absolute left-2 top-2 rounded-full bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-white">
+                    Cover
+                  </span>
+                )
               )}
               <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/60 to-transparent p-2">
                 {i !== 0 && (

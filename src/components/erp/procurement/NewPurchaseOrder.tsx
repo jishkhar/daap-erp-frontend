@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { useCreatePurchaseOrder, useSuppliers } from "@/hooks/useProcurement";
+import { useProductCategories } from "@/hooks/useProducts";
 import {
   formatMoney,
   toMinor,
@@ -46,6 +47,8 @@ export function NewPurchaseOrder({
   const session = useStaffSession();
   const suppliers = useSuppliers(open);
   const createPo = useCreatePurchaseOrder();
+  const categories = useProductCategories();
+  const [categoryId, setCategoryId] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [rows, setRows] = useState<Row[]>([{ ...EMPTY_ROW }]);
@@ -91,6 +94,7 @@ export function NewPurchaseOrder({
           setFreight("");
           setNotes("");
           setSupplierId("");
+          setCategoryId("");
           onCreated(po);
         },
         onError: (e) =>
@@ -151,6 +155,28 @@ export function NewPurchaseOrder({
           </Select>
         </Field>
       </div>
+      <Field
+        label="Product category"
+        htmlFor="po_category"
+        hint="Filters the products you can add. Selected items stay in the order."
+      >
+        <Select
+          id="po_category"
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          disabled={categories.isLoading}
+        >
+          <option value="">All categories</option>
+          {(categories.data ?? []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
+        {categories.error && (
+          <p className="text-[13px] text-error">{categories.error.message}</p>
+        )}
+      </Field>
       <p className="text-label mb-space-2">Items</p>
       <div className="space-y-space-2">
         {rows.map((r, i) => (
@@ -159,6 +185,8 @@ export function NewPurchaseOrder({
             className="grid grid-cols-[1fr_90px_130px_36px] items-center gap-space-2"
           >
             <ProductSelect
+              key={`${i}-${categoryId}`}
+              categoryId={categoryId || undefined}
               value={r.product}
               placeholder="Search product…"
               exclude={rows

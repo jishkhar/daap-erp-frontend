@@ -14,22 +14,32 @@ export function ProductPicker({
   placeholder = "Search products by name, SKU or barcode…",
   id,
   serialized,
+  categoryId,
   exclude = [],
 }: {
   onPick: (p: Product) => void;
   placeholder?: string;
   id?: string;
   serialized?: boolean;
+  categoryId?: string;
   exclude?: string[];
 }) {
   const [q, setQ] = useState("");
+  const [focused, setFocused] = useState(false);
   const query = useDebounced(q.trim());
   const results = useProductSearch(
-    { q: query, lifecycle_status: "active", serialized },
-    Boolean(query),
+    {
+      q: query,
+      lifecycle_status: "active",
+      serialized,
+      category_id: categoryId,
+    },
+    Boolean(query || (categoryId && focused)),
   );
   const shown = (results.data ?? []).filter(
-    (p) => !exclude.includes(String(p.id)),
+    (p) =>
+      !exclude.includes(String(p.id)) &&
+      (!categoryId || p.category_id === categoryId),
   );
   return (
     <div className="relative">
@@ -39,8 +49,9 @@ export function ProductPicker({
         onChange={(e) => setQ(e.target.value)}
         placeholder={placeholder}
         aria-label="Search products"
+        onFocus={() => setFocused(true)}
       />
-      {q.trim() && (
+      {(q.trim() || (categoryId && focused)) && (
         <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-card shadow-[var(--shadow-md)]">
           {shown.map((p) => (
             <li key={p.id}>

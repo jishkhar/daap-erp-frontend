@@ -13,6 +13,28 @@ import { queryKeys } from "@/lib/queryKeys";
 /** A product row with its tax rate, as the product search returns it (for the order page's tax preview). */
 export type ProductWithTax = Product & { tax_rate_bps?: number | null };
 
+export type ProductCategory = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+};
+
+export function useProductCategories() {
+  return useQuery({
+    queryKey: ["product-categories"],
+    queryFn: () => erpGet<ProductCategory[]>("/api/v1/categories"),
+  });
+}
+
+export function useCreateProductCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      erpSend<ProductCategory>("/api/v1/categories", "POST", { name }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["product-categories"] }),
+  });
+}
+
 /** The product master, paged and searched (name, variant, SKU) on the server. */
 export function useProductList(q: string) {
   return usePagedQuery<Product>(queryKeys.productList, "/api/v1/products", {
@@ -22,6 +44,7 @@ export function useProductList(q: string) {
 
 export type ProductSearch = {
   q: string;
+  category_id?: string;
   lifecycle_status?: string;
   /** true: only serial/IMEI-tracked products; false: only untracked ones; omitted: both. */
   serialized?: boolean;
@@ -32,6 +55,7 @@ export type ProductSearch = {
 export function useProductSearch(search: ProductSearch, enabled = true) {
   const params = {
     q: search.q,
+    category_id: search.category_id,
     lifecycle_status: search.lifecycle_status,
     serialized:
       search.serialized === undefined ? undefined : String(search.serialized), // qs() drops a plain false
@@ -110,7 +134,12 @@ export type ProductImages = { images: string[] };
 
 /** A product's gallery: upload one image, remove one, or set the order (the first is the cover). Each returns the new list. */
 export function useProductImages(productId: string) {
-  const refresh = useRefreshProducts();
+  const qc = useQueryClient();
+  // Refresh product lists in the background; gallery responses already contain
+  // the saved image list, and image changes do not affect inventory.
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: queryKeys.products });
+  };
   const path = `/api/v1/products/${productId}/images`;
   return {
     upload: useMutation({
