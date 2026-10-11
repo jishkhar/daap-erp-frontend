@@ -2,7 +2,7 @@
 
 import {
   Message01Icon,
-  MoreVerticalIcon,
+  MoreHorizontalIcon,
   Search01Icon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
@@ -142,7 +142,7 @@ export function CustomersTab({
               onClick={(e) => e.stopPropagation()}
               className="flex h-8 w-8 items-center justify-center rounded-md text-ink-600 hover:bg-black/[0.05] focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none"
             >
-              <HugeiconsIcon icon={MoreVerticalIcon} size={18} />
+              <HugeiconsIcon icon={MoreHorizontalIcon} size={18} />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem

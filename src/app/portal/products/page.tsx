@@ -1,7 +1,14 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ImageIcon, PackagePlus, Package, Pencil } from "lucide-react";
+import {
+  ImageIcon,
+  PackagePlus,
+  Package,
+  Pencil,
+  MoreHorizontal,
+  Eye,
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
@@ -17,6 +24,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -115,6 +128,7 @@ export default function ProductsPage() {
   const saveProduct = useSaveProduct();
   const importProducts = useImportProducts();
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [viewOf, setViewOf] = useState<Product | null>(null);
   const [imagesOf, setImagesOf] = useState<string | null>(null);
   const busy = saveProduct.isPending || createCategory.isPending;
   const importing = importProducts.isPending;
@@ -219,8 +233,8 @@ export default function ProductsPage() {
         ),
       },
       {
-        header: "",
-        id: "actions",
+        header: "Images",
+        id: "images",
         cell: ({ row }) => (
           <div className="flex justify-end gap-space-1">
             {canWrite && (
@@ -232,42 +246,59 @@ export default function ProductsPage() {
                 <ImageIcon size={15} /> Images
               </Button>
             )}
-            {canWrite && (
-              <Button
-                variant="ghost"
-                aria-label={`Edit ${row.original.name}`}
-                onClick={() =>
-                  setDraft({
-                    id: row.original.id,
-                    sku: row.original.sku,
-                    name: row.original.product_name,
-                    variant_name:
-                      row.original.variant_name === "Default"
-                        ? ""
-                        : row.original.variant_name,
-                    description: row.original.description ?? "",
-                    category_id: row.original.category_id ?? "",
-                    color_hex:
-                      typeof row.original.variant_attributes?.color_hex ===
-                      "string"
-                        ? row.original.variant_attributes.color_hex
-                        : "",
-                    variant_attributes: row.original.variant_attributes ?? {},
-                    price: fromMinor(row.original.price_minor),
-                    mrp: fromMinor(row.original.mrp_minor),
-                    cost: fromMinor(row.original.cost_minor),
-                    tax_code: row.original.tax_code ?? "",
-                    serialization_type: row.original.serialization_type,
-                    barcode: row.original.barcode ?? "",
-                    barcode_type: inferBarcodeType(row.original.barcode),
-                    lifecycle_status: row.original.lifecycle_status,
-                  })
-                }
-              >
-                <Pencil size={15} /> Edit
-              </Button>
-            )}
           </div>
+        ),
+      },
+      {
+        header: "Actions",
+        id: "actions",
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`Actions for ${row.original.name}`}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-ink-600 hover:bg-black/[0.04] hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+            >
+              <MoreHorizontal size={20} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setViewOf(row.original)}>
+                <Eye size={16} /> View
+              </DropdownMenuItem>
+              {canWrite && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setDraft({
+                      id: row.original.id,
+                      sku: row.original.sku,
+                      name: row.original.product_name,
+                      variant_name:
+                        row.original.variant_name === "Default"
+                          ? ""
+                          : row.original.variant_name,
+                      description: row.original.description ?? "",
+                      category_id: row.original.category_id ?? "",
+                      color_hex:
+                        typeof row.original.variant_attributes?.color_hex ===
+                        "string"
+                          ? row.original.variant_attributes.color_hex
+                          : "",
+                      variant_attributes: row.original.variant_attributes ?? {},
+                      price: fromMinor(row.original.price_minor),
+                      mrp: fromMinor(row.original.mrp_minor),
+                      cost: fromMinor(row.original.cost_minor),
+                      tax_code: row.original.tax_code ?? "",
+                      serialization_type: row.original.serialization_type,
+                      barcode: row.original.barcode ?? "",
+                      barcode_type: inferBarcodeType(row.original.barcode),
+                      lifecycle_status: row.original.lifecycle_status,
+                    });
+                  }}
+                >
+                  <Pencil size={16} /> Edit
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ),
       },
     ],
@@ -405,6 +436,78 @@ export default function ProductsPage() {
         />
         <CursorPager {...products.pager} />
       </Card>
+
+      <Modal
+        open={viewOf !== null}
+        onClose={() => setViewOf(null)}
+        width="lg"
+        title="Product details"
+        description={viewOf?.name}
+      >
+        {viewOf && (
+          <dl className="grid gap-space-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-ink-400">SKU</dt>
+              <dd>{viewOf.sku}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Variant</dt>
+              <dd>{viewOf.variant_name}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Category</dt>
+              <dd>
+                {viewOf.category_name ??
+                  categories.data?.find((c) => c.id === viewOf.category_id)
+                    ?.name ??
+                  "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Color</dt>
+              <dd>
+                {typeof viewOf.variant_attributes?.color_hex === "string"
+                  ? viewOf.variant_attributes.color_hex.toUpperCase()
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Price</dt>
+              <dd>{formatMoney(viewOf.price_minor, cur)}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">MRP</dt>
+              <dd>
+                {viewOf.mrp_minor === null
+                  ? "—"
+                  : formatMoney(viewOf.mrp_minor, cur)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Tax</dt>
+              <dd>{viewOf.tax_code ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">In stock</dt>
+              <dd>{stockBy.get(viewOf.id)?.available_qty ?? 0}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Status</dt>
+              <dd>{humanize(viewOf.lifecycle_status)}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-400">Barcode</dt>
+              <dd>{viewOf.barcode ?? "—"}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-ink-400">Description</dt>
+              <dd className="whitespace-pre-wrap break-words">
+                {viewOf.description || "—"}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </Modal>
 
       <Modal
         open={draft !== null}

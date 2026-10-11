@@ -151,7 +151,7 @@ export default function OrderDetailPage() {
                 )}
               </p>
             </div>
-            <div className="flex flex-wrap gap-space-2">
+            <div id="order-actions" className="flex flex-wrap gap-space-2">
               {canUpdate &&
                 steps.map((s) => (
                   <Button
