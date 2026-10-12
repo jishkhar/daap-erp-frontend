@@ -119,7 +119,7 @@ export function BranchForm({
         <Field
           label="Branch code"
           htmlFor="b_code"
-          hint="Generated from the platform's code format; it can't be changed."
+          hint="Generated automatically; it can't be changed."
         >
           <Input
             id="b_code"
