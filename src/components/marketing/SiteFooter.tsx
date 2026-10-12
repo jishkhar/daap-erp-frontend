@@ -43,6 +43,11 @@ export function SiteFooter() {
                   </DemoRequestButton>
                 </li>
                 <li>
+                  <DemoRequestButton variant="link" kind="partner">
+                    Become a partner
+                  </DemoRequestButton>
+                </li>
+                <li>
                   <Link
                     href="/plans"
                     className="hover:text-brand-600 hover:underline"

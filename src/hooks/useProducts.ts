@@ -159,14 +159,17 @@ export function useProductImages(productId: string) {
   };
 }
 
-/** A product's extra barcodes (a redesigned box, a shop label). */
+/** A product's manufacturer barcodes (its primary barcode is the shop label and is never edited). */
 export function useProductBarcodes(productId: string) {
   const refresh = useRefreshProducts();
   const path = `/api/v1/products/${productId}/barcodes`;
   return {
     add: useMutation({
-      mutationFn: (input: { barcode: string; source: string }) =>
-        erpSend(path, "POST", input),
+      mutationFn: (input: {
+        barcode: string;
+        supplier_id?: string;
+        maker_name?: string;
+      }) => erpSend(path, "POST", input),
       onSuccess: refresh,
     }),
     remove: useMutation({

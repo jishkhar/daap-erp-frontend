@@ -59,7 +59,6 @@ import { toast } from "@/lib/toast";
 import {
   BARCODE_SPECS,
   BARCODE_TYPES,
-  inferBarcodeType,
   sanitizeBarcode,
   validateBarcode,
   type BarcodeType,
@@ -288,8 +287,8 @@ export default function ProductsPage() {
                       cost: fromMinor(row.original.cost_minor),
                       tax_code: row.original.tax_code ?? "",
                       serialization_type: row.original.serialization_type,
-                      barcode: row.original.barcode ?? "",
-                      barcode_type: inferBarcodeType(row.original.barcode),
+                      barcode: "",
+                      barcode_type: "EAN_13",
                       lifecycle_status: row.original.lifecycle_status,
                     });
                   }}
@@ -345,8 +344,6 @@ export default function ProductsPage() {
       mrp_minor: mrp,
       cost_minor: cost,
       tax_code: draft.tax_code || null,
-      // editing: "" clears the main barcode (null would mean "leave it"); creating: no barcode is null
-      barcode: draft.barcode.trim() || (draft.id ? "" : null),
       serialization_type: draft.serialization_type,
       lifecycle_status: draft.lifecycle_status,
     };
@@ -354,7 +351,14 @@ export default function ProductsPage() {
     saveProduct.mutate(
       editing
         ? { id: draft.id, body }
-        : { body: { sku: draft.sku.trim(), ...body } },
+        : {
+            body: {
+              sku: draft.sku.trim(),
+              ...body,
+              // the manufacturer's barcode, if the box has one; the shop's own label is issued by the server
+              barcode: draft.barcode.trim() || null,
+            },
+          },
       {
         onSuccess: () => {
           toast.success(editing ? "Product updated" : "Product created");
@@ -496,7 +500,7 @@ export default function ProductsPage() {
               <dd>{humanize(viewOf.lifecycle_status)}</dd>
             </div>
             <div>
-              <dt className="text-ink-400">Barcode</dt>
+              <dt className="text-ink-400">Shop label barcode</dt>
               <dd>{viewOf.barcode ?? "—"}</dd>
             </div>
             <div className="sm:col-span-2">
@@ -713,53 +717,70 @@ export default function ProductsPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Barcode type" htmlFor="p_bartype">
-              <Select
-                id="p_bartype"
-                value={draft.barcode_type}
-                onChange={(e) => {
-                  const t = e.target.value as BarcodeType;
-                  set({
-                    barcode_type: t,
-                    barcode: sanitizeBarcode(t, draft.barcode),
-                  });
-                }}
-              >
-                {BARCODE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {BARCODE_SPECS[t].label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field
-              label="Barcode"
-              htmlFor="p_bar"
-              hint={BARCODE_SPECS[draft.barcode_type].hint}
-              error={
-                validateBarcode(draft.barcode_type, draft.barcode.trim()) ??
-                undefined
-              }
-            >
-              <Input
-                id="p_bar"
-                value={draft.barcode}
-                maxLength={BARCODE_SPECS[draft.barcode_type].maxLength}
-                inputMode={
-                  BARCODE_SPECS[draft.barcode_type].digitsOnly
-                    ? "numeric"
-                    : "text"
-                }
-                onChange={(e) =>
-                  set({
-                    barcode: sanitizeBarcode(
-                      draft.barcode_type,
-                      e.target.value,
-                    ),
-                  })
-                }
-              />
-            </Field>
+            {draft.id ? (
+              <div className="sm:col-span-2">
+                <p className="text-[13px] font-semibold text-ink-900">
+                  Shop label barcode
+                </p>
+                <p className="font-mono text-[15px]">
+                  {products.rows.find((p) => p.id === draft.id)?.barcode ?? "—"}
+                </p>
+                <p className="text-[12px] text-ink-400">
+                  Issued by the system and printed on the till. It never
+                  changes.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Field label="Manufacturer barcode type" htmlFor="p_bartype">
+                  <Select
+                    id="p_bartype"
+                    value={draft.barcode_type}
+                    onChange={(e) => {
+                      const t = e.target.value as BarcodeType;
+                      set({
+                        barcode_type: t,
+                        barcode: sanitizeBarcode(t, draft.barcode),
+                      });
+                    }}
+                  >
+                    {BARCODE_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {BARCODE_SPECS[t].label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field
+                  label="Manufacturer barcode (optional)"
+                  htmlFor="p_bar"
+                  hint={BARCODE_SPECS[draft.barcode_type].hint}
+                  error={
+                    validateBarcode(draft.barcode_type, draft.barcode.trim()) ??
+                    undefined
+                  }
+                >
+                  <Input
+                    id="p_bar"
+                    value={draft.barcode}
+                    maxLength={BARCODE_SPECS[draft.barcode_type].maxLength}
+                    inputMode={
+                      BARCODE_SPECS[draft.barcode_type].digitsOnly
+                        ? "numeric"
+                        : "text"
+                    }
+                    onChange={(e) =>
+                      set({
+                        barcode: sanitizeBarcode(
+                          draft.barcode_type,
+                          e.target.value,
+                        ),
+                      })
+                    }
+                  />
+                </Field>
+              </>
+            )}
             {draft.id && (
               <ExtraBarcodes
                 product={products.rows.find((p) => p.id === draft.id) ?? null}

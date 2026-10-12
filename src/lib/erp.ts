@@ -108,13 +108,17 @@ export type Payment = {
 
 export type OrderDetail = Order & { items: OrderItem[]; payments: Payment[] };
 
-/** One barcode that opens a product. The primary one is the product's own barcode field; the rest are extra labels or boxes. */
+/** One barcode that opens a product. The primary one is the shop's own label (DAAP00012345), issued by the server; the rest are the
+ * manufacturers' barcodes, each optionally naming the supplier (or, failing that, the maker) it came from. */
 export type ProductBarcode = {
   id: string;
   barcode: string;
   is_primary: boolean;
   source: "manufacturer" | "shop_label";
   created_at: string;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  maker_name: string | null;
 };
 
 export type Product = {
@@ -134,7 +138,7 @@ export type Product = {
   price_minor: number;
   mrp_minor: number | null;
   cost_minor: number | null;
-  barcode: string | null; // the primary barcode
+  barcode: string | null; // the primary barcode: the shop's label
   barcodes?: ProductBarcode[]; // every barcode that opens this product, primary first
   images?: string[]; // public image URLs, first = cover
   lifecycle_status: "draft" | "active" | "discontinued" | "archived";

@@ -13,6 +13,28 @@ import {
 import { API_BASE_URL } from "@/lib/staffAuth";
 
 type Variant = "button" | "link";
+type Kind = "demo" | "partner";
+
+/** The same short form serves two public pages; a partner request has no company name. */
+const COPY: Record<
+  Kind,
+  { endpoint: string; title: string; intro: string; placeholder: string }
+> = {
+  demo: {
+    endpoint: "demo-requests",
+    title: "Request a product demo",
+    intro:
+      "Tell us a little about you and we'll get in touch to arrange a demo.",
+    placeholder: "What would you like to see in the demo?",
+  },
+  partner: {
+    endpoint: "partner-requests",
+    title: "Become a partner",
+    intro:
+      "Tell us a little about you and we'll get in touch to discuss partnering with us.",
+    placeholder: "Tell us about your business and how you'd like to partner.",
+  },
+};
 
 const EMPTY = {
   name: "",
@@ -26,11 +48,14 @@ const EMPTY = {
 /** "Request a demo": opens a short form and posts it to the public demo-requests endpoint. `link` renders as a footer-style text link. */
 export function DemoRequestButton({
   variant = "button",
+  kind = "demo",
   children,
 }: {
   variant?: Variant;
+  kind?: Kind;
   children: React.ReactNode;
 }) {
+  const copy = COPY[kind];
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
@@ -74,10 +99,14 @@ export function DemoRequestButton({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/public/demo-requests`, {
+      const res = await fetch(`${API_BASE_URL}/api/public/${copy.endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({
+          ...parsed.data,
+          company_name:
+            kind === "partner" ? undefined : parsed.data.company_name,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -123,12 +152,8 @@ export function DemoRequestButton({
       <Modal
         open={open}
         onClose={close}
-        title={sent === null ? "Request a product demo" : "Request received"}
-        description={
-          sent === null
-            ? "Tell us a little about you and we'll get in touch to arrange a demo."
-            : undefined
-        }
+        title={sent === null ? copy.title : "Request received"}
+        description={sent === null ? copy.intro : undefined}
         footer={
           sent === null ? (
             <>
@@ -195,15 +220,17 @@ export function DemoRequestButton({
                   autoComplete="tel"
                 />
               </Field>
-              <Field label="Company name" htmlFor="dr-company">
-                <Input
-                  id="dr-company"
-                  value={form.company_name}
-                  onChange={set("company_name")}
-                  maxLength={160}
-                  autoComplete="organization"
-                />
-              </Field>
+              {kind === "demo" && (
+                <Field label="Company name" htmlFor="dr-company">
+                  <Input
+                    id="dr-company"
+                    value={form.company_name}
+                    onChange={set("company_name")}
+                    maxLength={160}
+                    autoComplete="organization"
+                  />
+                </Field>
+              )}
             </div>
             <Field label="Message" htmlFor="dr-message" className="mb-0">
               <Textarea
@@ -212,7 +239,7 @@ export function DemoRequestButton({
                 value={form.message}
                 onChange={set("message")}
                 maxLength={2000}
-                placeholder="What would you like to see in the demo?"
+                placeholder={copy.placeholder}
               />
             </Field>
             {/* honeypot: invisible to people, tempting to bots */}

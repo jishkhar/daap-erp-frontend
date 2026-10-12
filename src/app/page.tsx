@@ -100,6 +100,9 @@ export default function HomePage() {
                   Set up your business
                 </Button>
                 <DemoRequestButton>Request a product demo</DemoRequestButton>
+                <DemoRequestButton kind="partner">
+                  Become a partner
+                </DemoRequestButton>
               </div>
             </div>
 
