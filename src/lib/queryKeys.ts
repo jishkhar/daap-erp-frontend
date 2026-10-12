@@ -44,6 +44,8 @@ export const queryKeys = {
   branchTerminals: (id: string) => ["erp", "terminals", "branch", id] as const,
   cashiers: ["erp", "terminals", "cashiers"] as const,
   branchCashiers: (id: string) => ["erp", "terminals", "cashiers", id] as const,
+  terminalDayCloses: (from: string, to: string, branchId: string | null) =>
+    ["erp", "terminals", "day-closes", from, to, branchId] as const,
   terminalSyncHealth: (id: string, problemsOnly: boolean, limit: number) =>
     ["erp", "terminals", "sync-health", id, problemsOnly, limit] as const,
 

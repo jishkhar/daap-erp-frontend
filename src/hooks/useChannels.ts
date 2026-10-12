@@ -60,6 +60,9 @@ type TerminalSummary = {
   paired: number;
   online: number;
   last_seen_at: string | null;
+  /** Bills still on the tills of this branch, and how many tills hold any. */
+  waiting_bills: number;
+  tills_holding: number;
 };
 
 /** Paired and online terminals for every branch, in one request. */

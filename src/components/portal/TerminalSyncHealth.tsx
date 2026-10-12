@@ -54,6 +54,10 @@ export function SyncHealthModal({
     name: string;
     code: string;
     last_sync_at: string | null;
+    queue_unsent?: number | null;
+    queue_refused?: number | null;
+    queue_oldest_at?: string | null;
+    queue_reported_at?: string | null;
   };
   onClose: () => void;
 }) {
@@ -96,8 +100,34 @@ export function SyncHealthModal({
               value={ago(h.summary.last_received_at)}
             />
           </div>
+          <div className="mt-space-2 grid grid-cols-2 gap-space-2 sm:grid-cols-4">
+            <Tile
+              label="Waiting on the till"
+              value={
+                terminal.queue_reported_at
+                  ? String(terminal.queue_unsent ?? 0)
+                  : "—"
+              }
+              tone={(terminal.queue_unsent ?? 0) > 0 ? "warning" : undefined}
+            />
+            <Tile
+              label="Refused on the till"
+              value={
+                terminal.queue_reported_at
+                  ? String(terminal.queue_refused ?? 0)
+                  : "—"
+              }
+              tone={(terminal.queue_refused ?? 0) > 0 ? "error" : undefined}
+            />
+          </div>
           <p className="mt-space-2 text-[12.5px] text-ink-400">
-            Last synced {ago(terminal.last_sync_at)}.
+            Last synced {ago(terminal.last_sync_at)}.{" "}
+            {terminal.queue_reported_at
+              ? `The till last reported what it holds ${ago(terminal.queue_reported_at)}.`
+              : "The till has not reported what it holds yet."}
+            {(terminal.queue_unsent ?? 0) > 0 && terminal.queue_oldest_at
+              ? ` Oldest waiting bill: ${ago(terminal.queue_oldest_at)}.`
+              : ""}
           </p>
 
           {h.missing_invoice_numbers.length > 0 && (

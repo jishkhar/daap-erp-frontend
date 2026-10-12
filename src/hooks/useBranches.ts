@@ -173,6 +173,11 @@ export type Terminal = {
   last_seen_at: string | null;
   last_ip: string | null;
   last_sync_at: string | null;
+  /** What the till itself says it still holds (its last heartbeat); null before the first report. */
+  queue_unsent: number | null;
+  queue_refused: number | null;
+  queue_oldest_at: string | null;
+  queue_reported_at: string | null;
   revoked_at: string | null;
   revoke_reason: string | null;
   events?: TerminalEvent[];
@@ -346,5 +351,69 @@ export function useTerminalSyncHealth(
         `/api/v1/terminals/${terminalId}/uploads?problems_only=${onlyProblems}&limit=${limit}`,
       ),
     placeholderData: keepPreviousData,
+  });
+}
+
+export type DayFigures = {
+  bills: number;
+  total_minor: number;
+  cash_minor: number;
+  card_minor: number;
+  upi_minor: number;
+  other_minor: number;
+};
+export type DayCloseRow = {
+  date: string;
+  terminal_id: string;
+  terminal_name: string;
+  terminal_code: string;
+  branch_id: string;
+  branch_name: string;
+  /** What the server booked for this till on this date. */
+  server: DayFigures;
+  /** What the till stated when it closed; null if it has not closed this day. */
+  close:
+    | (Omit<DayFigures, "bills"> & {
+        bills: number;
+        closed_at: string;
+        closed_by_name: string | null;
+        counted_cash_minor: number;
+        unsent_bills: number;
+        close_count: number;
+        note: string | null;
+      })
+    | null;
+  status: "open" | "not_closed" | "matched" | "missing" | "after_close";
+  bills_missing: number;
+  bills_after_close: number;
+  cash_difference_minor: number | null;
+};
+export type DayCloseBranch = DayFigures & {
+  branch_id: string;
+  branch_name: string;
+  not_closed: number;
+  rows: DayCloseRow[];
+};
+
+/** Each till's end-of-day close beside what the server booked, grouped by branch. */
+export function useTerminalDayCloses(
+  range: { date_from: string; date_to: string },
+  branchId: string | null,
+) {
+  return useQuery({
+    queryKey: queryKeys.terminalDayCloses(
+      range.date_from,
+      range.date_to,
+      branchId,
+    ),
+    queryFn: () =>
+      erpGet<{
+        date_from: string;
+        date_to: string;
+        branches: DayCloseBranch[];
+      }>(
+        `/api/v1/terminals/day-closes?date_from=${range.date_from}&date_to=${range.date_to}${branchId ? `&branch_id=${branchId}` : ""}`,
+      ),
+    retry: false,
   });
 }

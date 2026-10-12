@@ -321,6 +321,14 @@ export function PosChannelPanel() {
                               : "never"}
                           </span>
                         )}
+                        {(t?.waiting_bills ?? 0) > 0 && (
+                          <Badge tone="warning">
+                            {t?.waiting_bills} bill
+                            {t?.waiting_bills === 1 ? "" : "s"} waiting on{" "}
+                            {t?.tills_holding} till
+                            {t?.tills_holding === 1 ? "" : "s"}
+                          </Badge>
+                        )}
                       </>
                     )}
                     {selected?.id === b.id ? (

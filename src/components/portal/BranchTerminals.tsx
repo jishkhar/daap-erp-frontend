@@ -29,6 +29,11 @@ import Link from "next/link";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { SyncHealthModal } from "@/components/portal/TerminalSyncHealth";
 
+/** Waiting more than a day is something to chase. */
+function isOld(iso: string | null): boolean {
+  return !!iso && Date.now() - new Date(iso).getTime() > 24 * 3600 * 1000;
+}
+
 function ago(iso: string | null): string {
   if (!iso) return "never";
   const s = Math.max(
@@ -394,6 +399,14 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   ? `Last seen ${ago(t.last_seen_at)} · synced ${ago(t.last_sync_at)}`
                   : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}
               </p>
+              {t.status === "active" && (t.queue_unsent ?? 0) > 0 && (
+                <p className="mt-space-1">
+                  <Badge tone={isOld(t.queue_oldest_at) ? "error" : "warning"}>
+                    {t.queue_unsent} bill{t.queue_unsent === 1 ? "" : "s"}{" "}
+                    waiting on the till · oldest {ago(t.queue_oldest_at)}
+                  </Badge>
+                </p>
+              )}
               {t.uploads &&
                 (t.uploads.rejected > 0 || t.uploads.flagged > 0) && (
                   <p className="mt-space-1 flex flex-wrap gap-space-1">

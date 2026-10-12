@@ -1,7 +1,12 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Add01Icon, Delete02Icon, Edit02Icon, Tag01Icon } from "@hugeicons/core-free-icons";
+import {
+  Add01Icon,
+  Delete02Icon,
+  Edit02Icon,
+  Tag01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -112,7 +117,10 @@ function describe(d: Discount): string {
   return KIND_LABEL[d.kind];
 }
 
-function status(d: Discount): { label: string; tone: "success" | "neutral" | "warning" } {
+function status(d: Discount): {
+  label: string;
+  tone: "success" | "neutral" | "warning";
+} {
   const now = Date.now();
   if (!d.is_active) return { label: "Off", tone: "neutral" };
   if (d.ends_at && new Date(d.ends_at).getTime() < now)
@@ -146,7 +154,8 @@ export default function DiscountsPage() {
     const res = await erp(`/api/v1/discounts/${d.id}`, "PATCH", {
       is_active: !d.is_active,
     });
-    if (res.error) return toast.error("Couldn't update the discount", res.error);
+    if (res.error)
+      return toast.error("Couldn't update the discount", res.error);
     discounts.reload();
   }
 
@@ -192,7 +201,11 @@ export default function DiscountsPage() {
     const res =
       editing === "new"
         ? await erp("/api/v1/discounts", "POST", body)
-        : await erp(`/api/v1/discounts/${(editing as Discount).id}`, "PATCH", body);
+        : await erp(
+            `/api/v1/discounts/${(editing as Discount).id}`,
+            "PATCH",
+            body,
+          );
     setBusy(false);
     if (res.error) return toast.error("Couldn't save the discount", res.error);
     toast.success(editing === "new" ? "Discount created" : "Discount saved");
@@ -208,7 +221,8 @@ export default function DiscountsPage() {
       "DELETE",
     );
     setBusy(false);
-    if (res.error) return toast.error("Couldn't remove the discount", res.error);
+    if (res.error)
+      return toast.error("Couldn't remove the discount", res.error);
     toast.success(
       res.data?.deactivated
         ? "Discount switched off (it has been used on orders)"
@@ -224,7 +238,9 @@ export default function DiscountsPage() {
         header: "Discount",
         cell: ({ row }) => (
           <div>
-            <div className="font-semibold text-ink-900">{row.original.name}</div>
+            <div className="font-semibold text-ink-900">
+              {row.original.name}
+            </div>
             <div className="font-mono text-[12px] text-ink-600">
               {row.original.code ?? "Applied automatically"}
             </div>
@@ -432,7 +448,10 @@ export default function DiscountsPage() {
         <Field label="Channels">
           <div className="flex flex-wrap gap-space-3">
             {CHANNEL_ORDER.map((c) => (
-              <label key={c} className="flex items-center gap-space-2 text-[14px]">
+              <label
+                key={c}
+                className="flex items-center gap-space-2 text-[14px]"
+              >
                 <input
                   type="checkbox"
                   checked={form.channels.includes(c)}
@@ -456,7 +475,9 @@ export default function DiscountsPage() {
               id="d_use"
               inputMode="numeric"
               value={form.usageLimit}
-              onChange={(e) => set("usageLimit", e.target.value.replace(/\D/g, ""))}
+              onChange={(e) =>
+                set("usageLimit", e.target.value.replace(/\D/g, ""))
+              }
             />
           </Field>
           <Field label="Uses per customer" htmlFor="d_pc">

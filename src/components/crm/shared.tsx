@@ -57,15 +57,25 @@ export function KpiTile({
       )}
       <div className="min-w-0">
         <p className="truncate text-[12px] text-ink-600">{label}</p>
-        <p className="text-[20px] font-bold leading-tight text-ink-900">{value}</p>
+        <p className="text-[20px] font-bold leading-tight text-ink-900">
+          {value}
+        </p>
         {hint && <p className="truncate text-[11px] text-ink-400">{hint}</p>}
       </div>
     </Card>
   );
 }
 
-const STATUS_TONE = { sent: "success", queued: "warning", failed: "error" } as const;
-const STATUS_LABEL = { sent: "Sent", queued: "Saved, not sent", failed: "Failed" } as const;
+const STATUS_TONE = {
+  sent: "success",
+  queued: "warning",
+  failed: "error",
+} as const;
+const STATUS_LABEL = {
+  sent: "Sent",
+  queued: "Saved, not sent",
+  failed: "Failed",
+} as const;
 
 export function MessageList({
   messages,
@@ -86,7 +96,9 @@ export function MessageList({
             <Badge tone="clay">{MESSAGE_CHANNELS[m.channel]}</Badge>
             <Badge tone={STATUS_TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge>
             {showCustomer && (
-              <span className="font-semibold text-ink-900">{m.customer_name}</span>
+              <span className="font-semibold text-ink-900">
+                {m.customer_name}
+              </span>
             )}
             {m.campaign_name && (
               <span className="text-[12px] text-ink-600">
@@ -102,9 +114,13 @@ export function MessageList({
               })}
             </span>
           </div>
-          {m.subject && <p className="mt-1 font-medium text-ink-900">{m.subject}</p>}
+          {m.subject && (
+            <p className="mt-1 font-medium text-ink-900">{m.subject}</p>
+          )}
           <p className="mt-1 whitespace-pre-wrap text-ink-600">{m.body}</p>
-          {m.error && <p className="mt-1 text-[12px] text-ink-400">{m.error}</p>}
+          {m.error && (
+            <p className="mt-1 text-[12px] text-ink-400">{m.error}</p>
+          )}
         </li>
       ))}
     </ul>
@@ -117,7 +133,12 @@ export function ComposeModal({
   onClose,
   onSent,
 }: {
-  customer: { id: string; name: string; phone: string | null; email: string | null } | null;
+  customer: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+  } | null;
   onClose: () => void;
   onSent: () => void;
 }) {
@@ -132,7 +153,11 @@ export function ComposeModal({
     const res = await erp<CrmMessage>(
       `/api/v1/crm/customers/${customer.id}/messages`,
       "POST",
-      { channel, subject: channel === "email" ? subject.trim() || null : null, body },
+      {
+        channel,
+        subject: channel === "email" ? subject.trim() || null : null,
+        body,
+      },
     );
     setBusy(false);
     if (res.error) return toast.error("Couldn't send the message", res.error);
@@ -151,7 +176,9 @@ export function ComposeModal({
       open={customer !== null}
       onClose={onClose}
       title={`Message ${customer?.name ?? ""}`}
-      description={[customer?.phone, customer?.email].filter(Boolean).join(" · ")}
+      description={[customer?.phone, customer?.email]
+        .filter(Boolean)
+        .join(" · ")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -178,7 +205,11 @@ export function ComposeModal({
       </Field>
       {channel === "email" && (
         <Field label="Subject" htmlFor="m_subject">
-          <Input id="m_subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          <Input
+            id="m_subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+          />
         </Field>
       )}
       <Field label="Message" htmlFor="m_body">

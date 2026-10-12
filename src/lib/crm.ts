@@ -5,7 +5,11 @@ export type MessageChannel = "whatsapp" | "sms" | "email";
 
 export const SEGMENT_META: Record<
   Segment,
-  { label: string; tone: "warning" | "violet" | "neutral" | "error"; rule: string }
+  {
+    label: string;
+    tone: "warning" | "violet" | "neutral" | "error";
+    rule: string;
+  }
 > = {
   vip: {
     label: "VIP",
@@ -17,7 +21,11 @@ export const SEGMENT_META: Record<
     tone: "violet",
     rule: "Joined in the last 30 days with at most one order.",
   },
-  regular: { label: "Regular", tone: "neutral", rule: "Everyone else who is buying." },
+  regular: {
+    label: "Regular",
+    tone: "neutral",
+    rule: "Everyone else who is buying.",
+  },
   inactive: {
     label: "Inactive",
     tone: "error",
@@ -122,15 +130,32 @@ export type LoyaltyOverview = {
   points_earned: number;
   points_adjusted: number;
   top: { id: string; name: string; segment: Segment; loyalty_points: number }[];
-  recent: { id: string; customer_id: string; customer_name: string; delta: number; reason: string; created_at: string }[];
+  recent: {
+    id: string;
+    customer_id: string;
+    customer_name: string;
+    delta: number;
+    reason: string;
+    created_at: string;
+  }[];
 };
 
 export type CrmAnalytics = {
   customer_growth: { month: string; customers: number }[];
-  top_customers: { id: string; name: string; segment: Segment; total_orders: number; total_spent_minor: number }[];
+  top_customers: {
+    id: string;
+    name: string;
+    segment: Segment;
+    total_orders: number;
+    total_spent_minor: number;
+  }[];
   avg_lifetime_value_minor: number;
   avg_orders_per_customer: number;
-  orders_by_channel: { channel: Channel; orders: number; revenue_minor: number }[];
+  orders_by_channel: {
+    channel: Channel;
+    orders: number;
+    revenue_minor: number;
+  }[];
   segments: { key: Segment; customers: number }[];
 };
 

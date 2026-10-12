@@ -32,7 +32,14 @@ import { erp, formatMoney, useErpQuery } from "@/lib/erp";
 import { hasPermission, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Tab = "customers" | "segments" | "tags" | "campaigns" | "communication" | "loyalty" | "analytics";
+type Tab =
+  | "customers"
+  | "segments"
+  | "tags"
+  | "campaigns"
+  | "communication"
+  | "loyalty"
+  | "analytics";
 const TABS: { key: Tab; label: string }[] = [
   { key: "customers", label: "All Customers" },
   { key: "segments", label: "Segments" },
@@ -96,14 +103,45 @@ export default function CustomersPage() {
           )
         }
       />
-      {summary.error && <p className="mb-space-3 text-[13px] font-medium text-error">{summary.error}</p>}
+      {summary.error && (
+        <p className="mb-space-3 text-[13px] font-medium text-error">
+          {summary.error}
+        </p>
+      )}
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 md:grid-cols-3 xl:grid-cols-6">
-        <KpiTile label="Total customers" value={s?.total_customers ?? "—"} icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />} />
-        <KpiTile label="Active customers" value={s?.active_customers ?? "—"} hint="purchased in last 6 months" icon={<HugeiconsIcon icon={UserCheck01Icon} size={20} />} />
-        <KpiTile label="VIP customers" value={s?.vip_customers ?? "—"} icon={<HugeiconsIcon icon={CrownIcon} size={20} />} />
-        <KpiTile label="New customers" value={s?.new_this_month ?? "—"} hint="this month" icon={<HugeiconsIcon icon={UserAdd01Icon} size={20} />} />
-        <KpiTile label="Avg. purchase value" value={s ? formatMoney(s.avg_purchase_value_minor, currency) : "—"} icon={<HugeiconsIcon icon={ShoppingCart01Icon} size={20} />} />
-        <KpiTile label="Repeat customers" value={s ? `${s.repeat_rate_pct}%` : "—"} hint={s ? `${s.repeat_customers} customers` : undefined} icon={<HugeiconsIcon icon={RepeatIcon} size={20} />} />
+        <KpiTile
+          label="Total customers"
+          value={s?.total_customers ?? "—"}
+          icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />}
+        />
+        <KpiTile
+          label="Active customers"
+          value={s?.active_customers ?? "—"}
+          hint="purchased in last 6 months"
+          icon={<HugeiconsIcon icon={UserCheck01Icon} size={20} />}
+        />
+        <KpiTile
+          label="VIP customers"
+          value={s?.vip_customers ?? "—"}
+          icon={<HugeiconsIcon icon={CrownIcon} size={20} />}
+        />
+        <KpiTile
+          label="New customers"
+          value={s?.new_this_month ?? "—"}
+          hint="this month"
+          icon={<HugeiconsIcon icon={UserAdd01Icon} size={20} />}
+        />
+        <KpiTile
+          label="Avg. purchase value"
+          value={s ? formatMoney(s.avg_purchase_value_minor, currency) : "—"}
+          icon={<HugeiconsIcon icon={ShoppingCart01Icon} size={20} />}
+        />
+        <KpiTile
+          label="Repeat customers"
+          value={s ? `${s.repeat_rate_pct}%` : "—"}
+          hint={s ? `${s.repeat_customers} customers` : undefined}
+          icon={<HugeiconsIcon icon={RepeatIcon} size={20} />}
+        />
       </div>
 
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
@@ -138,10 +176,29 @@ export default function CustomersPage() {
           }}
         />
       )}
-      {tab === "campaigns" && <CampaignsTab canEdit={canCreate} onChanged={changed} />}
-      {tab === "communication" && <CommunicationTab canEdit={canCreate} onChanged={changed} onOpenCustomer={openCustomer} />}
-      {tab === "loyalty" && <LoyaltyTab canConfigure={canConfigure} onOpenCustomer={openCustomer} onChanged={changed} />}
-      {tab === "analytics" && <AnalyticsTab currency={currency} repeatRate={s?.repeat_rate_pct ?? 0} />}
+      {tab === "campaigns" && (
+        <CampaignsTab canEdit={canCreate} onChanged={changed} />
+      )}
+      {tab === "communication" && (
+        <CommunicationTab
+          canEdit={canCreate}
+          onChanged={changed}
+          onOpenCustomer={openCustomer}
+        />
+      )}
+      {tab === "loyalty" && (
+        <LoyaltyTab
+          canConfigure={canConfigure}
+          onOpenCustomer={openCustomer}
+          onChanged={changed}
+        />
+      )}
+      {tab === "analytics" && (
+        <AnalyticsTab
+          currency={currency}
+          repeatRate={s?.repeat_rate_pct ?? 0}
+        />
+      )}
 
       <Modal
         open={open}
@@ -150,14 +207,45 @@ export default function CustomersPage() {
         description="A phone number or an email is required."
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button disabled={busy || !form.name.trim() || (!form.phone.trim() && !form.email.trim())} onClick={create}>Add customer</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                busy ||
+                !form.name.trim() ||
+                (!form.phone.trim() && !form.email.trim())
+              }
+              onClick={create}
+            >
+              Add customer
+            </Button>
           </>
         }
       >
-        <Field label="Name" htmlFor="c_name" required><Input id="c_name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-        <Field label="Phone" htmlFor="c_phone"><Input id="c_phone" inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
-        <Field label="Email" htmlFor="c_email"><Input id="c_email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+        <Field label="Name" htmlFor="c_name" required>
+          <Input
+            id="c_name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </Field>
+        <Field label="Phone" htmlFor="c_phone">
+          <Input
+            id="c_phone"
+            inputMode="tel"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+        </Field>
+        <Field label="Email" htmlFor="c_email">
+          <Input
+            id="c_email"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+        </Field>
       </Modal>
     </PortalShell>
   );

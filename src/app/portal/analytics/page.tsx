@@ -22,6 +22,7 @@ import { useActiveBranch } from "@/lib/branch";
 import { useSalesOverview } from "@/hooks/useAnalytics";
 import { CHANNELS, CHANNEL_ORDER, formatMoney } from "@/lib/erp";
 import { Skeleton, SkeletonLines } from "@/components/ui/Skeleton";
+import { PosDailyCloses } from "@/components/portal/PosDailyCloses";
 
 const COLORS: Record<string, string> = {
   online: "#7c5cd6",
@@ -320,6 +321,7 @@ export default function AnalyticsPage() {
             </tbody>
           </table>
         </Card>
+        <PosDailyCloses range={range} branchId={branchId} currency={cur} />
       </>
     </PortalShell>
   );
