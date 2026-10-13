@@ -28,6 +28,7 @@ import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { SyncHealthModal } from "@/components/portal/TerminalSyncHealth";
+import { HandoverBillsModal } from "@/components/portal/TerminalHandover";
 
 /** Waiting more than a day is something to chase. */
 function isOld(iso: string | null): boolean {
@@ -248,6 +249,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const [issued, setIssued] = useState<Issued | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
   const [health, setHealth] = useState<Terminal | null>(null);
+  const [handover, setHandover] = useState<Terminal | null>(null);
   const [revoking, setRevoking] = useState<Terminal | null>(null);
   const [reason, setReason] = useState("");
   const [renaming, setRenaming] = useState<{
@@ -286,7 +288,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
       {
         onSuccess: () => {
           toast.success(
-            `${revoking.name} revoked. The terminal will lock and wipe itself.`,
+            `${revoking.name} revoked. It locks at its next contact, hands over any unsent bills for your review, then wipes itself.`,
           );
           setRevoking(null);
           setReason("");
@@ -407,6 +409,14 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   </Badge>
                 </p>
               )}
+              {t.status === "revoked" && (t.handover_held ?? 0) > 0 && (
+                <p className="mt-space-1">
+                  <Badge tone="warning">
+                    {t.handover_held} handed-over bill
+                    {t.handover_held === 1 ? "" : "s"} waiting for your review
+                  </Badge>
+                </p>
+              )}
               {t.uploads &&
                 (t.uploads.rejected > 0 || t.uploads.flagged > 0) && (
                   <p className="mt-space-1 flex flex-wrap gap-space-1">
@@ -428,6 +438,11 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
               <Button variant="ghost" onClick={() => setHealth(t)}>
                 Sync health
               </Button>
+              {t.status === "revoked" && (
+                <Button variant="ghost" onClick={() => setHandover(t)}>
+                  Handed-over bills
+                </Button>
+              )}
               <Button variant="ghost" onClick={() => setDetail(t.id)}>
                 Details
               </Button>
@@ -460,12 +475,19 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
       {health && (
         <SyncHealthModal terminal={health} onClose={() => setHealth(null)} />
       )}
+      {handover && (
+        <HandoverBillsModal
+          terminal={handover}
+          canDecide={canManage}
+          onClose={() => setHandover(null)}
+        />
+      )}
       <Modal
         open={revoking !== null}
         onClose={() => setRevoking(null)}
         width="sm"
         title={`Revoke ${revoking?.name ?? "terminal"}?`}
-        description="The terminal is signed out at once and wipes its data. To use that device again it must be paired with a new code."
+        description="The terminal locks at its next contact (within about a minute if it is online). Any bills it has not uploaded are handed over to you to approve or reject, then it wipes its data. To use that device again it must be paired with a new code."
         footer={
           <>
             <Button variant="ghost" onClick={() => setRevoking(null)}>
@@ -477,6 +499,18 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           </>
         }
       >
+        {(revoking?.queue_unsent ?? 0) > 0 && (
+          <p className="mb-space-3 rounded-md bg-warning-tint p-space-3 text-[13px] text-ink-900">
+            This terminal reported {revoking?.queue_unsent} bill
+            {revoking?.queue_unsent === 1 ? "" : "s"} it had not uploaded
+            {revoking?.queue_reported_at
+              ? ` (${ago(revoking.queue_reported_at)})`
+              : ""}
+            . They are kept: when it reconnects it hands them over, and you
+            approve or reject each one. If the device is lost and never
+            reconnects, those bills cannot be recovered.
+          </p>
+        )}
         <Field
           label="Reason"
           htmlFor="t_reason"

@@ -188,6 +188,8 @@ export type Terminal = {
     flagged: number;
     last_received_at: string | null;
   };
+  /** Bills this (revoked) till handed over that still wait for a manager (list only). */
+  handover_held?: number;
 };
 export type PairingCode = {
   id: string;
@@ -258,7 +260,7 @@ export function useCancelPairingCode() {
   });
 }
 
-/** Lock a terminal for good: it wipes itself on its next contact. */
+/** Lock a terminal for good: it locks at its next contact, hands over any bills it never uploaded (held for a manager), then wipes itself. */
 export function useRevokeTerminal() {
   const refresh = useRefreshTerminals();
   return useMutation({
@@ -415,5 +417,81 @@ export function useTerminalDayCloses(
         `/api/v1/terminals/day-closes?date_from=${range.date_from}&date_to=${range.date_to}${branchId ? `&branch_id=${branchId}` : ""}`,
       ),
     retry: false,
+  });
+}
+
+// ------------------------------------------------------------------ bills handed over by revoked tills
+export type HandoverBill = {
+  id: string;
+  terminal_id: string;
+  terminal_code: string;
+  terminal_name: string;
+  event_id: string;
+  invoice_number: string | null;
+  occurred_at: string | null;
+  received_at: string;
+  total_minor: number | null;
+  cashier_name: string | null;
+  status: "held" | "approved" | "rejected" | "refused";
+  decided_by_name: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  order_id: string | null;
+  order_number: string | null;
+  error_message: string | null;
+  items: {
+    variant_id: string | null;
+    sku: string | null;
+    name: string | null;
+    quantity: number | null;
+    line_total_minor: number | null;
+  }[];
+  payments: {
+    method: string | null;
+    amount_minor: number | null;
+    reference: string | null;
+  }[];
+  customer: { name?: string | null; phone?: string | null } | null;
+};
+
+/** Bills that revoked tills handed over: `held` waits for a manager's decision. Optionally for one terminal. */
+export function useHandoverBills(
+  status: HandoverBill["status"],
+  terminalId: string | null,
+) {
+  return useQuery({
+    queryKey: queryKeys.terminalHandover(status, terminalId),
+    queryFn: () =>
+      erpGet<{ total: number; bills: HandoverBill[] }>(
+        `/api/v1/terminals/handover-bills?status=${status}&limit=100${terminalId ? `&terminal_id=${terminalId}` : ""}`,
+      ),
+  });
+}
+
+/** Approve books the bill (flagged as from a revoked terminal); reject keeps it on record and books nothing. */
+export function useDecideHandoverBill() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id: string;
+      decision: "approve" | "reject";
+      note?: string;
+    }) =>
+      erpSend<{
+        status: string;
+        error?: string;
+        order_number?: string | null;
+      }>(
+        `/api/v1/terminals/handover-bills/${input.id}/${input.decision}`,
+        "POST",
+        {
+          note: input.note || null,
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.terminals });
+      qc.invalidateQueries({ queryKey: queryKeys.orders }); // an approved bill is a new order
+      qc.invalidateQueries({ queryKey: queryKeys.inventory }); // and takes stock off the shelf
+    },
   });
 }
