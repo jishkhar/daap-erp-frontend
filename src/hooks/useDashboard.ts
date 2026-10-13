@@ -23,12 +23,32 @@ export type Dashboard = {
   sales: {
     revenue_minor: number;
     revenue_prev_minor: number;
+    /** before returns; revenue_minor is net of what came back today */
+    gross_minor: number;
+    returns_minor: number;
     orders: number;
     orders_prev: number;
     open_orders: number;
   };
-  trend: { date: string; revenue_minor: number; orders: number }[];
-  range_totals: { revenue_minor: number; orders: number };
+  /** net of returns, by the day each return completed */
+  trend: {
+    date: string;
+    revenue_minor: number;
+    returns_minor: number;
+    orders: number;
+  }[];
+  range_totals: {
+    revenue_minor: number;
+    gross_minor: number;
+    returns_minor: number;
+    orders: number;
+  };
+  returns: {
+    count: number;
+    amount_minor: number;
+    count_prev: number;
+    amount_prev_minor: number;
+  };
   by_channel: { channel: string; orders: number; amount_minor: number }[];
   by_payment?: { method: string; orders: number; amount_minor: number }[];
   top_products: {

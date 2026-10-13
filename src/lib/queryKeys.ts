@@ -79,6 +79,14 @@ export const queryKeys = {
     ["erp", "support", "tickets", params] as const,
   supportTicket: (id: string) => ["erp", "support", "ticket", id] as const,
   support: ["erp", "support"] as const,
+  returns: ["erp", "returns"] as const,
+  returnList: (params: Params) => ["erp", "returns", "list", params] as const,
+  returnDetail: (id: string) => ["erp", "returns", "detail", id] as const,
+  orderReturns: (orderId: string) =>
+    ["erp", "returns", "order", orderId] as const,
+  returnable: (orderId: string) =>
+    ["erp", "returns", "returnable", orderId] as const,
+  returnPolicy: ["erp", "returns", "policy"] as const,
 
   analytics: ["erp", "analytics"] as const,
   today: (params: Params) => ["erp", "analytics", "today", params] as const,

@@ -6,6 +6,7 @@ import { hasPermission, type StaffSession } from "@/lib/staffAuth";
 const ROUTES: [prefix: string, pageKey: string][] = [
   ["/portal/dashboard", "dashboard"],
   ["/portal/orders", "orders"],
+  ["/portal/returns", "orders"],
   ["/portal/products", "products"],
   ["/portal/customers", "customers"],
   ["/portal/whatsapp-inbox", "whatsapp"],

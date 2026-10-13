@@ -1,0 +1,376 @@
+"use client";
+
+import {
+  ArrowLeftRight,
+  CircleDollarSign,
+  FileText,
+  Undo2,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Field } from "@/components/ui/Field";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Input";
+import { SkeletonLines } from "@/components/ui/Skeleton";
+import {
+  useDecideReturn,
+  useReceiveReturn,
+  useReturn,
+} from "@/hooks/useReturns";
+import { formatDateTime, formatMoney, humanize, methodLabel } from "@/lib/erp";
+import {
+  REASON_LABEL,
+  REFUND_LABEL,
+  SOURCE_LABEL,
+  STATUS_TONE,
+  statusText,
+  type RefundMode,
+} from "@/lib/returns";
+import { hasGrant, useStaffSession } from "@/lib/staffAuth";
+import { toast } from "@/lib/toast";
+
+export const ReturnStatusBadge = ({
+  r,
+}: {
+  r: { status: keyof typeof STATUS_TONE; kind: "return" | "exchange" };
+}) => (
+  <Badge
+    tone={
+      r.status === "completed" && r.kind === "exchange"
+        ? "brand"
+        : STATUS_TONE[r.status]
+    }
+  >
+    {statusText(r)}
+  </Badge>
+);
+
+function Section({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-line pt-space-3">
+      <p className="mb-space-2 flex items-center gap-space-2 text-[13.5px] font-bold text-ink-900">
+        {icon} {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex justify-between gap-space-3 py-0.5 text-[13px]">
+      <span className="text-ink-600">{label}</span>
+      <span className="text-right font-medium text-ink-900">{value}</span>
+    </div>
+  );
+}
+
+/** One return: the original bill, who, what came back, any exchange, the refund, and for a website request the staff decisions. */
+export function ReturnDetailPanel({
+  id,
+  currency,
+}: {
+  id: string;
+  currency: string;
+}) {
+  const session = useStaffSession();
+  const ret = useReturn(id);
+  const decide = useDecideReturn(id);
+  const receive = useReceiveReturn(id);
+  const [note, setNote] = useState("");
+  const [mode, setMode] = useState<RefundMode | "">("");
+  const busy = decide.isPending || receive.isPending;
+  const r = ret.data;
+  if (!r)
+    return (
+      <Card className="p-space-4">
+        {ret.error ? (
+          <p className="text-[13px] text-error">{ret.error.message}</p>
+        ) : (
+          <SkeletonLines rows={6} />
+        )}
+      </Card>
+    );
+
+  const canAct = hasGrant(session, "orders:return");
+  const open = r.status === "requested" || r.status === "approved";
+  const defaultMode: RefundMode =
+    r.customer_preference === "store_credit" ? "store_credit" : "original";
+  const after = (msg: string) => ({
+    onSuccess: () => {
+      toast.success(msg);
+      setNote("");
+    },
+    onError: (e: Error) => toast.error("Couldn't update the return", e.message),
+  });
+
+  return (
+    <Card className="space-y-space-3 p-space-4">
+      <div className="flex items-start justify-between gap-space-2">
+        <div>
+          <p className="text-[16px] font-bold text-ink-900">Return details</p>
+          <p className="text-[13.5px] font-semibold text-ink-900">
+            {r.return_number}
+          </p>
+          <p className="text-[12.5px] text-ink-600">
+            {formatDateTime(r.created_at)} · {SOURCE_LABEL[r.source]}
+            {r.created_by_name ? ` · ${r.created_by_name}` : ""}
+          </p>
+        </div>
+        <ReturnStatusBadge r={r} />
+      </div>
+
+      <Section
+        icon={<FileText size={15} className="text-brand-600" />}
+        title="Original bill"
+      >
+        <Row
+          label="Bill"
+          value={
+            <Link
+              href={`/portal/orders/${r.order_id}`}
+              className="text-brand-700 hover:underline"
+            >
+              {r.bill_number ?? r.order_number}
+            </Link>
+          }
+        />
+        <Row label="Billed" value={formatDateTime(r.order_placed_at)} />
+        <Row label="Total" value={formatMoney(r.order_total_minor, currency)} />
+        <Row label="Channel" value={humanize(r.order_channel)} />
+      </Section>
+
+      <Section
+        icon={<User size={15} className="text-brand-600" />}
+        title="Customer"
+      >
+        <p className="text-[13px] text-ink-900">
+          {r.customer_name ?? "Walk-in customer"}
+          {r.customer_phone && (
+            <span className="text-ink-600"> · {r.customer_phone}</span>
+          )}
+        </p>
+      </Section>
+
+      <Section
+        icon={<Undo2 size={15} className="text-error" />}
+        title="Returned items"
+      >
+        <ul className="space-y-space-2">
+          {r.items.map((i) => (
+            <li
+              key={i.id}
+              className="rounded-md border border-line p-space-2 text-[13px]"
+            >
+              <div className="flex justify-between gap-space-2">
+                <span className="font-semibold text-ink-900">{i.name}</span>
+                <span className="font-semibold">
+                  {formatMoney(i.amount_minor, currency)}
+                </span>
+              </div>
+              <p className="text-[12px] text-ink-600">
+                {i.sku} · qty {i.quantity} ·{" "}
+                {i.disposition === "RESTOCK" ? "back in stock" : "written off"}
+                {i.serial_numbers.length > 0 &&
+                  ` · ${i.serial_numbers.join(", ")}`}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-space-2 text-[12.5px] text-ink-600">
+          <span className="font-semibold text-ink-900">Reason:</span>{" "}
+          {REASON_LABEL[r.reason_code]}
+          {r.reason_note ? ` — ${r.reason_note}` : ""}
+        </p>
+        {r.customer_preference && (
+          <p className="text-[12.5px] text-ink-600">
+            <span className="font-semibold text-ink-900">
+              Customer asked for:
+            </span>{" "}
+            {humanize(r.customer_preference)}
+          </p>
+        )}
+      </Section>
+
+      {r.kind === "exchange" && r.exchange_items.length > 0 && (
+        <Section
+          icon={<ArrowLeftRight size={15} className="text-accent-violet" />}
+          title="Exchange items"
+        >
+          {r.exchange_items.map((i, n) => (
+            <Row
+              key={n}
+              label={`${i.name} × ${i.quantity}`}
+              value={formatMoney(i.line_total_minor, currency)}
+            />
+          ))}
+          {r.exchange_order_id && (
+            <Row
+              label="Replacement order"
+              value={
+                <Link
+                  href={`/portal/orders/${r.exchange_order_id}`}
+                  className="text-brand-700 hover:underline"
+                >
+                  {r.exchange_order_number}
+                </Link>
+              }
+            />
+          )}
+        </Section>
+      )}
+
+      {r.status === "completed" && (
+        <Section
+          icon={<CircleDollarSign size={15} className="text-success" />}
+          title="Refund summary"
+        >
+          <Row
+            label="Item amount"
+            value={formatMoney(r.items_value_minor, currency)}
+          />
+          {r.kind === "exchange" && (
+            <Row
+              label={
+                r.difference_minor >= 0 ? "Customer paid extra" : "Difference"
+              }
+              value={formatMoney(Math.abs(r.difference_minor), currency)}
+            />
+          )}
+          <Row
+            label="Refunded"
+            value={
+              <span className="text-success">
+                {formatMoney(r.refund_minor, currency)}
+              </span>
+            }
+          />
+          {r.refund_mode && (
+            <Row label="Refund mode" value={REFUND_LABEL[r.refund_mode]} />
+          )}
+          {r.refunds
+            .filter(
+              (x) =>
+                !(r.kind === "exchange" && x.payout_method === "store_credit"),
+            )
+            .map((x) => (
+              <Row
+                key={x.id}
+                label={`from ${methodLabel(x.payment_method)} payment`}
+                value={`${formatMoney(x.amount_minor, currency)} · ${REFUND_LABEL[x.payout_method]}`}
+              />
+            ))}
+          {r.credit_note_number && (
+            <Row label="Credit note" value={r.credit_note_number} />
+          )}
+          <Row label="Received at" value={r.branch_name ?? "—"} />
+        </Section>
+      )}
+
+      {r.decision_note && (
+        <p className="rounded-md bg-black/[0.03] p-space-2 text-[12.5px] text-ink-600">
+          <span className="font-semibold text-ink-900">Note to customer:</span>{" "}
+          {r.decision_note}
+        </p>
+      )}
+
+      {open && canAct && (
+        <div className="space-y-space-2 border-t border-line pt-space-3">
+          <Field label="Refund when received" htmlFor="recv_mode">
+            <Select
+              id="recv_mode"
+              value={mode || defaultMode}
+              onChange={(e) => setMode(e.target.value as RefundMode)}
+            >
+              {(
+                [
+                  "original",
+                  "store_credit",
+                  "upi",
+                  "cash",
+                  "none",
+                ] as RefundMode[]
+              ).map((m) => (
+                <option key={m} value={m}>
+                  {REFUND_LABEL[m]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="Note to the customer"
+            htmlFor="recv_note"
+            hint="Required to reject."
+          >
+            <Textarea
+              id="recv_note"
+              rows={2}
+              maxLength={500}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
+          <div className="flex flex-wrap gap-space-2">
+            {r.status === "requested" && (
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() =>
+                  decide.mutate(
+                    { action: "approve", note },
+                    after("Request approved"),
+                  )
+                }
+              >
+                Approve
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              disabled={busy || !note.trim()}
+              onClick={() =>
+                decide.mutate(
+                  { action: "reject", note },
+                  after("Request rejected"),
+                )
+              }
+            >
+              Reject
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={() =>
+                receive.mutate(
+                  { refund_mode: mode || defaultMode },
+                  after("Goods received, return completed"),
+                )
+              }
+            >
+              Mark received
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="border-t border-line pt-space-2">
+        {r.timeline.map((t, n) => (
+          <p key={n} className="text-[12px] text-ink-600">
+            {formatDateTime(t.at)} · {humanize(t.event)}
+          </p>
+        ))}
+      </div>
+    </Card>
+  );
+}

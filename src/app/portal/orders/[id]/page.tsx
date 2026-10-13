@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Ban, CreditCard, PackageCheck } from "lucide-react";
+import { ArrowLeft, Ban, CreditCard, PackageCheck, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -11,6 +11,8 @@ import {
 } from "@/components/erp/StatusBadges";
 import { RecordActivity } from "@/components/portal/RecordActivity";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { ReturnStatusBadge } from "@/components/portal/returns/ReturnDetailPanel";
+import { ReturnModal } from "@/components/portal/returns/ReturnModal";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +29,7 @@ import {
   useOrder,
   useRecordPayment,
 } from "@/hooks/useOrders";
+import { useOrderReturns } from "@/hooks/useReturns";
 import {
   formatDateTime,
   formatMoney,
@@ -34,7 +37,7 @@ import {
   methodLabel,
   toMinor,
 } from "@/lib/erp";
-import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { hasGrant, hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
@@ -78,6 +81,8 @@ export default function OrderDetailPage() {
   const [method, setMethod] = useState("cash");
   const [amount, setAmount] = useState("");
   const [serialDraft, setSerialDraft] = useState<Record<string, string>>({});
+  const [returning, setReturning] = useState(false);
+  const returns = useOrderReturns(id);
 
   if (!ready) return null;
   const o = order.data;
@@ -178,6 +183,15 @@ export default function OrderDetailPage() {
                   <CreditCard size={16} /> Record payment
                 </Button>
               )}
+              {hasGrant(session, "orders:return") &&
+                o.status === "completed" && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setReturning(true)}
+                  >
+                    <Undo2 size={16} /> Return / exchange
+                  </Button>
+                )}
               {canCancel && canCancelNow && (
                 <Button
                   variant="destructive"
@@ -342,6 +356,32 @@ export default function OrderDetailPage() {
                   />
                 )}
               </Card>
+              {(returns.data ?? []).length > 0 && (
+                <Card className="p-space-4">
+                  <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
+                    Returns
+                  </h2>
+                  <ul className="divide-y divide-line">
+                    {(returns.data ?? []).map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex items-center justify-between gap-space-2 py-2 text-[13.5px]"
+                      >
+                        <Link
+                          href={`/portal/returns?id=${r.id}`}
+                          className="font-semibold text-brand-700 hover:underline"
+                        >
+                          {r.return_number}
+                        </Link>
+                        <span className="text-ink-600">
+                          {formatMoney(r.items_value_minor, cur)}
+                        </span>
+                        <ReturnStatusBadge r={r} />
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
               <Card className="p-space-4">
                 <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                   Payments
@@ -496,6 +536,10 @@ export default function OrderDetailPage() {
               />
             </Field>
           </Modal>
+
+          {returning && (
+            <ReturnModal order={o} onClose={() => setReturning(false)} />
+          )}
 
           <RecordActivity entityType="order" entityId={o.id} />
         </>

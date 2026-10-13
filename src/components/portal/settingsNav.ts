@@ -72,7 +72,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
   soon("payments", "Payments", CreditCard),
   soon("checkout", "Checkout", ShoppingCart),
   soon("customer-accounts", "Customer accounts", UserCircle),
-  soon("shipping", "Shipping and delivery", Truck),
+  {
+    slug: "shipping",
+    label: "Shipping and delivery",
+    icon: Truck,
+    href: "/portal/settings/shipping",
+  },
   {
     slug: "taxes",
     label: "Taxes and duties",

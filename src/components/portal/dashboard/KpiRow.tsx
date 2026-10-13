@@ -30,7 +30,11 @@ export function KpiRow({
           label="Sales today"
           value={formatMoney(s?.revenue_minor ?? 0, currency)}
           deltaPct={s ? pctChange(s.revenue_minor, s.revenue_prev_minor) : null}
-          hint="vs yesterday"
+          hint={
+            s && s.returns_minor > 0
+              ? "after returns · vs yesterday"
+              : "vs yesterday"
+          }
           tone="success"
           icon={<IndianRupee size={22} />}
         />
@@ -71,24 +75,22 @@ export function KpiRow({
           />
         </Link>
       )}
-      {(loading || data.refunds) && (
-        <Link href="/portal/orders">
-          <StatTile
-            loading={loading}
-            label="Refunds today"
-            value={data?.refunds?.count ?? 0}
-            deltaPct={null}
-            upIsGood={false}
-            hint={
-              data?.refunds
-                ? `${formatMoney(data.refunds.amount_minor, currency)} refunded`
-                : ""
-            }
-            tone="info"
-            icon={<RotateCcw size={22} />}
-          />
-        </Link>
-      )}
+      <Link href="/portal/returns">
+        <StatTile
+          loading={loading}
+          label="Returns today"
+          value={data?.returns.count ?? 0}
+          deltaPct={null}
+          upIsGood={false}
+          hint={
+            data
+              ? `${formatMoney(data.returns.amount_minor, currency)} came back${data.refunds ? ` · ${formatMoney(data.refunds.amount_minor, currency)} refunded` : ""}`
+              : ""
+          }
+          tone="info"
+          icon={<RotateCcw size={22} />}
+        />
+      </Link>
       {(loading || data.stock) && (
         <Link href="/portal/inventory">
           <StatTile
