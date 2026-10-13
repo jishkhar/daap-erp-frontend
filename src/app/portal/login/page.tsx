@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -18,7 +16,6 @@ export default function PortalLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -61,29 +58,14 @@ export default function PortalLoginPage() {
             />
           </Field>
           <Field label="Password" htmlFor="password" error={error || undefined}>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                className="pr-11"
-                value={password}
-                invalid={!!error}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                aria-pressed={showPassword}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-400 transition-colors hover:text-ink-900 focus-visible:outline-none focus-visible:text-ink-900"
-              >
-                <HugeiconsIcon
-                  icon={showPassword ? ViewOffSlashIcon : ViewIcon}
-                  size={18}
-                />
-              </button>
-            </div>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              invalid={!!error}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </Field>
           <Button
             type="submit"

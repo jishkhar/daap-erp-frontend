@@ -322,7 +322,7 @@ export default function TeamAccessPage() {
                     className="flex items-center justify-between py-2 text-[14px]"
                   >
                     <span>
-                      <strong>{r.role_name}</strong>{" "}
+                      <strong>{roleLabel(r.role_code)}</strong>{" "}
                       <span className="text-ink-600">
                         — {branchName(r.branch_id)}
                       </span>

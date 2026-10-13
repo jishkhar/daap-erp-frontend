@@ -29,6 +29,36 @@ export type Role = {
   name: string;
   description: string | null;
   is_system: boolean;
+  /** "store" = portal pages, "pos" = the till, "organization" = the built-in administrator. */
+  category: "store" | "pos" | "organization";
+  user_count: number;
+  permissions: string[];
+};
+
+/** One row of the role editor's grid: the permissions behind each column, plus actions that fit none of them. */
+export type CataloguePage = {
+  key: string;
+  label: string;
+  group: string;
+  module: string;
+  view: string[];
+  write: string[];
+  delete: string[];
+  other: string[];
+};
+
+export type RoleCatalogue = {
+  categories: ("store" | "pos")[];
+  pages: CataloguePage[];
+  /** What a till login may hold. */
+  pos: string[];
+  pos_only: string[];
+};
+
+export type RoleInput = {
+  name: string;
+  description: string | null;
+  category?: "store" | "pos";
   permissions: string[];
 };
 
@@ -46,6 +76,63 @@ export function useRoles() {
   return useQuery({
     queryKey: queryKeys.roles,
     queryFn: () => erpGet<Role[]>("/api/v1/roles"),
+  });
+}
+
+export function useRoleCatalogue() {
+  return useQuery({
+    queryKey: queryKeys.roleCatalogue,
+    queryFn: () => erpGet<RoleCatalogue>("/api/v1/roles/catalogue"),
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** Creating, editing or deleting a role changes the lists of roles and of people (their badges). */
+function useRefreshRoles() {
+  const qc = useQueryClient();
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: queryKeys.roles }),
+      qc.invalidateQueries({ queryKey: queryKeys.team }),
+      qc.invalidateQueries({ queryKey: queryKeys.cashiers }),
+    ]);
+}
+
+export function useCreateRole() {
+  const refresh = useRefreshRoles();
+  return useMutation({
+    mutationFn: (input: RoleInput) =>
+      erpSend<Role>("/api/v1/roles", "POST", input),
+    onSuccess: refresh,
+  });
+}
+
+export function useUpdateRole() {
+  const refresh = useRefreshRoles();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...input
+    }: Omit<RoleInput, "category"> & { id: string }) =>
+      erpSend<Role>(`/api/v1/roles/${id}`, "PATCH", input),
+    onSuccess: refresh,
+  });
+}
+
+export function useDeleteRole() {
+  const refresh = useRefreshRoles();
+  return useMutation({
+    mutationFn: (id: string) => erpSend(`/api/v1/roles/${id}`, "DELETE"),
+    onSuccess: refresh,
+  });
+}
+
+export function useDuplicateRole() {
+  const refresh = useRefreshRoles();
+  return useMutation({
+    mutationFn: (id: string) =>
+      erpSend<Role>(`/api/v1/roles/${id}/duplicate`, "POST"),
+    onSuccess: refresh,
   });
 }
 

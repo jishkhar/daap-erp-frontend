@@ -1,153 +1,228 @@
 "use client";
 
-import { Check, ShieldCheck } from "lucide-react";
-import { useMemo } from "react";
+import { Copy, Minus, Plus, ShieldCheck, Check } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useRoles, type Role } from "@/hooks/useTeam";
-import { roleDescription } from "@/lib/staffRoles";
+import {
+  useDuplicateRole,
+  useRoleCatalogue,
+  useRoles,
+  type Role,
+} from "@/hooks/useTeam";
+import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { toast } from "@/lib/toast";
 
-// Friendly module names for the matrix; anything not listed is shown as its raw module key.
-const MODULE_LABEL: Record<string, string> = {
-  tenant: "Company settings",
-  branches: "Branches",
-  users: "People",
-  roles: "Roles",
-  channels: "Channel keys",
-  products: "Products",
-  customers: "Customers",
-  orders: "Orders",
-  payments: "Payments",
-  inventory: "Inventory",
-  transfers: "Stock transfers",
-  audit: "Activity log",
-  events: "Event stream",
-  retail: "POS billing",
-  procurement: "Procurement",
-  finance: "Finance",
-  reports: "Reports",
-  recommerce: "ReCommerce",
+const CATEGORY_LABEL: Record<Role["category"], string> = {
+  store: "Store",
+  pos: "Point of Sale",
+  organization: "Administrator",
 };
 
 export default function RolesPage() {
   const { tenant, ready } = usePortalGuard();
+  const router = useRouter();
+  const session = useStaffSession();
   const roles = useRoles();
+  const catalogue = useRoleCatalogue();
+  const duplicate = useDuplicateRole();
+  const [q, setQ] = useState("");
+  const canWrite = hasPermission(session, "roles", "write");
 
-  const modules = useMemo(() => {
-    const set = new Set<string>();
-    (roles.data ?? []).forEach((r) =>
-      r.permissions.forEach((p) => set.add(p.split(":")[0])),
-    );
-    return [...set].sort((a, b) =>
-      (MODULE_LABEL[a] ?? a).localeCompare(MODULE_LABEL[b] ?? b),
-    );
-  }, [roles.data]);
+  const shown = useMemo(
+    () =>
+      (roles.data ?? []).filter((r) =>
+        r.name.toLowerCase().includes(q.trim().toLowerCase()),
+      ),
+    [roles.data, q],
+  );
+
+  // Store roles only: what each can view, per page (the till roles have no pages).
+  const storeRoles = (roles.data ?? []).filter((r) => r.category !== "pos");
+  const canView = (role: Role, perms: string[]) =>
+    role.category === "organization" ||
+    perms.some((x) => role.permissions.includes(x));
 
   if (!ready) return null;
-  const actions = (role: Role, module: string) =>
-    role.permissions
-      .filter((p) => p.startsWith(`${module}:`))
-      .map((p) => p.split(":")[1].replace(/_/g, " "));
+
+  async function copy(r: Role) {
+    try {
+      const made = await duplicate.mutateAsync(r.id);
+      toast.success("Role duplicated");
+      router.push(`/portal/settings/roles/${made.id}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
 
   return (
     <PortalShell tenant={tenant} active="roles">
       <PageHeader
         icon={<ShieldCheck size={20} />}
         title="Roles & Permissions"
-        description="What each role can do. A role applies to one branch or to all of them, depending on how it is granted."
+        description="Create roles for your store team and your tills, then give them to people on the Users page. Administrators can see and do everything."
+        actions={
+          canWrite && (
+            <Button href="/portal/settings/roles/new">
+              <Plus size={16} /> Add role
+            </Button>
+          )
+        }
       />
       {roles.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
           {roles.error.message}
         </p>
       )}
-      {!roles.data && !roles.error ? (
-        <div
-          className="flex flex-col gap-space-4"
-          role="status"
-          aria-label="Loading roles"
-        >
-          {[0, 1, 2].map((i) => (
-            <Card key={i} className="p-space-4">
-              <div className="flex items-center justify-between gap-space-3">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-              <Skeleton className="mt-space-3 h-[66px] w-full" />
-            </Card>
-          ))}
-          <Card className="p-space-4">
-            <div className="flex flex-col gap-space-3">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-5 w-full" />
-              ))}
-            </div>
-          </Card>
+      <Card className="mb-space-5 p-space-2">
+        <div className="p-space-2">
+          <Input
+            placeholder="Search roles"
+            aria-label="Search roles"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
         </div>
-      ) : (
-        <>
-          <div className="mb-space-4 flex flex-col gap-space-4">
-            {(roles.data ?? []).map((r) => (
-              <Card key={r.id} className="p-space-4">
-                <div className="flex items-center justify-between gap-space-3">
-                  <h2 className="text-[15px] font-bold text-ink-900">
-                    {r.name}
-                  </h2>
-                  <span className="text-[12px] text-ink-400">
-                    {r.permissions.length} permissions
-                  </span>
-                </div>
-                <div className="mt-space-3 rounded-md border border-line px-space-3 py-space-3 text-[13px] text-ink-600">
-                  {r.description ?? roleDescription(r.code)}
-                </div>
-              </Card>
+        {!roles.data && !roles.error ? (
+          <div
+            className="flex flex-col gap-space-2 p-space-2"
+            role="status"
+            aria-label="Loading roles"
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-full" />
             ))}
           </div>
-          <Card className="no-scrollbar overflow-x-auto p-space-2">
-            <table className="w-full min-w-[720px] text-[13px]">
-              <thead>
-                <tr className="text-left text-[12px] tracking-wide text-ink-400 uppercase">
-                  <th className="p-space-3">Module</th>
-                  {(roles.data ?? []).map((r) => (
-                    <th key={r.id} className="p-space-3">
+        ) : (
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="bg-paper text-left text-[11px] tracking-wide text-ink-400 uppercase">
+                <th className="p-space-3 font-semibold">Name</th>
+                <th className="p-space-3 font-semibold">Category</th>
+                <th className="p-space-3 text-right font-semibold">Users</th>
+                <th className="w-12 p-space-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => (
+                <tr
+                  key={r.id}
+                  className={`border-t border-line ${r.is_system ? "text-ink-400" : "text-ink-900"}`}
+                >
+                  <td className="p-space-3 font-medium">
+                    <Link
+                      href={`/portal/settings/roles/${r.id}`}
+                      className="hover:underline"
+                    >
                       {r.name}
-                    </th>
+                    </Link>
+                    {r.description && (
+                      <div className="text-[12px] font-normal text-ink-400">
+                        {r.description}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-space-3">
+                    <Badge
+                      tone={
+                        r.category === "pos"
+                          ? "violet"
+                          : r.category === "store"
+                            ? "clay"
+                            : "brand"
+                      }
+                    >
+                      {CATEGORY_LABEL[r.category]}
+                    </Badge>
+                  </td>
+                  <td className="p-space-3 text-right">{r.user_count}</td>
+                  <td className="p-space-3 text-right">
+                    {canWrite && !r.is_system && (
+                      <button
+                        type="button"
+                        title="Duplicate"
+                        aria-label={`Duplicate ${r.name}`}
+                        disabled={duplicate.isPending}
+                        onClick={() => copy(r)}
+                        className="rounded-md p-1 text-ink-400 hover:bg-black/[0.04] hover:text-ink-900"
+                      >
+                        <Copy size={15} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {shown.length === 0 && roles.data && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="p-space-4 text-center text-ink-400"
+                  >
+                    No roles match.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      {catalogue.data && storeRoles.length > 0 && (
+        <Card className="no-scrollbar overflow-x-auto p-space-4">
+          <h2 className="text-[15px] font-bold text-ink-900">
+            Page access overview
+          </h2>
+          <p className="mb-space-3 text-[12px] text-ink-400">
+            Which store roles can open each page (the View permission).
+          </p>
+          <table className="w-full min-w-[480px] text-[13px]">
+            <thead>
+              <tr className="text-left text-[11px] tracking-wide text-ink-400 uppercase">
+                <th className="py-space-2 font-semibold">Page</th>
+                {storeRoles.map((r) => (
+                  <th
+                    key={r.id}
+                    className="py-space-2 text-center font-semibold"
+                  >
+                    {r.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {catalogue.data.pages.map((p) => (
+                <tr key={p.key} className="border-t border-line">
+                  <td className="py-space-2 text-ink-900">{p.label}</td>
+                  {storeRoles.map((r) => (
+                    <td key={r.id} className="py-space-2 text-center">
+                      {canView(r, p.view) ? (
+                        <Check
+                          size={14}
+                          className="mx-auto text-success"
+                          aria-label="Can open"
+                        />
+                      ) : (
+                        <Minus
+                          size={14}
+                          className="mx-auto text-ink-300"
+                          aria-label="No access"
+                        />
+                      )}
+                    </td>
                   ))}
                 </tr>
-              </thead>
-              <tbody>
-                {modules.map((m) => (
-                  <tr key={m} className="border-t border-line align-top">
-                    <td className="p-space-3 font-semibold text-ink-900">
-                      {MODULE_LABEL[m] ?? m}
-                    </td>
-                    {(roles.data ?? []).map((r) => {
-                      const a = actions(r, m);
-                      return (
-                        <td key={r.id} className="p-space-3 text-ink-600">
-                          {a.length === 0 ? (
-                            <span className="text-ink-300">—</span>
-                          ) : (
-                            <span className="flex items-start gap-1">
-                              <Check
-                                size={14}
-                                className="mt-0.5 shrink-0 text-success"
-                              />
-                              <span>{a.join(", ")}</span>
-                            </span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </PortalShell>
   );

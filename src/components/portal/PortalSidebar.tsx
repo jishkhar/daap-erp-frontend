@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  LifeBuoy,
   CalendarDays,
   CalendarOff,
   Clock,
@@ -152,7 +153,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Growth",
     icon: TrendingUp,
     href: "/portal/growth",
-    pageKey: "dashboard",
+    pageKey: "growth",
     group: "Main",
     disabled: true,
   },
@@ -279,6 +280,15 @@ const SETTINGS_ITEM: NavItem = {
   group: "Admin",
 };
 
+const SUPPORT_ITEM: NavItem = {
+  key: "support",
+  label: "Support",
+  icon: LifeBuoy,
+  href: "/portal/support",
+  pageKey: "support",
+  group: "Admin",
+};
+
 type Props = {
   tenant: PortalTenant | null;
   active: string;
@@ -310,6 +320,7 @@ export function PortalSidebar({
     moduleOn(session.modules, item.key);
   const visible = NAV_ITEMS.filter(allowed);
   const showSettings = allowed(SETTINGS_ITEM);
+  const showSupport = allowed(SUPPORT_ITEM);
 
   return (
     <>
@@ -417,6 +428,22 @@ export function PortalSidebar({
 
         <div className="mx-space-4 mt-space-2 border-t border-white/10" />
         <div className="px-space-3 pt-space-2">
+          {showSupport && (
+            <Link
+              href={SUPPORT_ITEM.href}
+              onClick={onClose}
+              aria-current={active === "support" ? "page" : undefined}
+              className={cn(
+                "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
+                active === "support"
+                  ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]"
+                  : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white",
+              )}
+            >
+              <LifeBuoy size={18} strokeWidth={2} className="shrink-0" />
+              Support
+            </Link>
+          )}
           {showSettings && (
             <Link
               href={SETTINGS_ITEM.href}

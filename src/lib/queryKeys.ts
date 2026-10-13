@@ -74,8 +74,16 @@ export const queryKeys = {
   whatsappAccount: ["erp", "whatsapp", "account"] as const,
   whatsappTemplates: ["erp", "whatsapp", "templates"] as const,
 
+  supportCategories: ["erp", "support", "categories"] as const,
+  supportTickets: (params: Params) =>
+    ["erp", "support", "tickets", params] as const,
+  supportTicket: (id: string) => ["erp", "support", "ticket", id] as const,
+  support: ["erp", "support"] as const,
+
   analytics: ["erp", "analytics"] as const,
   today: (params: Params) => ["erp", "analytics", "today", params] as const,
+  dashboard: (params: Params) =>
+    ["erp", "analytics", "dashboard", params] as const,
   salesOverview: (params: Params) =>
     ["erp", "analytics", "sales", params] as const,
   recentOrders: (params: Params) =>
@@ -107,6 +115,7 @@ export const queryKeys = {
   team: ["erp", "team"] as const,
   teamUsers: ["erp", "team", "users"] as const,
   roles: ["erp", "team", "roles"] as const,
+  roleCatalogue: ["erp", "team", "role-catalogue"] as const,
 
   procurement: ["erp", "procurement"] as const,
   purchaseOrderList: (params: Params) =>

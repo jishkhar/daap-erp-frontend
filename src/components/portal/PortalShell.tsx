@@ -2,7 +2,12 @@
 
 import { CalendarDays, Menu } from "lucide-react";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Lock } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { canOpenPath, landingPath, pageKeyForPath } from "@/lib/routeAccess";
+import { useStaffSession } from "@/lib/staffAuth";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { HelpButton } from "@/components/portal/help/HelpButton";
 import { SettingsNav } from "@/components/portal/SettingsNav";
@@ -25,12 +30,49 @@ type Props = {
  * page reinventing it. */
 export function PortalShell({ tenant, active, children }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+  const session = useStaffSession();
+  // A page the person's role does not allow is not rendered, even when they type its address. Until the session is known, a page that
+  // needs a permission renders nothing (rather than flashing).
+  const restricted = pageKeyForPath(pathname) !== null;
+  const allowed = session ? canOpenPath(session, pathname) : false;
+  const onDashboard = pathname === "/portal/dashboard";
+  useEffect(() => {
+    // Signing in lands on the dashboard; someone who cannot use it goes to the first page they can.
+    if (session && !allowed && onDashboard)
+      router.replace(landingPath(session));
+  }, [session, allowed, onDashboard, router]);
   // The drawer is "open for the page it was opened on": navigating anywhere (a link tap, back/forward) closes it
   // without an effect.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const inSettings = pathname.startsWith("/portal/settings");
   const sidebarOpen = openOn === pathname;
   const setSidebarOpen = (open: boolean) => setOpenOn(open ? pathname : null);
+
+  const body = !session ? (
+    restricted ? null : (
+      children
+    )
+  ) : allowed ? (
+    children
+  ) : onDashboard ? null : (
+    <div className="mx-auto mt-space-8 flex max-w-[420px] flex-col items-center text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-paper text-ink-400">
+        <Lock size={22} />
+      </span>
+      <h1 className="mt-space-3 text-[18px] font-bold text-ink-900">
+        You do not have access to this page
+      </h1>
+      <p className="mt-space-1 text-[13px] text-ink-600">
+        Your role does not include it. Ask an administrator if you need it.
+      </p>
+      {session && (
+        <Button className="mt-space-4" href={landingPath(session)}>
+          Go to a page you can use
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
@@ -89,11 +131,11 @@ export function PortalShell({ tenant, active, children }: Props) {
             <div className="flex flex-col gap-space-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
               <SettingsNav />
               <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:p-space-6">
-                <div className="mx-auto max-w-[880px]">{children}</div>
+                <div className="mx-auto max-w-[880px]">{body}</div>
               </div>
             </div>
           ) : (
-            children
+            body
           )}
         </main>
       </div>

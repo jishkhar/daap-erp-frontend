@@ -504,9 +504,10 @@ const PAGE_MODULE: Record<string, string> = {
   products: "products",
   customers: "customers",
   discounts: "discounts",
-  whatsapp: "customers",
+  whatsapp: "whatsapp",
   reports: "reports",
-  feedback: "customers",
+  feedback: "feedback",
+  growth: "growth",
   channels: "channels",
   procurement: "procurement",
   inventory: "inventory",
@@ -518,12 +519,13 @@ const PAGE_MODULE: Record<string, string> = {
   roles: "roles",
   activity: "audit",
   billing: "billing",
+  support: "support",
 };
 
 // Pages with no ERP module of their own (the dashboard, and the Workforce section, which is not an ERP
 // backend module yet) are visible to every signed-in person.
 const ALWAYS_VISIBLE = new Set([
-  "dashboard",
+  "dashboard", // (view is decided separately in hasPermission)
   "check_in_out",
   "my_leave",
   "attendance",
@@ -542,6 +544,11 @@ export function hasPermission(
   action: "view" | "write" | "delete",
 ): boolean {
   if (!session) return true; // before the session loads; the API enforces regardless
+  // The dashboard summarises sales, so it needs one of the pages it summarises; anything else is a person's own and open to all.
+  if (pageKey === "dashboard" && action === "view")
+    return ["orders:view", "reports:view", "finance:view"].some((p) =>
+      Boolean(session.permissions[p]),
+    );
   if (ALWAYS_VISIBLE.has(pageKey)) return true;
   const moduleKey = PAGE_MODULE[pageKey];
   if (!moduleKey) return true;

@@ -7,13 +7,16 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { DOCS } from "@/content/help";
 
 /** Help centre index: one card per doc, searchable by title, summary and section headings. */
 export default function HelpPage() {
   const { tenant, ready } = usePortalGuard();
   const [q, setQ] = useState("");
+  const session = useStaffSession();
   if (!ready) return null;
   const needle = q.trim().toLowerCase();
   const docs = DOCS.filter(
@@ -30,6 +33,13 @@ export default function HelpPage() {
         icon={<CircleHelp size={20} />}
         title="Help"
         description="How each part of the system works and what you can configure."
+        actions={
+          hasTenantWide(session, "support:view") && (
+            <Link href="/portal/support">
+              <Button variant="secondary">Contact support</Button>
+            </Link>
+          )
+        }
       />
       <div className="relative mb-space-4 max-w-md">
         <Search

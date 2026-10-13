@@ -368,6 +368,25 @@ export async function erpSend<T = unknown>(
   return orThrow(await erp<T>(path, method, body, headers));
 }
 
+/** A multipart form (fields and files) for a mutation's mutationFn: the response, or throws an ErpError. */
+export async function erpSendForm<T = unknown>(
+  path: string,
+  form: FormData,
+): Promise<T> {
+  const result = await staffFetch(path, { method: "POST", body: form });
+  return orThrow<T>(
+    result.ok
+      ? { data: result.data as T, error: null, unauthorized: false }
+      : {
+          data: null,
+          error: result.unauthorized
+            ? "Session expired — please sign in again."
+            : result.error,
+          unauthorized: result.unauthorized,
+        },
+  );
+}
+
 /** A file upload for a mutation's mutationFn: the response, or throws an ErpError. */
 export async function erpSendFile<T = unknown>(
   path: string,
