@@ -8,12 +8,14 @@ import {
   Pencil,
   MoreHorizontal,
   Eye,
+  FolderPlus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon } from "@hugeicons/core-free-icons";
 import { ProductImportModal } from "@/components/erp/ProductImportModal";
+import { ProductCategoriesTab } from "@/components/erp/ProductCategoriesTab";
 import { ExtraBarcodes } from "@/components/erp/ExtraBarcodes";
 import {
   ProductImagesModal,
@@ -37,6 +39,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
+import { Tabs } from "@/components/ui/Tabs";
 import { useStockFor } from "@/hooks/useInventory";
 import {
   useCreateProductCategory,
@@ -116,6 +119,8 @@ export default function ProductsPage() {
   const router = useRouter();
   const session = useStaffSession();
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"products" | "categories">("products");
+  const [categoryOpen, setCategoryOpen] = useState(false);
   // Paged on the server; stock is read for just the products on the page.
   const query = useDebounced(search.trim());
   const products = useProductList(query);
@@ -389,12 +394,12 @@ export default function ProductsPage() {
   return (
     <PortalShell tenant={tenant} active="products">
       <PageHeader
-        scopedToBranch
+        scopedToBranch={tab === "products"}
         icon={<Package size={20} />}
         title="Products"
         description="The product master shared by every branch and every channel."
         actions={
-          canWrite && (
+          tab === "products" ? canWrite && (
             <div className="flex gap-space-2">
               <Button variant="ghost" onClick={() => setImportOpen(true)}>
                 <HugeiconsIcon icon={FileUploadIcon} size={16} /> Import CSV /
@@ -404,9 +409,13 @@ export default function ProductsPage() {
                 <PackagePlus size={16} /> Add product
               </Button>
             </div>
+          ) : hasGrant(session, "products:create") && (
+            <Button onClick={() => setCategoryOpen(true)}><FolderPlus size={16} /> Add category</Button>
           )
         }
       />
+      <Tabs tabs={[{ key: "products", label: "Products" }, { key: "categories", label: "Categories" }]} value={tab} onChange={(next) => { setTab(next); setCategoryOpen(false); }} />
+      {tab === "categories" ? <ProductCategoriesTab createOpen={categoryOpen} onCloseCreate={() => setCategoryOpen(false)} /> : <>
       <Card className="mb-space-4 p-space-3">
         <Input
           placeholder="Search by name, SKU or barcode…"
@@ -434,6 +443,7 @@ export default function ProductsPage() {
         />
         <CursorPager {...products.pager} />
       </Card>
+      </>}
 
       <Modal
         open={draft !== null}

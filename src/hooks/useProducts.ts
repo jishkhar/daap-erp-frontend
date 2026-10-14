@@ -17,6 +17,11 @@ export type ProductCategory = {
   id: string;
   name: string;
   parent_id: string | null;
+  is_active?: boolean;
+  item_count?: number;
+  active_item_count?: number;
+  subcategory_count?: number;
+  created_at?: string | null;
 };
 
 export function useProductCategories() {
@@ -29,8 +34,8 @@ export function useProductCategories() {
 export function useCreateProductCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) =>
-      erpSend<ProductCategory>("/api/v1/categories", "POST", { name }),
+    mutationFn: (input: string | { name: string; parent_id: string | null }) =>
+      erpSend<ProductCategory>("/api/v1/categories", "POST", typeof input === "string" ? { name: input } : input),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["product-categories"] }),
   });
 }
@@ -75,6 +80,7 @@ function useRefreshProducts() {
   return () =>
     Promise.all([
       qc.invalidateQueries({ queryKey: queryKeys.products }),
+      qc.invalidateQueries({ queryKey: ["product-categories"] }),
       qc.invalidateQueries({ queryKey: queryKeys.inventory }),
     ]);
 }
