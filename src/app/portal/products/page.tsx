@@ -16,6 +16,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { FileUploadIcon } from "@hugeicons/core-free-icons";
 import { ProductImportModal } from "@/components/erp/ProductImportModal";
 import { ProductCategoriesTab } from "@/components/erp/ProductCategoriesTab";
+import { ProductColorField } from "@/components/erp/ProductColorField";
 import { ExtraBarcodes } from "@/components/erp/ExtraBarcodes";
 import {
   ProductImagesModal,
@@ -557,34 +558,7 @@ export default function ProductsPage() {
                 {PRODUCT_AUDIENCES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </Select>
             </Field>
-            <Field
-              label="Color (hex code)"
-              htmlFor="p_color"
-              hint="Use # followed by six hex digits, e.g. #FF5733. Leave empty for none."
-            >
-              <div className="flex items-center gap-space-2">
-                <input
-                  type="color"
-                  aria-label="Choose product color"
-                  value={
-                    /^#[0-9a-f]{6}$/i.test(draft.color_hex)
-                      ? draft.color_hex
-                      : "#000000"
-                  }
-                  onChange={(e) =>
-                    set({ color_hex: e.target.value.toUpperCase() })
-                  }
-                  className="h-10 w-12 shrink-0 cursor-pointer rounded border border-line"
-                />
-                <Input
-                  id="p_color"
-                  placeholder="#FF5733"
-                  maxLength={7}
-                  value={draft.color_hex}
-                  onChange={(e) => set({ color_hex: e.target.value })}
-                />
-              </div>
-            </Field>
+            <ProductColorField value={draft.color_hex} onChange={(color_hex) => set({ color_hex })} />
             <Field label={`Selling price (${cur})`} htmlFor="p_price" required>
               <Input
                 id="p_price"
