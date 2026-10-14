@@ -1,0 +1,3 @@
+sku,name,variant_name,description,category,brand,price,mrp,cost,tax_code,serialization_type,barcode,hsn_code,status
+SAMPLE-KURTA-001,Cotton kurta,M / Indigo,"Cotton kurta, indigo blue",Kurtas,Rosaya,1299.00,1599.00,650.00,,NONE,,,active
+SAMPLE-DUPATTA-001,Cotton dupatta,Free size,Handwoven cotton dupatta,Dupattas,Rosaya,799.00,999.00,350.00,,NONE,,,active

@@ -164,10 +164,17 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                 </span>
                 {info && (
                   <span className="mt-space-1 flex flex-wrap gap-1">
-                    {info.plan && info.state !== "none" && info.state !== "ended" && (
-                      <PlanBadge name={info.plan.name} code={info.plan.code} />
-                    )}
-                    <Badge tone={STATE_TONE[info.state]}>{STATE_LABEL[info.state]}</Badge>
+                    {info.plan &&
+                      info.state !== "none" &&
+                      info.state !== "ended" && (
+                        <PlanBadge
+                          name={info.plan.name}
+                          code={info.plan.code}
+                        />
+                      )}
+                    <Badge tone={STATE_TONE[info.state]}>
+                      {STATE_LABEL[info.state]}
+                    </Badge>
                   </span>
                 )}
                 <span className="mt-space-1 text-[13px] font-semibold text-brand-600">

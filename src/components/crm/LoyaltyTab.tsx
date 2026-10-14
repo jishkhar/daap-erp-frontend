@@ -66,8 +66,9 @@ export function LoyaltyTab({
           How points are earned
         </h2>
         <p className="mb-space-3 text-[13px] text-ink-600">
-          Customers earn points on delivered orders. Staff can add or take away
-          points from a customer&apos;s profile (for example to redeem a
+          Customers earn points when orders are placed. Cancelled orders do not
+          earn points, and refunds reduce earned points. Staff can add or take
+          away points from a customer&apos;s profile (for example to redeem a
           reward).
         </p>
         <div className="flex max-w-sm items-end gap-space-3">

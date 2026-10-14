@@ -104,8 +104,8 @@ export function ReceivablesTab({ currency }: { currency: string }) {
             />
           </Card>
           <p className="mt-space-2 text-[12px] text-ink-400">
-            As of {r.as_of}. Late = past the invoice&apos;s due date (issue date plus
-            the customer&apos;s credit days).
+            As of {r.as_of}. Late = past the invoice&apos;s due date (issue date
+            plus the customer&apos;s credit days).
           </p>
         </>
       )}

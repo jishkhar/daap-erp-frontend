@@ -74,7 +74,7 @@ export function CustomersTab({
                 {row.original.name || "Unnamed"}
               </span>
               <span className="block text-[11px] text-ink-400">
-                ID {row.original.id.slice(0, 8).toUpperCase()}
+                {row.original.customer_code ?? "—"}
               </span>
             </span>
           </span>
@@ -182,7 +182,7 @@ export function CustomersTab({
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
             />
             <Input
-              placeholder="Search by name, phone or email…"
+              placeholder="Search by customer ID, name, phone or email…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"

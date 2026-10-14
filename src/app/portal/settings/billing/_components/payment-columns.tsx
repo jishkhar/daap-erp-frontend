@@ -34,7 +34,11 @@ export function createPaymentColumns(): ColumnDef<BillingPayment, unknown>[] {
     {
       header: "Service",
       cell: ({ row }) =>
-        row.original.service ? <ServiceBadge service={row.original.service} /> : <span className="text-ink-400">—</span>,
+        row.original.service ? (
+          <ServiceBadge service={row.original.service} />
+        ) : (
+          <span className="text-ink-400">—</span>
+        ),
     },
     {
       header: "Plan",
@@ -43,7 +47,9 @@ export function createPaymentColumns(): ColumnDef<BillingPayment, unknown>[] {
           <>
             <PlanBadge name={row.original.plan_name} />
             {row.original.billing_cycle && (
-              <span className="block text-[11.5px] capitalize text-ink-400">{row.original.billing_cycle}</span>
+              <span className="block text-[11.5px] capitalize text-ink-400">
+                {row.original.billing_cycle}
+              </span>
             )}
           </>
         ) : (

@@ -275,7 +275,7 @@ export function CustomerProfile({
             {c.status === "blocked" && <Badge tone="error">Blocked</Badge>}
           </h2>
           <p className="text-[12px] text-ink-400">
-            Customer ID: {c.id.slice(0, 8).toUpperCase()}
+            Customer ID: {c.customer_code ?? "—"}
           </p>
         </div>
         <div className="flex gap-space-2">
@@ -405,8 +405,6 @@ export function CustomerProfile({
           </div>
 
           <dl className="grid grid-cols-3 gap-y-space-2 text-[13.5px]">
-            <dt className="text-ink-600">GSTIN</dt>
-            <dd className="col-span-2">{c.gstin ?? "—"}</dd>
             <dt className="text-ink-600">Gender</dt>
             <dd className="col-span-2 capitalize">{c.gender ?? "—"}</dd>
             <dt className="text-ink-600">Preferences</dt>

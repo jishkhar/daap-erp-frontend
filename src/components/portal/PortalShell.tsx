@@ -1,19 +1,46 @@
 "use client";
 
 import { CalendarDays, Menu } from "lucide-react";
-import { useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { canOpenPath, landingPath, pageKeyForPath } from "@/lib/routeAccess";
-import { useStaffSession } from "@/lib/staffAuth";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { HelpButton } from "@/components/portal/help/HelpButton";
 import { SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalTenant } from "@/lib/portalAuth";
+import { useStaffSession } from "@/lib/staffAuth";
+
+const SharedShell = createContext(false);
+
+/** Keep navigation mounted across portal page transitions. */
+export function PersistentPortalShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const session = useStaffSession();
+  const section = pathname.split("/")[2] ?? "dashboard";
+  if (section === "login" || !session) return children;
+  const active =
+    section === "channels"
+      ? `channel-${pathname.split("/")[3]}`
+      : ((
+          {
+            attendance: "my-attendance",
+            "attendance-overview": "team-attendance",
+          } as Record<string, string>
+        )[section] ?? section);
+  return (
+    <PortalShell tenant={session.tenant} active={active}>
+      <SharedShell.Provider value={true}>{children}</SharedShell.Provider>
+    </PortalShell>
+  );
+}
 
 type Props = {
   tenant: PortalTenant | null;
@@ -29,6 +56,7 @@ type Props = {
  * the mobile drawer's open/close state has exactly one owner instead of each
  * page reinventing it. */
 export function PortalShell({ tenant, active, children }: Props) {
+  const shared = useContext(SharedShell);
   const pathname = usePathname();
   const router = useRouter();
   const session = useStaffSession();
@@ -42,6 +70,10 @@ export function PortalShell({ tenant, active, children }: Props) {
     if (session && !allowed && onDashboard)
       router.replace(landingPath(session));
   }, [session, allowed, onDashboard, router]);
+  const main = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (main.current) main.current.scrollTop = 0;
+  }, [pathname]);
   // The drawer is "open for the page it was opened on": navigating anywhere (a link tap, back/forward) closes it
   // without an effect.
   const [openOn, setOpenOn] = useState<string | null>(null);
@@ -73,6 +105,9 @@ export function PortalShell({ tenant, active, children }: Props) {
       )}
     </div>
   );
+
+  // The layout owns the frame; retain permission checks for nested page content.
+  if (shared) return body;
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
@@ -121,6 +156,7 @@ export function PortalShell({ tenant, active, children }: Props) {
         {/* Settings on a wide screen: the settings menu is a fixed full-height column and only the page beside it scrolls, so the
             menu never moves with the page. Below `lg` it is a row above the page and the whole thing scrolls as usual. */}
         <main
+          ref={main}
           className={
             inSettings
               ? "flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6 lg:flex lg:flex-col lg:overflow-hidden lg:p-0"

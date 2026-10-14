@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowLeft, Ban, CreditCard, PackageCheck, Undo2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Ban,
+  CreditCard,
+  ImageIcon,
+  PackageCheck,
+  Undo2,
+} from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -233,7 +241,25 @@ export default function OrderDetailPage() {
                   return (
                     <li key={item.id} className="py-space-3">
                       <div className="flex items-start justify-between gap-space-3">
-                        <div className="min-w-0">
+                        {item.image_url ? (
+                          <Image
+                            src={item.image_url}
+                            alt={`Cover image of ${item.name_snapshot}`}
+                            width={64}
+                            height={80}
+                            unoptimized
+                            className="h-20 w-16 shrink-0 rounded-md border border-line object-cover"
+                          />
+                        ) : (
+                          <span
+                            className="flex h-20 w-16 shrink-0 items-center justify-center rounded-md border border-line bg-ink-50 text-ink-300"
+                            role="img"
+                            aria-label={`No cover image for ${item.name_snapshot}`}
+                          >
+                            <ImageIcon size={24} aria-hidden="true" />
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
                           <p className="font-semibold text-ink-900">
                             {item.name_snapshot}
                           </p>

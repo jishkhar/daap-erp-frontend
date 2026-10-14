@@ -29,7 +29,6 @@ Sign in at `/portal/login` with **company code + email + password** (a tenant is
 | Analytics / Reports | `/portal/analytics` | orders (revenue by channel / branch / day) |
 | Procurement: suppliers (+ statement, pay), requests, purchase orders (approve, receive goods with freight & IMEIs, return) | `/portal/procurement` | `/api/v1/purchase-*`, `/suppliers`, `/goods-receipts` |
 | Finance: overview, expenses, GST tax invoices, gateway reconciliation, journal & period lock | `/portal/finance` | `/api/v1/finance/*` |
-| ReCommerce: pipeline, IMEI inspection & quote, buy / decline, grade, parts & labour, QC, move, scrap, price guides; store credit on the customer; `STORE_CREDIT` payment | `/portal/recommerce`, `/portal/customers/[id]` | `/api/v1/recommerce/*` |
 | Financial reports: P&L (by branch / channel), branch × channel, balance sheet, GST, product margin, aging | `/portal/analytics` → *Financial reports* | `/api/v1/finance/reports/*` |
 | Settings, Team & Access, Roles & Permissions, Activity log, Online Storefront | `/portal/settings/*` | tenant, users, roles, audit-logs, channel keys |
 
@@ -47,3 +46,5 @@ backend has no attendance/leave module yet, so those pages show "Something went 
 - Browser-only state (session, sidebar collapse) is read with `useSyncExternalStore` (`src/lib/useStorageValue.ts`), not effects, so server and client markup always agree.
 
 Product reviews now appear in ERP Feedback with product/customer/order details and branch/rating filters. See [Product reviews](../docs/PRODUCT_REVIEWS.md) for eligibility, API contracts and testing.
+
+Customer store-credit balances remain available at `/api/v1/customers/{id}/store-credit` for refunds and payment redemption.

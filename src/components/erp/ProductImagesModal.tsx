@@ -49,7 +49,7 @@ export function ProductImagesModal({
   const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState<{
     id: string;
-    urls: string[];
+    items: { file: File; url: string }[];
   } | null>(null);
   const previewUrls = useRef(new Set<string>());
   useEffect(() => {
@@ -71,8 +71,21 @@ export function ProductImagesModal({
     if (product) setEdited({ id: product.id, urls });
   };
 
-  async function upload(files: FileList | null) {
-    // FileList belongs to the input: clearing its value also clears that list.
+  const staged = previews?.id === product?.id ? (previews?.items ?? []) : [];
+
+  function release(url: string) {
+    URL.revokeObjectURL(url);
+    previewUrls.current.delete(url);
+  }
+
+  function close() {
+    if (busy) return;
+    for (const url of previewUrls.current) release(url);
+    setPreviews(null);
+    onClose();
+  }
+
+  function select(files: FileList | null) {
     const selected = Array.from(files ?? []);
     if (input.current) input.current.value = "";
     if (!product || !selected.length || busy) return;
@@ -86,7 +99,7 @@ export function ProductImagesModal({
         toast.error(`${file.name}: images can be at most 1 MB`);
         continue;
       }
-      if (images.length + accepted.length >= MAX_IMAGES) {
+      if (images.length + staged.length + accepted.length >= MAX_IMAGES) {
         toast.error(`At most ${MAX_IMAGES} images per product`);
         break;
       }
@@ -94,27 +107,39 @@ export function ProductImagesModal({
       previewUrls.current.add(url);
       accepted.push({ file, url });
     }
-    if (!accepted.length) return;
+    if (accepted.length)
+      setPreviews({ id: product.id, items: [...staged, ...accepted] });
+  }
+
+  async function upload() {
+    if (!product || busy || !staged.length) return;
     setUploading(true);
-    setPreviews({ id: product.id, urls: accepted.map(({ url }) => url) });
-    for (const { file, url } of accepted) {
-      try {
-        const result = await gallery.upload.mutateAsync(file); // one at a time, in order
-        apply(result);
-      } catch (e) {
-        toast.error(`Couldn't upload ${file.name}`, (e as Error).message);
-      } finally {
-        setPreviews((p) =>
-          p ? { ...p, urls: p.urls.filter((u) => u !== url) } : p,
-        );
-        URL.revokeObjectURL(url);
-        previewUrls.current.delete(url);
+    try {
+      for (const { file, url } of staged) {
+        try {
+          const result = await gallery.upload.mutateAsync(file);
+          apply(result);
+          setPreviews((p) =>
+            p ? { ...p, items: p.items.filter((item) => item.url !== url) } : p,
+          );
+          release(url);
+        } catch (e) {
+          toast.error(`Couldn't upload ${file.name}`, (e as Error).message);
+        }
       }
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   }
 
   function remove(url: string) {
+    if (staged.some((item) => item.url === url)) {
+      setPreviews((p) =>
+        p ? { ...p, items: p.items.filter((item) => item.url !== url) } : p,
+      );
+      release(url);
+      return;
+    }
     const before = images;
     apply({ images: images.filter((u) => u !== url) });
     gallery.remove.mutate(url, {
@@ -133,13 +158,14 @@ export function ProductImagesModal({
     });
   }
 
-  const pending = previews?.id === product?.id ? (previews?.urls ?? []) : [];
+  const pending = staged.map((item) => item.url);
   const displayed = [...images, ...pending];
 
   return (
     <Modal
       open={product !== null}
-      onClose={onClose}
+      onClose={close}
+      dismissible={!busy}
       width="lg"
       title={`Images — ${product?.name ?? ""}`}
       description="Shown on the online store. The first image is the cover. Maximum 6 images per product. JPEG, PNG or WebP, up to 1 MB each."
@@ -151,27 +177,33 @@ export function ProductImagesModal({
             accept={ACCEPT}
             multiple
             hidden
-            onChange={(e) => upload(e.target.files)}
+            aria-label="Select product images"
+            onChange={(e) => select(e.target.files)}
           />
-          <Button variant="ghost" onClick={onClose}>
-            Done
-          </Button>
           <Button
-            disabled={busy || images.length >= MAX_IMAGES}
+            variant="secondary"
+            disabled={busy || displayed.length >= MAX_IMAGES}
             onClick={() => input.current?.click()}
           >
-            <ImagePlus size={16} /> {busy ? "Working…" : "Upload images"}
+            <ImagePlus size={16} /> Select images
+          </Button>
+          <Button
+            disabled={busy || !staged.length}
+            onClick={() => void upload()}
+          >
+            {uploading ? "Uploading…" : "Upload images"}
           </Button>
         </>
       }
     >
       <p className="mb-space-3 text-[13px] text-ink-400">
         {displayed.length} / {MAX_IMAGES} images
+        {staged.length > 0 && ` · ${staged.length} selected, not uploaded`}
       </p>
       {displayed.length === 0 ? (
         <p className="py-space-6 text-center text-[13px] text-ink-400">
-          No images yet. Upload at least one so the product looks right on the
-          store.
+          No images yet. Select images, then click Upload images to show them on
+          the store.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-space-3 sm:grid-cols-3">
@@ -192,7 +224,7 @@ export function ProductImagesModal({
                   className="absolute left-2 top-2 rounded-full bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-white"
                   role="status"
                 >
-                  Uploading…
+                  {uploading ? "Uploading…" : "Not uploaded"}
                 </span>
               ) : (
                 i === 0 && (
@@ -202,7 +234,7 @@ export function ProductImagesModal({
                 )
               )}
               <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/60 to-transparent p-2">
-                {i !== 0 && (
+                {i !== 0 && !pending.includes(url) && (
                   <button
                     type="button"
                     disabled={busy}

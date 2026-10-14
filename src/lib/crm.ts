@@ -14,7 +14,7 @@ export const SEGMENT_META: Record<
   vip: {
     label: "VIP",
     tone: "warning",
-    rule: "Spent at least the VIP threshold, or tagged “vip”.",
+    rule: "Loyalty points meet or exceed the VIP threshold.",
   },
   new: {
     label: "New",
@@ -42,6 +42,7 @@ export const MESSAGE_CHANNELS: Record<MessageChannel, string> = {
 
 export type CrmCustomer = {
   id: string;
+  customer_code: string | null;
   name: string;
   phone: string | null;
   email: string | null;
@@ -78,9 +79,11 @@ export type CrmSummary = {
 };
 
 export type CrmSettings = {
-  vip_min_spend_minor: number;
+  vip_min_points: number;
   inactive_after_days: number;
   points_per_100: number;
+  redemption_points: number;
+  redemption_value_minor: number;
 };
 
 export type CrmNote = {

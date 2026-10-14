@@ -81,6 +81,7 @@ export type Order = {
 };
 
 export type OrderItem = {
+  image_url?: string | null;
   id: string;
   variant_id: string;
   sku_snapshot: string;
@@ -131,8 +132,10 @@ export type Product = {
   name: string; // product name, plus the variant when it is not the only one
   description: string | null;
   tax_code: string | null;
+  hsn_code?: string | null;
   category_id?: string | null;
   category_name?: string | null;
+  brand_id?: string | null;
   variant_attributes?: Record<string, unknown>;
   serialization_type: "NONE" | "SERIAL" | "IMEI";
   price_minor: number;
@@ -159,6 +162,7 @@ export type TaxRule = {
 };
 export type Customer = {
   id: string;
+  customer_code: string | null;
   name: string;
   phone: string | null;
   email: string | null;
@@ -605,83 +609,6 @@ export function monthRange(): { from: string; to: string } {
   };
 }
 
-// ---- Phase 8: ReCommerce -------------------------------------------------------------------------------------------
-export type AssetStatus =
-  | "INSPECTED"
-  | "REJECTED"
-  | "ACQUIRED"
-  | "GRADED"
-  | "IN_REFURBISHMENT"
-  | "QC_PENDING"
-  | "QC_FAILED"
-  | "IN_STOCK"
-  | "SOLD"
-  | "SCRAPPED";
-export type RecommerceAsset = {
-  id: string;
-  asset_number: string;
-  variant_id: string;
-  product_name: string;
-  product_sku: string;
-  serial_number: string;
-  source_type: "BUYBACK" | "TRADE_IN";
-  status: AssetStatus;
-  grade: "A" | "B" | "C" | null;
-  suggested_grade: "A" | "B" | "C" | null;
-  quoted_price_minor: number;
-  cost_basis_minor: number;
-  acquisition_cost_minor: number;
-  parts_cost_minor: number;
-  labour_cost_minor: number;
-  acquisition_branch_id: string;
-  current_branch_id: string;
-  customer_id: string | null;
-  payout_method: string | null;
-  rejection_reason: string | null;
-  created_at: string;
-};
-export type AssetEvent = {
-  id: string;
-  event_type: string;
-  from_status: string | null;
-  to_status: string | null;
-  branch_id: string | null;
-  detail: Record<string, unknown>;
-  created_at: string;
-};
-export type WorkItem = {
-  id: string;
-  kind: "PART" | "LABOUR";
-  description: string;
-  product_name: string | null;
-  quantity: number;
-  cost_minor: number;
-  branch_id: string;
-};
-export type RecommerceAssetDetail = RecommerceAsset & {
-  inspection: Record<string, unknown>;
-  resale_sku: string | null;
-  resale_price_minor: number | null;
-  unit_status: string | null;
-  events: AssetEvent[];
-  work_items: WorkItem[];
-  id_proof_type: string | null;
-  id_proof_last4: string | null;
-  payout_reference: string | null;
-  qc: Record<string, unknown> | null;
-};
-export type PipelineSummary = {
-  by_status: Record<string, { units: number; cost_minor: number }>;
-  wip_cost_minor: number;
-  in_stock_units: number;
-};
-export type PriceGuide = {
-  id: string;
-  variant_id: string;
-  product_name?: string;
-  grade: "A" | "B" | "C";
-  max_price_minor: number;
-};
 export type StoreCredit = {
   balance_minor: number;
   entries: {
@@ -691,27 +618,6 @@ export type StoreCredit = {
     created_at: string;
   }[];
 };
-export const ASSET_STATUS_TONE: Record<AssetStatus, Tone> = {
-  INSPECTED: "warning",
-  REJECTED: "neutral",
-  ACQUIRED: "clay",
-  GRADED: "clay",
-  IN_REFURBISHMENT: "violet",
-  QC_PENDING: "warning",
-  QC_FAILED: "neutral",
-  IN_STOCK: "success",
-  SOLD: "neutral",
-  SCRAPPED: "neutral",
-};
-export const QC_CHECKS: { key: string; label: string }[] = [
-  { key: "powers_on", label: "Powers on and boots" },
-  { key: "display", label: "Display is clean" },
-  { key: "touch", label: "Touch works across the screen" },
-  { key: "cameras", label: "Cameras work" },
-  { key: "factory_reset", label: "Factory reset done" },
-  { key: "no_activation_lock", label: "No activation lock" },
-];
-
 export type DiscountKind = "percent" | "flat" | "free_delivery" | "bogo";
 
 export type Discount = {

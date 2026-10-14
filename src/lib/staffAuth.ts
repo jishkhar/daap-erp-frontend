@@ -131,6 +131,22 @@ function errorMessage(data: unknown): string {
   if (typeof err === "string") return err;
   if (err && typeof err === "object" && "message" in err)
     return String((err as { message: unknown }).message);
+  const detail = (data as { detail?: unknown } | undefined)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap((item) => {
+      if (!item || typeof item !== "object" || typeof item.msg !== "string")
+        return [];
+      const field = Array.isArray(item.loc)
+        ? item.loc
+            .filter((part: unknown) => part !== "body")
+            .join(" ")
+            .replaceAll("_", " ")
+        : "";
+      return [field ? `${field}: ${item.msg}` : item.msg];
+    });
+    if (messages.length) return messages.join(". ");
+  }
   return "Something went wrong.";
 }
 
@@ -514,7 +530,6 @@ const PAGE_MODULE: Record<string, string> = {
   inventory: "inventory",
   transfers: "transfers",
   finance: "finance",
-  recommerce: "recommerce",
   settings: "tenant",
   staff: "users",
   roles: "roles",
