@@ -3,6 +3,7 @@
 import { AlertTriangle, Check, ChevronRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { PlanBadge } from "@/components/ui/ServicePlanBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatMoney } from "@/lib/erp";
@@ -97,11 +98,11 @@ export function ServiceBillingCard({
       )}
 
       <div className="flex-1 rounded-md border border-line p-space-3">
-        <p className="text-[16px] font-bold text-ink-900">
-          {live || info.state === "ended"
-            ? (plan?.name ?? "No plan")
-            : "No plan"}
-        </p>
+        {(live || info.state === "ended") && plan ? (
+          <PlanBadge name={plan.name} code={plan.code} />
+        ) : (
+          <p className="text-[16px] font-bold text-ink-900">No plan</p>
+        )}
         {plan && live && (
           <p className="mt-1">
             <span className="text-[22px] font-bold text-ink-900">

@@ -19,6 +19,7 @@ import {
   Users,
   Wallet,
   Percent,
+  Building2,
   Layers,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +78,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: "Shipping and delivery",
     icon: Truck,
     href: "/portal/settings/shipping",
+  },
+  {
+    slug: "wholesale",
+    label: "Wholesale",
+    icon: Building2,
+    href: "/portal/settings/wholesale",
   },
   {
     slug: "taxes",

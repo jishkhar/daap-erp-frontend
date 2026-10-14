@@ -64,6 +64,17 @@
   --info-tint: #eaf0fd;
   --accent-violet: #6d28d9;
   --accent-violet-tint: #f1ecfc;
+  /* Service and plan badge colours (components/ui/ServicePlanBadge.tsx). Services are tinted like every other badge: Online = info blue,
+     POS = teal, WhatsApp = success green. Plans use hues nothing else uses (rose, indigo, slate), so a plan never looks like a service or
+     a status. Each text colour on its tint is above 4.5:1. */
+  --service-pos: #0f766e;
+  --service-pos-tint: #ccfbf1;
+  --plan-starter: #be185d;
+  --plan-starter-tint: #fce7f3;
+  --plan-growth: #4338ca;
+  --plan-growth-tint: #e0e7ff;
+  --plan-enterprise: #1e293b;
+  --plan-enterprise-tint: #e2e8f0;
 
   /* --- Spacing scale (8px-based; step 1/2 drop to 4px for the tightest
      icon-to-label gaps). Named --space-N rather than overriding Tailwind's
@@ -143,6 +154,14 @@
   --color-info-tint: var(--info-tint);
   --color-accent-violet: var(--accent-violet);
   --color-accent-violet-tint: var(--accent-violet-tint);
+  --color-service-pos: var(--service-pos);
+  --color-service-pos-tint: var(--service-pos-tint);
+  --color-plan-starter: var(--plan-starter);
+  --color-plan-starter-tint: var(--plan-starter-tint);
+  --color-plan-growth: var(--plan-growth);
+  --color-plan-growth-tint: var(--plan-growth-tint);
+  --color-plan-enterprise: var(--plan-enterprise);
+  --color-plan-enterprise-tint: var(--plan-enterprise-tint);
 
   --spacing-space-1: var(--space-1);
   --spacing-space-2: var(--space-2);

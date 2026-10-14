@@ -10,6 +10,13 @@ export const SERVICE_LABEL: Record<Service, string> = {
   whatsapp: "WhatsApp",
 };
 
+/** Each service's own colour, used wherever a service is shown (ServiceBadge). Same as the admin app's. */
+export const SERVICE_TONE = {
+  online: "info",
+  pos: "teal",
+  whatsapp: "success",
+} as const;
+
 export const SERVICE_BLURB: Record<Service, string> = {
   online: "Your online store and website orders.",
   pos: "Billing at the counter on the POS till.",

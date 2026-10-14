@@ -42,6 +42,13 @@ export const PERMISSION_LABEL: Record<string, string> = {
   "recommerce:acquire": "Buy back devices",
   "recommerce:refurbish": "Refurbish devices",
   "recommerce:qc": "Quality-check devices",
+  "wholesale:approve": "Confirm sales orders",
+  "wholesale:dispatch": "Dispatch sales orders",
+  "wholesale:override_price": "Change wholesale prices on an order",
+  "wholesale:override_credit": "Sell past a customer's credit limit",
+  "wholesale:receive_payment": "Record payments from business customers",
+  "wholesale_till:bill": "Bill business customers at their prices",
+  "wholesale_till:credit": "Put bills on a business customer's account",
 };
 
 export function permissionLabel(p: string): string {

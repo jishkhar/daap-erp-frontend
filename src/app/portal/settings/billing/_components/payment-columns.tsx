@@ -5,7 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatMoney } from "@/lib/erp";
 import { formatDate } from "@/lib/formatDate";
-import { SERVICE_LABEL } from "@/lib/services";
+import { PlanBadge, ServiceBadge } from "@/components/ui/ServicePlanBadge";
 import type { BillingPayment } from "./billing-types";
 
 const TONE = {
@@ -34,16 +34,21 @@ export function createPaymentColumns(): ColumnDef<BillingPayment, unknown>[] {
     {
       header: "Service",
       cell: ({ row }) =>
-        row.original.service ? SERVICE_LABEL[row.original.service] : "—",
+        row.original.service ? <ServiceBadge service={row.original.service} /> : <span className="text-ink-400">—</span>,
     },
     {
       header: "Plan",
-      cell: ({ row }) => (
-        <span className="text-ink-600">
-          {row.original.plan_name ?? "—"}
-          {row.original.billing_cycle ? ` (${row.original.billing_cycle})` : ""}
-        </span>
-      ),
+      cell: ({ row }) =>
+        row.original.plan_name ? (
+          <>
+            <PlanBadge name={row.original.plan_name} />
+            {row.original.billing_cycle && (
+              <span className="block text-[11.5px] capitalize text-ink-400">{row.original.billing_cycle}</span>
+            )}
+          </>
+        ) : (
+          <span className="text-ink-400">—</span>
+        ),
     },
     {
       header: "Amount",

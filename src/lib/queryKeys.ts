@@ -137,6 +137,27 @@ export const queryKeys = {
   goodsReceipt: (id: string) =>
     ["erp", "procurement", "goods-receipt", id] as const,
 
+  wholesale: ["erp", "wholesale"] as const,
+  wholesaleSettings: ["erp", "wholesale", "settings"] as const,
+  priceLists: ["erp", "wholesale", "price-lists"] as const,
+  priceList: (id: string, q: string) =>
+    ["erp", "wholesale", "price-list", id, q] as const,
+  customerAccountList: (params: Params) =>
+    ["erp", "wholesale", "accounts", params] as const,
+  customerAccount: (id: string) => ["erp", "wholesale", "account", id] as const,
+  customerAccountSearch: (q: string) =>
+    ["erp", "wholesale", "account-search", q] as const,
+  accountCredit: (id: string) => ["erp", "wholesale", "credit", id] as const,
+  salesOrderList: (params: Params) =>
+    ["erp", "wholesale", "sales-orders", params] as const,
+  salesOrder: (id: string) => ["erp", "wholesale", "sales-order", id] as const,
+  statement: (id: string) => ["erp", "wholesale", "statement", id] as const,
+  receivables: ["erp", "wholesale", "receivables"] as const,
+  receiptList: (params: Params) =>
+    ["erp", "wholesale", "receipts", params] as const,
+  wholesaleQuote: (body: string) =>
+    ["erp", "wholesale", "quote", body] as const,
+
   finance: ["erp", "finance"] as const,
   financeSummary: (params: Params) =>
     ["erp", "finance", "summary", params] as const,

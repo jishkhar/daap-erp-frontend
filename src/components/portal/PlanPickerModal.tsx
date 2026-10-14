@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import type { BillingPlan } from "@/app/portal/settings/billing/_components/billing-types";
 import { Badge } from "@/components/ui/Badge";
+import { PlanBadge } from "@/components/ui/ServicePlanBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useBilling, useChoosePlan, useServicePlans } from "@/hooks/useBilling";
@@ -162,13 +163,12 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                   {SERVICE_BLURB[s]}
                 </span>
                 {info && (
-                  <Badge tone={STATE_TONE[info.state]} className="mt-space-1">
-                    {info.plan &&
-                    info.state !== "none" &&
-                    info.state !== "ended"
-                      ? `${info.plan.name} · ${STATE_LABEL[info.state]}`
-                      : STATE_LABEL[info.state]}
-                  </Badge>
+                  <span className="mt-space-1 flex flex-wrap gap-1">
+                    {info.plan && info.state !== "none" && info.state !== "ended" && (
+                      <PlanBadge name={info.plan.name} code={info.plan.code} />
+                    )}
+                    <Badge tone={STATE_TONE[info.state]}>{STATE_LABEL[info.state]}</Badge>
+                  </span>
                 )}
                 <span className="mt-space-1 text-[13px] font-semibold text-brand-600">
                   {buyLabel(info?.state)} →

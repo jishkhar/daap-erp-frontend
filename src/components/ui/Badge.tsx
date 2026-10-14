@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 type BadgeTone =
-  "brand" | "clay" | "success" | "neutral" | "warning" | "violet" | "error";
+  "brand" | "clay" | "success" | "neutral" | "warning" | "violet" | "error" | "info" | "teal" | "rose" | "indigo" | "slate";
 
 const tones: Record<BadgeTone, string> = {
   brand: "bg-brand-50 text-brand-700",
@@ -11,6 +11,12 @@ const tones: Record<BadgeTone, string> = {
   warning: "bg-warning-tint text-warning",
   violet: "bg-accent-violet-tint text-accent-violet",
   error: "bg-error-tint text-error",
+  info: "bg-info-tint text-info",
+  teal: "bg-service-pos-tint text-service-pos",
+  // Plan tiers (PlanBadge): hues used nowhere else.
+  rose: "bg-plan-starter-tint text-plan-starter",
+  indigo: "bg-plan-growth-tint text-plan-growth",
+  slate: "bg-plan-enterprise-tint text-plan-enterprise",
 };
 
 export function Badge({

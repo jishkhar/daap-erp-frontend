@@ -510,6 +510,7 @@ const PAGE_MODULE: Record<string, string> = {
   growth: "growth",
   channels: "channels",
   procurement: "procurement",
+  wholesale: "wholesale",
   inventory: "inventory",
   transfers: "transfers",
   finance: "finance",
@@ -550,6 +551,13 @@ export function hasPermission(
       Boolean(session.permissions[p]),
     );
   if (ALWAYS_VISIBLE.has(pageKey)) return true;
+  // Wholesale is one page for three permission sets: its orders, its business customers and its price lists.
+  if (pageKey === "wholesale" && action === "view")
+    return [
+      "wholesale:view",
+      "customer_accounts:view",
+      "price_lists:view",
+    ].some((p) => Boolean(session.permissions[p]));
   const moduleKey = PAGE_MODULE[pageKey];
   if (!moduleKey) return true;
   return ACTION_VERBS[action].some((verb) =>

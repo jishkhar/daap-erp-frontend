@@ -17,6 +17,8 @@ const ROUTES: [prefix: string, pageKey: string][] = [
   ["/portal/analytics", "reports"],
   ["/portal/channels", "channels"],
   ["/portal/procurement", "procurement"],
+  ["/portal/wholesale", "wholesale"],
+  ["/portal/settings/wholesale", "settings"],
   ["/portal/inventory", "inventory"],
   ["/portal/transfers", "transfers"],
   ["/portal/recommerce", "recommerce"],
