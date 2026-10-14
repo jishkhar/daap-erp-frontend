@@ -231,16 +231,6 @@ export default function InventoryPage() {
                   <PackageOpen size={16} /> Receive
                 </Button>
               )}
-              {canWriteProducts && (
-                <Button
-                  variant="ghost"
-                  disabled={loadingProduct}
-                  aria-label={`Add a variant of ${l.product_name}`}
-                  onClick={() => void openProductAction(l, "variant")}
-                >
-                  <Copy size={15} /> Variant
-                </Button>
-              )}
               <Button
                 variant="ghost"
                 onClick={() =>
@@ -272,7 +262,7 @@ export default function InventoryPage() {
         },
       },
     ],
-    [branchId, canReceive, canWriteProducts, loadingProduct, openProductAction],
+    [branchId, canReceive, loadingProduct, openProductAction],
   );
 
   const ledgerColumns = useMemo<ColumnDef<LedgerRow, unknown>[]>(

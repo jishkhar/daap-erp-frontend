@@ -51,12 +51,6 @@ export const queryKeys = {
   terminalSyncHealth: (id: string, problemsOnly: boolean, limit: number) =>
     ["erp", "terminals", "sync-health", id, problemsOnly, limit] as const,
 
-  recommerce: ["erp", "recommerce"] as const,
-  recommerceSummary: ["erp", "recommerce", "summary"] as const,
-  recommerceAssets: (params: Params) =>
-    ["erp", "recommerce", "assets", params] as const,
-  recommerceAsset: (id: string) => ["erp", "recommerce", "asset", id] as const,
-  priceGuides: ["erp", "recommerce", "price-guides"] as const,
 
   activity: ["erp", "activity"] as const,
   activityList: (params: Params) =>

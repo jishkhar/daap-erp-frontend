@@ -13,7 +13,6 @@ import {
   MessageCircle,
   MessageSquareText,
   Banknote,
-  Recycle,
   Package,
   Truck,
   Settings,
@@ -217,14 +216,6 @@ const NAV_ITEMS: NavItem[] = [
     icon: TransfersNavIcon,
     href: "/portal/transfers",
     pageKey: "transfers",
-    group: "Back Office",
-  },
-  {
-    key: "recommerce",
-    label: "ReCommerce",
-    icon: Recycle,
-    href: "/portal/recommerce",
-    pageKey: "recommerce",
     group: "Back Office",
   },
   {

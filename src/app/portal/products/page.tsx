@@ -9,9 +9,11 @@ import {
   MoreHorizontal,
   Eye,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { FileUploadIcon, Download04Icon } from "@hugeicons/core-free-icons";
+import { FileUploadIcon } from "@hugeicons/core-free-icons";
+import { ProductImportModal } from "@/components/erp/ProductImportModal";
 import { ExtraBarcodes } from "@/components/erp/ExtraBarcodes";
 import {
   ProductImagesModal,
@@ -39,7 +41,6 @@ import { useStockFor } from "@/hooks/useInventory";
 import {
   useCreateProductCategory,
   useProductCategories,
-  useImportProducts,
   useProductList,
   useSaveProduct,
   type ImportResult,
@@ -56,6 +57,7 @@ import { hasGrant, hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { useActiveBranch } from "@/lib/branch";
 import { useDebounced } from "@/lib/useDebounced";
 import { toast } from "@/lib/toast";
+import { PRODUCT_AUDIENCES, productAudienceLabel } from "@/lib/productAudience";
 import {
   BARCODE_SPECS,
   BARCODE_TYPES,
@@ -79,6 +81,7 @@ type Draft = {
   description: string;
   category_id: string;
   color_hex: string;
+  target_audience: string;
   variant_attributes: Record<string, unknown>;
   price: string;
   mrp: string;
@@ -96,6 +99,7 @@ const EMPTY: Draft = {
   description: "",
   category_id: "",
   color_hex: "",
+  target_audience: "",
   variant_attributes: {},
   price: "",
   mrp: "",
@@ -109,6 +113,7 @@ const EMPTY: Draft = {
 
 export default function ProductsPage() {
   const { tenant, ready } = usePortalGuard();
+  const router = useRouter();
   const session = useStaffSession();
   const [search, setSearch] = useState("");
   // Paged on the server; stock is read for just the products on the page.
@@ -125,14 +130,11 @@ export default function ProductsPage() {
   const createCategory = useCreateProductCategory();
   const [newCategory, setNewCategory] = useState("");
   const saveProduct = useSaveProduct();
-  const importProducts = useImportProducts();
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [viewOf, setViewOf] = useState<Product | null>(null);
   const [imagesOf, setImagesOf] = useState<string | null>(null);
   const busy = saveProduct.isPending || createCategory.isPending;
-  const importing = importProducts.isPending;
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const canWrite = hasPermission(session, "products", "write");
   const stockBy = useMemo(
@@ -173,6 +175,10 @@ export default function ProductsPage() {
           categories.data?.find((c) => c.id === row.original.category_id)
             ?.name ??
           "—",
+      },
+      {
+        header: "For",
+        cell: ({ row }) => productAudienceLabel(row.original.variant_attributes?.target_audience),
       },
       {
         header: "Color",
@@ -260,7 +266,11 @@ export default function ProductsPage() {
               <MoreHorizontal size={20} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setViewOf(row.original)}>
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(`/portal/products/${row.original.id}`)
+                }
+              >
                 <Eye size={16} /> View
               </DropdownMenuItem>
               {canWrite && (
@@ -276,6 +286,8 @@ export default function ProductsPage() {
                           : row.original.variant_name,
                       description: row.original.description ?? "",
                       category_id: row.original.category_id ?? "",
+                      target_audience: PRODUCT_AUDIENCES.some((option) => option.value === row.original.variant_attributes?.target_audience)
+                        ? String(row.original.variant_attributes?.target_audience) : "",
                       color_hex:
                         typeof row.original.variant_attributes?.color_hex ===
                         "string"
@@ -301,7 +313,7 @@ export default function ProductsPage() {
         ),
       },
     ],
-    [cur, stockBy, canWrite, categories.data],
+    [cur, stockBy, canWrite, categories.data, router],
   );
 
   if (!ready) return null;
@@ -329,6 +341,8 @@ export default function ProductsPage() {
         "Use a six-digit hex code, e.g. #FF5733.",
       );
     const attributes = { ...draft.variant_attributes };
+    if (draft.target_audience) attributes.target_audience = draft.target_audience;
+    else delete attributes.target_audience;
     if (draft.color_hex.trim())
       attributes.color_hex = draft.color_hex.trim().toUpperCase();
     else delete attributes.color_hex;
@@ -369,15 +383,6 @@ export default function ProductsPage() {
     );
   }
 
-  function importFile(file: File | undefined) {
-    if (fileInput.current) fileInput.current.value = "";
-    if (!file) return;
-    importProducts.mutate(file, {
-      onSuccess: setImportResult,
-      onError: (e) => toast.error("Couldn't import the file", e.message),
-    });
-  }
-
   const set = (patch: Partial<Draft>) =>
     setDraft((d) => (d ? { ...d, ...patch } : d));
 
@@ -391,20 +396,9 @@ export default function ProductsPage() {
         actions={
           canWrite && (
             <div className="flex gap-space-2">
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".csv,.xlsx"
-                hidden
-                onChange={(e) => importFile(e.target.files?.[0])}
-              />
-              <Button
-                variant="ghost"
-                disabled={importing}
-                onClick={() => fileInput.current?.click()}
-              >
-                <HugeiconsIcon icon={FileUploadIcon} size={16} />{" "}
-                {importing ? "Importing…" : "Import CSV / Excel"}
+              <Button variant="ghost" onClick={() => setImportOpen(true)}>
+                <HugeiconsIcon icon={FileUploadIcon} size={16} /> Import CSV /
+                Excel
               </Button>
               <Button onClick={() => setDraft({ ...EMPTY })}>
                 <PackagePlus size={16} /> Add product
@@ -440,78 +434,6 @@ export default function ProductsPage() {
         />
         <CursorPager {...products.pager} />
       </Card>
-
-      <Modal
-        open={viewOf !== null}
-        onClose={() => setViewOf(null)}
-        width="lg"
-        title="Product details"
-        description={viewOf?.name}
-      >
-        {viewOf && (
-          <dl className="grid gap-space-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-ink-400">SKU</dt>
-              <dd>{viewOf.sku}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Variant</dt>
-              <dd>{viewOf.variant_name}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Category</dt>
-              <dd>
-                {viewOf.category_name ??
-                  categories.data?.find((c) => c.id === viewOf.category_id)
-                    ?.name ??
-                  "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Color</dt>
-              <dd>
-                {typeof viewOf.variant_attributes?.color_hex === "string"
-                  ? viewOf.variant_attributes.color_hex.toUpperCase()
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Price</dt>
-              <dd>{formatMoney(viewOf.price_minor, cur)}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">MRP</dt>
-              <dd>
-                {viewOf.mrp_minor === null
-                  ? "—"
-                  : formatMoney(viewOf.mrp_minor, cur)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Tax</dt>
-              <dd>{viewOf.tax_code ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">In stock</dt>
-              <dd>{stockBy.get(viewOf.id)?.available_qty ?? 0}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Status</dt>
-              <dd>{humanize(viewOf.lifecycle_status)}</dd>
-            </div>
-            <div>
-              <dt className="text-ink-400">Shop label barcode</dt>
-              <dd>{viewOf.barcode ?? "—"}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-ink-400">Description</dt>
-              <dd className="whitespace-pre-wrap break-words">
-                {viewOf.description || "—"}
-              </dd>
-            </div>
-          </dl>
-        )}
-      </Modal>
 
       <Modal
         open={draft !== null}
@@ -618,6 +540,12 @@ export default function ProductsPage() {
                   </Button>
                 </div>
               )}
+            </Field>
+            <Field label="For" htmlFor="p_audience" hint="Choose who this product is for.">
+              <Select id="p_audience" value={draft.target_audience} onChange={(e) => set({ target_audience: e.target.value })}>
+                <option value="">Not specified</option>
+                {PRODUCT_AUDIENCES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </Select>
             </Field>
             <Field
               label="Color (hex code)"
@@ -807,6 +735,17 @@ export default function ProductsPage() {
         onClose={() => setImagesOf(null)}
       />
 
+      {importOpen && (
+        <ProductImportModal
+          currency={cur}
+          onClose={() => setImportOpen(false)}
+          onImported={(result) => {
+            setImportOpen(false);
+            setImportResult(result);
+          }}
+        />
+      )}
+
       <Modal
         open={importResult !== null}
         onClose={() => setImportResult(null)}
@@ -835,20 +774,6 @@ export default function ProductsPage() {
         {importResult && importResult.errors.length === 0 && (
           <p className="text-[13px] text-ink-600">Every row was imported.</p>
         )}
-        <p className="mt-space-3 text-[12px] text-ink-400">
-          Required columns: sku, name, price. Optional: variant_name,
-          description, category, brand, mrp, cost, tax_code, serialization_type
-          (NONE / SERIAL / IMEI), barcode, hsn_code, status. New categories and
-          brands are created automatically.{" "}
-          <a
-            className="font-medium underline"
-            href="/sample-products.csv"
-            download
-          >
-            <HugeiconsIcon icon={Download04Icon} size={12} className="inline" />{" "}
-            Download sample file
-          </a>
-        </p>
       </Modal>
     </PortalShell>
   );

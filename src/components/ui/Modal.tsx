@@ -12,6 +12,8 @@ type ModalProps = {
   /** Right-aligned action buttons under the body. */
   footer?: React.ReactNode;
   width?: "sm" | "md" | "lg";
+  /** Reduce vertical padding in the header and footer. */
+  compact?: boolean;
   /** false = no close button, and neither a backdrop click nor Escape closes it (a gate the person must act on). */
   dismissible?: boolean;
 };
@@ -27,6 +29,7 @@ export function Modal({
   children,
   footer,
   width = "md",
+  compact = false,
   dismissible = true,
 }: ModalProps) {
   useEffect(() => {
@@ -49,7 +52,9 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
         className={`flex max-h-[90vh] w-full ${WIDTH[width]} flex-col rounded-lg border border-line bg-card shadow-[var(--shadow-lg)]`}
       >
-        <div className="flex items-start gap-space-3 border-b border-line p-space-4">
+        <div
+          className={`flex items-start gap-space-3 border-b border-line ${compact ? "px-space-4 py-space-2" : "p-space-4"}`}
+        >
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-bold text-ink-900">{title}</h2>
             {description && (
@@ -69,7 +74,9 @@ export function Modal({
         </div>
         <div className="overflow-y-auto p-space-4">{children}</div>
         {footer && (
-          <div className="flex flex-wrap justify-end gap-space-2 border-t border-line p-space-4">
+          <div
+            className={`flex flex-wrap justify-end gap-space-2 border-t border-line ${compact ? "px-space-4 py-space-2" : "p-space-4"}`}
+          >
             {footer}
           </div>
         )}
