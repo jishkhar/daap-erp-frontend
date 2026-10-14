@@ -135,6 +135,7 @@ export type Product = {
   hsn_code?: string | null;
   category_id?: string | null;
   category_name?: string | null;
+  brand_id?: string | null;
   variant_attributes?: Record<string, unknown>;
   serialization_type: "NONE" | "SERIAL" | "IMEI";
   price_minor: number;

@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { descriptionText } from "@/lib/richText";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -21,7 +23,15 @@ import {
 } from "@/hooks/useProducts";
 import { useStockFor } from "@/hooks/useInventory";
 import { useTaxRules } from "@/hooks/useTaxes";
-import { erpGet, fromMinor, humanize, toMinor, type Product } from "@/lib/erp";
+import {
+  erpGet,
+  fromMinor,
+  humanize,
+  toMinor,
+  formatMoney,
+  useErpQuery,
+  type Product,
+} from "@/lib/erp";
 import {
   BARCODE_TYPES,
   BARCODE_SPECS,
@@ -61,6 +71,7 @@ export function ProductEditor({ product }: { product?: Product }) {
     product ? "products:update" : "products:create",
   );
   const categories = useProductCategories();
+  const brands = useErpQuery<{ id: string; name: string }[]>("/api/v1/brands");
   const taxes = useTaxRules();
   const saveProduct = useSaveProduct();
   const addVariant = useAddVariant();
@@ -76,6 +87,10 @@ export function ProductEditor({ product }: { product?: Product }) {
     mrp: fromMinor(product?.mrp_minor ?? null),
     cost: fromMinor(product?.cost_minor ?? null),
     category_id: product?.category_id ?? "",
+    brand_id: product?.brand_id ?? "",
+    tags: Array.isArray(attrs.tags)
+      ? attrs.tags.filter((tag) => typeof tag === "string").join(", ")
+      : "",
     tax_code: product?.tax_code ?? "",
     hsn_code: product?.hsn_code ?? "",
     weight_kg: String(attrs.weight_kg ?? ""),
@@ -170,6 +185,16 @@ export function ProductEditor({ product }: { product?: Product }) {
     );
     if (!product && barcodeError) return setError(barcodeError);
     const attributes = { ...attrs };
+    const tags = [
+      ...new Set(
+        draft.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (tags.length) attributes.tags = tags;
+    else delete attributes.tags;
     for (const key of [
       "weight_kg",
       "length_cm",
@@ -206,6 +231,7 @@ export function ProductEditor({ product }: { product?: Product }) {
       description: draft.description.trim() || "",
       variant_name: draft.variant_name.trim() || "Default",
       category_id: draft.category_id || null,
+      brand_id: draft.brand_id || null,
       price_minor: price,
       mrp_minor: mrp,
       cost_minor: cost,
@@ -222,6 +248,7 @@ export function ProductEditor({ product }: { product?: Product }) {
       { id: product?.id, body },
       {
         onSuccess: (saved) => {
+          setMediaProduct(saved);
           setBaseline(draft);
           toast.success(product ? "Product updated" : "Product created");
           if (!product) router.replace(`/portal/products/${saved.id}`);
@@ -233,7 +260,7 @@ export function ProductEditor({ product }: { product?: Product }) {
 
   return (
     <div className="mx-auto max-w-[1200px] pb-10">
-      <div className="sticky top-0 z-20 -mx-1 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper/95 px-1 py-3 backdrop-blur">
+      <div className="-mx-1 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line px-1 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -293,13 +320,11 @@ export function ProductEditor({ product }: { product?: Product }) {
                 htmlFor="product-description"
                 className="mb-0"
               >
-                <Textarea
-                  id="product-description"
-                  rows={8}
+                <RichTextEditor
                   value={draft.description}
-                  onChange={(event) => set("description", event.target.value)}
-                  placeholder="Describe the product, material, fit and care instructions…"
-                  className="min-h-[220px]"
+                  onChange={(value) => set("description", value)}
+                  disabled={!canEdit || saving}
+                  images={mediaProduct?.images ?? []}
                 />
               </Field>
             </div>
@@ -589,6 +614,25 @@ export function ProductEditor({ product }: { product?: Product }) {
               </Field>
             </div>
           </Section>
+          <Section title="Search engine preview">
+            <p className="text-xs font-medium text-ink-600">
+              {session?.tenant.name}
+            </p>
+            <p className="mt-2 break-words text-xl text-blue-700">
+              {draft.name || "Product title"}
+              {draft.variant_name ? ` · ${draft.variant_name}` : ""}
+            </p>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-ink-600">
+              {descriptionText(draft.description).slice(0, 155) ||
+                "Add a description to help customers discover this product."}
+            </p>
+            <p className="mt-3 text-sm">
+              {formatMoney(toMinor(draft.price) ?? 0, currency)}
+            </p>
+            <p className="mt-4 border-t border-line pt-3 text-xs text-ink-600">
+              Preview uses your product title and description.
+            </p>
+          </Section>
         </div>
         <aside className="min-w-0 space-y-5">
           <Section title="Status">
@@ -634,6 +678,37 @@ export function ProductEditor({ product }: { product?: Product }) {
             <p className="mt-3 text-xs text-ink-600">
               Manage categories and subcategories from the Categories tab.
             </p>
+            <Field label="Brand" htmlFor="product-brand" className="mt-5 mb-0">
+              <Select
+                id="product-brand"
+                value={draft.brand_id}
+                onChange={(event) => set("brand_id", event.target.value)}
+              >
+                <option value="">No brand</option>
+                {(brands.data ?? []).map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <div className="mt-5">
+              {text("tags", "Tags", { hint: "Separate tags with commas." })}
+              <div className="mt-2 flex flex-wrap gap-1">
+                {draft.tags
+                  .split(",")
+                  .map((tag) => tag.trim())
+                  .filter(Boolean)
+                  .map((tag, index) => (
+                    <span
+                      key={`${tag}-${index}`}
+                      className="rounded-full bg-paper px-2 py-1 text-xs text-ink-600"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+              </div>
+            </div>
           </Section>
           <Section title="Tax classification">
             {text("hsn_code", "HSN code", { hint: "Used on tax invoices." })}
@@ -697,8 +772,7 @@ export function ProductEditor({ product }: { product?: Product }) {
                       tax_code: draft.tax_code || null,
                       serialization_type: draft.serialization_type,
                       variant_attributes: {
-                        ...attrs,
-                        size: variant.name.trim(),
+                        ...(mediaProduct?.variant_attributes ?? attrs),
                       },
                     },
                   },
