@@ -132,6 +132,7 @@ export type Product = {
   name: string; // product name, plus the variant when it is not the only one
   description: string | null;
   tax_code: string | null;
+  hsn_code?: string | null;
   category_id?: string | null;
   category_name?: string | null;
   variant_attributes?: Record<string, unknown>;
