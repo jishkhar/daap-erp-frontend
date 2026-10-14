@@ -7,6 +7,7 @@ export type Feedback = {
   order_number: string | null;
   order_id: string | null;
   branch_name: string | null;
+  branch_id: string | null;
   branch_code: string | null;
   channel: string | null;
   created_at: string;

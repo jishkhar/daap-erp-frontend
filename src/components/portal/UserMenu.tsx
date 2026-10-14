@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -40,6 +40,9 @@ export function UserMenu() {
         <ChevronDown size={15} className="hidden text-ink-400 sm:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => router.push("/portal/profile")}>
+          <UserRound size={15} /> Profile
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={async () => {
             await logoutStaff();

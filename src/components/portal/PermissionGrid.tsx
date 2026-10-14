@@ -39,9 +39,6 @@ export const PERMISSION_LABEL: Record<string, string> = {
   "expenses:pay": "Pay expenses",
   "finance:reconcile": "Reconcile settlements",
   "users:assign_roles": "Give people roles",
-  "recommerce:acquire": "Buy back devices",
-  "recommerce:refurbish": "Refurbish devices",
-  "recommerce:qc": "Quality-check devices",
 };
 
 export function permissionLabel(p: string): string {
