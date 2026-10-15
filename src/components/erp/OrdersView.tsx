@@ -1,6 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, MoreHorizontal, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -58,7 +59,8 @@ type Props = {
   initialChannel?: string;
 };
 
-/** The orders list: filters + table. Orders from every channel live here; the channel is a filter. */
+/** The orders list: filters + table. Orders from every channel live here; the channel is a filter. Wholesale sales are not: they have
+ * their own list (Wholesale > Invoices). */
 export function OrdersView({ initialChannel = "" }: Props) {
   const router = useRouter();
   const session = useStaffSession();
@@ -77,7 +79,9 @@ export function OrdersView({ initialChannel = "" }: Props) {
     payment_status: paymentStatus,
     branch_id: branchId,
     q,
+    sale_type: "retail",
   });
+  const wholesaleOn = session?.modules?.wholesale === true;
   const branchCode = useMemo(
     () => new Map(branches.map((b) => [b.id, b.branch_code])),
     [branches],
@@ -250,6 +254,18 @@ export function OrdersView({ initialChannel = "" }: Props) {
         />
         <CursorPager {...orders.pager} />
       </Card>
+      {wholesaleOn && (
+        <p className="mt-space-2 text-[12px] text-ink-400">
+          Sales to business customers are under{" "}
+          <Link
+            href="/portal/wholesale?tab=invoices"
+            className="font-medium text-ink-600 hover:underline"
+          >
+            Wholesale &gt; Invoices
+          </Link>
+          .
+        </p>
+      )}
     </>
   );
 }

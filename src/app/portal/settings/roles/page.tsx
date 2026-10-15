@@ -12,6 +12,8 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Tabs } from "@/components/ui/Tabs";
+import { PERMISSION_LABEL } from "@/components/portal/PermissionGrid";
 import {
   useDuplicateRole,
   useRoleCatalogue,
@@ -27,6 +29,14 @@ const CATEGORY_LABEL: Record<Role["category"], string> = {
   organization: "Administrator",
 };
 
+/** A till permission as the overview names it: its own label, or "Module: action" (a bare "View" would not say what of). */
+function tillLabel(p: string): string {
+  if (PERMISSION_LABEL[p]) return PERMISSION_LABEL[p];
+  const [module, action] = p.split(":");
+  const words = (x: string) => x.replace(/_/g, " ");
+  return `${words(module).replace(/^./, (c) => c.toUpperCase())}: ${words(action)}`;
+}
+
 export default function RolesPage() {
   const { tenant, ready } = usePortalGuard();
   const router = useRouter();
@@ -35,6 +45,7 @@ export default function RolesPage() {
   const catalogue = useRoleCatalogue();
   const duplicate = useDuplicateRole();
   const [q, setQ] = useState("");
+  const [overview, setOverview] = useState<"pages" | "till">("pages");
   const canWrite = hasPermission(session, "roles", "write");
 
   const shown = useMemo(
@@ -45,11 +56,15 @@ export default function RolesPage() {
     [roles.data, q],
   );
 
-  // Store roles only: what each can view, per page (the till roles have no pages).
+  // Portal pages: store roles (and the administrator), what each can view. The till: point-of-sale roles (and the administrator),
+  // which till permissions each holds.
   const storeRoles = (roles.data ?? []).filter((r) => r.category !== "pos");
+  const tillRoles = (roles.data ?? []).filter((r) => r.category !== "store");
   const canView = (role: Role, perms: string[]) =>
     role.category === "organization" ||
     perms.some((x) => role.permissions.includes(x));
+  const holds = (role: Role, perm: string) =>
+    role.category === "organization" || role.permissions.includes(perm);
 
   if (!ready) return null;
 
@@ -175,55 +190,101 @@ export default function RolesPage() {
         )}
       </Card>
 
-      {catalogue.data && storeRoles.length > 0 && (
-        <Card className="no-scrollbar overflow-x-auto p-space-4">
-          <h2 className="text-[15px] font-bold text-ink-900">
-            Page access overview
-          </h2>
-          <p className="mb-space-3 text-[12px] text-ink-400">
-            Which store roles can open each page (the View permission).
-          </p>
-          <table className="w-full min-w-[480px] text-[13px]">
-            <thead>
-              <tr className="text-left text-[11px] tracking-wide text-ink-400 uppercase">
-                <th className="py-space-2 font-semibold">Page</th>
-                {storeRoles.map((r) => (
-                  <th
-                    key={r.id}
-                    className="py-space-2 text-center font-semibold"
-                  >
-                    {r.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {catalogue.data.pages.map((p) => (
-                <tr key={p.key} className="border-t border-line">
-                  <td className="py-space-2 text-ink-900">{p.label}</td>
-                  {storeRoles.map((r) => (
-                    <td key={r.id} className="py-space-2 text-center">
-                      {canView(r, p.view) ? (
-                        <Check
-                          size={14}
-                          className="mx-auto text-success"
-                          aria-label="Can open"
-                        />
-                      ) : (
-                        <Minus
-                          size={14}
-                          className="mx-auto text-ink-300"
-                          aria-label="No access"
-                        />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+      {catalogue.data && (
+        <>
+          <Tabs<"pages" | "till">
+            tabs={[
+              { key: "pages", label: "Portal pages" },
+              { key: "till", label: "Till (Point of Sale)" },
+            ]}
+            value={overview}
+            onChange={setOverview}
+          />
+          {overview === "pages" ? (
+            <AccessOverview
+              title="Page access overview"
+              rowHeader="Page"
+              hint="Which store roles can open each page (the View permission). Point of Sale roles work on the till only: see the Till tab."
+              roles={storeRoles}
+              rows={catalogue.data.pages.map((p) => ({
+                key: p.key,
+                label: p.label,
+                allowed: (r: Role) => canView(r, p.view),
+              }))}
+            />
+          ) : (
+            <AccessOverview
+              title="Till access overview"
+              rowHeader="Permission"
+              hint="What each Point of Sale role may do on the till."
+              roles={tillRoles}
+              rows={catalogue.data.pos.map((x) => ({
+                key: x,
+                label: tillLabel(x),
+                allowed: (r: Role) => holds(r, x),
+              }))}
+            />
+          )}
+        </>
       )}
     </PortalShell>
+  );
+}
+
+/** A grid of roles (columns) against pages or till permissions (rows), ticked where the role has it. */
+function AccessOverview({
+  title,
+  rowHeader,
+  hint,
+  roles,
+  rows,
+}: {
+  title: string;
+  rowHeader: string;
+  hint: string;
+  roles: Role[];
+  rows: { key: string; label: string; allowed: (r: Role) => boolean }[];
+}) {
+  return (
+    <Card className="no-scrollbar overflow-x-auto p-space-4">
+      <h2 className="text-[15px] font-bold text-ink-900">{title}</h2>
+      <p className="mb-space-3 text-[12px] text-ink-400">{hint}</p>
+      <table className="w-full min-w-[480px] text-[13px]">
+        <thead>
+          <tr className="text-left text-[11px] tracking-wide text-ink-400 uppercase">
+            <th className="py-space-2 font-semibold">{rowHeader}</th>
+            {roles.map((r) => (
+              <th key={r.id} className="py-space-2 text-center font-semibold">
+                {r.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key} className="border-t border-line">
+              <td className="py-space-2 text-ink-900">{row.label}</td>
+              {roles.map((r) => (
+                <td key={r.id} className="py-space-2 text-center">
+                  {row.allowed(r) ? (
+                    <Check
+                      size={14}
+                      className="mx-auto text-success"
+                      aria-label="Allowed"
+                    />
+                  ) : (
+                    <Minus
+                      size={14}
+                      className="mx-auto text-ink-300"
+                      aria-label="Not allowed"
+                    />
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }

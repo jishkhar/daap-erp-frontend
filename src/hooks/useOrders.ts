@@ -17,6 +17,8 @@ export type OrderFilters = {
   branch_id?: string | null;
   customer_id?: string;
   q?: string;
+  /** "retail" leaves out wholesale sales (listed under Wholesale > Invoices). */
+  sale_type?: "retail" | "wholesale";
 };
 
 /** The orders list, newest first, paged and filtered on the server. Each row carries its customer's name. */

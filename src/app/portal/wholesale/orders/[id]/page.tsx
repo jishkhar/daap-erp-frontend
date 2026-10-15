@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { CreditSummary } from "@/components/erp/wholesale/CreditSummary";
 import { DispatchModal } from "@/components/erp/wholesale/DispatchModal";
@@ -19,6 +20,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -27,13 +29,87 @@ import { useSalesOrder, useSalesOrderAction } from "@/hooks/useWholesale";
 import { formatDateTime, formatMoney, humanize } from "@/lib/erp";
 import { hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
-import { SO_STATUS_LABEL, SO_STATUS_TONE, soNumber } from "@/lib/wholesale";
+import {
+  SO_STATUS_LABEL,
+  SO_STATUS_TONE,
+  soNumber,
+  type SalesOrderItem,
+} from "@/lib/wholesale";
 
 const SOURCE = {
   price_list: "price list",
   product: "normal price",
   override: "changed",
 } as const;
+
+const RIGHT = { className: "text-right" };
+
+/** The order's lines: ordered, sent, held on the shelf, and what is still missing from the shelf while the order is open. */
+function itemColumns(
+  cur: string,
+  open: boolean,
+): ColumnDef<SalesOrderItem, unknown>[] {
+  return [
+    {
+      header: "Product",
+      cell: ({ row: { original: i } }) => {
+        const missing = open
+          ? i.quantity - i.dispatched_quantity - i.reserved_quantity
+          : 0;
+        return (
+          <div>
+            <p className="font-medium text-ink-900">{i.name}</p>
+            <p className="text-[12px] text-ink-400">
+              {i.sku} · {SOURCE[i.price_source]}
+              {i.discount_minor
+                ? ` · ${formatMoney(i.discount_minor, cur)} off`
+                : ""}
+            </p>
+            {missing > 0 && (
+              <p className="text-[12px] font-medium text-warning">
+                {missing} not on the shelf yet
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      header: "Ordered",
+      meta: RIGHT,
+      cell: ({ row }) => row.original.quantity,
+    },
+    {
+      header: "Sent",
+      meta: RIGHT,
+      cell: ({ row }) => row.original.dispatched_quantity,
+    },
+    {
+      header: "Held",
+      meta: RIGHT,
+      cell: ({ row }) => row.original.reserved_quantity,
+    },
+    {
+      header: "Price",
+      meta: RIGHT,
+      cell: ({ row }) => formatMoney(row.original.unit_price_minor, cur),
+    },
+    {
+      header: "GST",
+      meta: RIGHT,
+      cell: ({ row }) => `${row.original.tax_rate_bps / 100}%`,
+    },
+    {
+      header: "Total",
+      meta: RIGHT,
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {formatMoney(row.original.line_total_minor, cur)}
+        </span>
+      ),
+    },
+  ];
+}
 
 /** One quotation or sales order: its lines (ordered, dispatched, held on the shelf), the dispatches it has become (each a tax invoice),
  * the customer's credit, and the next step: confirm, dispatch, reserve again, close short or cancel. */
@@ -184,66 +260,13 @@ export default function SalesOrderPage() {
               <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                 Items
               </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13.5px]">
-                  <thead>
-                    <tr className="text-left text-label">
-                      <th className="py-space-2 pr-space-2">Product</th>
-                      <th className="pr-space-2 text-right">Ordered</th>
-                      <th className="pr-space-2 text-right">Sent</th>
-                      <th className="pr-space-2 text-right">Held</th>
-                      <th className="pr-space-2 text-right">Price</th>
-                      <th className="pr-space-2 text-right">GST</th>
-                      <th className="text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {so.items.map((i) => {
-                      const missing = open
-                        ? i.quantity -
-                          i.dispatched_quantity -
-                          i.reserved_quantity
-                        : 0;
-                      return (
-                        <tr key={i.id} className="border-t border-line">
-                          <td className="py-space-2 pr-space-2">
-                            <p className="font-medium text-ink-900">{i.name}</p>
-                            <p className="text-[12px] text-ink-400">
-                              {i.sku} · {SOURCE[i.price_source]}
-                              {i.discount_minor
-                                ? ` · ${formatMoney(i.discount_minor, cur)} off`
-                                : ""}
-                            </p>
-                            {missing > 0 && (
-                              <p className="text-[12px] font-medium text-warning">
-                                {missing} not on the shelf yet
-                              </p>
-                            )}
-                          </td>
-                          <td className="pr-space-2 text-right">
-                            {i.quantity}
-                          </td>
-                          <td className="pr-space-2 text-right">
-                            {i.dispatched_quantity}
-                          </td>
-                          <td className="pr-space-2 text-right">
-                            {i.reserved_quantity}
-                          </td>
-                          <td className="pr-space-2 text-right">
-                            {formatMoney(i.unit_price_minor, cur)}
-                          </td>
-                          <td className="pr-space-2 text-right">
-                            {i.tax_rate_bps / 100}%
-                          </td>
-                          <td className="text-right font-medium">
-                            {formatMoney(i.line_total_minor, cur)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={itemColumns(cur, open)}
+                data={so.items}
+                getRowId={(i) => i.id}
+                paginate={false}
+                emptyMessage="No items."
+              />
               <dl className="mt-space-3 ml-auto max-w-xs space-y-1 text-[13.5px]">
                 <div className="flex justify-between">
                   <dt className="text-ink-600">Before GST</dt>

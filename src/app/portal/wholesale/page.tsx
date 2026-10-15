@@ -7,6 +7,7 @@ import { Suspense, useMemo, useState } from "react";
 import { AccountModal } from "@/components/erp/wholesale/AccountModal";
 import { PriceListEditor } from "@/components/erp/wholesale/PriceListEditor";
 import { AccountPanel } from "@/components/erp/wholesale/AccountPanel";
+import { InvoicesTab } from "@/components/erp/wholesale/InvoicesTab";
 import {
   ReceiptsTab,
   ReceivablesTab,
@@ -43,9 +44,16 @@ import {
   type PriceList,
 } from "@/lib/wholesale";
 
-type Tab = "orders" | "customers" | "receivables" | "receipts" | "price-lists";
+type Tab =
+  | "orders"
+  | "invoices"
+  | "customers"
+  | "receivables"
+  | "receipts"
+  | "price-lists";
 const TABS: Tab[] = [
   "orders",
+  "invoices",
   "customers",
   "receivables",
   "receipts",
@@ -207,6 +215,7 @@ function WholesaleView() {
 
   const tabs: { key: Tab; label: string }[] = [
     ...(canOrders ? [{ key: "orders" as const, label: "Sales orders" }] : []),
+    ...(canOrders ? [{ key: "invoices" as const, label: "Invoices" }] : []),
     ...(canAccounts
       ? [{ key: "customers" as const, label: "Business customers" }]
       : []),
@@ -245,6 +254,7 @@ function WholesaleView() {
       <Tabs<Tab> tabs={tabs} value={tab} onChange={setTab} />
 
       {tab === "orders" && <SalesOrdersTab currency={cur} />}
+      {tab === "invoices" && <InvoicesTab currency={cur} />}
       {tab === "receivables" && <ReceivablesTab currency={cur} />}
       {tab === "receipts" && <ReceiptsTab currency={cur} />}
 

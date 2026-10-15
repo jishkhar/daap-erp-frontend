@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { PoBilling, SupplierBill } from "@/lib/procurement";
 import { staffFetch } from "@/lib/staffAuth";
 
 // ---------------------------------------------------------------------------------------------- channels
@@ -74,6 +75,10 @@ export type Order = {
   refunded_minor: number;
   placed_at: string;
   cancel_reason: string | null;
+  /** A sale to a business customer (a dispatch of a sales order, or a business bill at a till), with its credit due date. */
+  sale_type?: "retail" | "wholesale";
+  sales_order_id?: string | null;
+  due_date?: string | null;
   /** Present on the orders list: who bought it (with customer_name above), from which branch, and how many units. */
   customer_phone?: string | null;
   branch_name?: string | null;
@@ -493,13 +498,10 @@ export type PurchaseOrder = {
   expected_date: string | null;
   created_at: string;
   items?: PoItem[];
-  receipts?: {
-    id: string;
-    grn_number: string;
-    supplier_invoice_number: string | null;
-    total_minor: number;
-    received_at: string;
-  }[];
+  /** Its goods receipts: each is the supplier's bill, with what is paid and still owed. */
+  receipts?: SupplierBill[];
+  /** The bills added up (on the list and on the order). */
+  billing?: PoBilling;
 };
 export type PurchaseRequest = {
   id: string;

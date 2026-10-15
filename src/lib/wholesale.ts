@@ -277,6 +277,50 @@ export type Receipt = {
   cursor?: string;
 };
 
+/** How much of a wholesale invoice is settled. Overdue = money still owed past its due date. */
+export type InvoiceState = "paid" | "part_paid" | "unpaid" | "overdue";
+
+export const INVOICE_STATE_LABEL: Record<InvoiceState, string> = {
+  paid: "Paid",
+  part_paid: "Part paid",
+  unpaid: "Unpaid",
+  overdue: "Overdue",
+};
+
+export const INVOICE_STATE_TONE: Record<
+  InvoiceState,
+  "success" | "warning" | "neutral" | "error"
+> = {
+  paid: "success",
+  part_paid: "warning",
+  unpaid: "neutral",
+  overdue: "error",
+};
+
+/** A wholesale sale: a dispatch against a sales order, or a business bill made at a till (no sales order). */
+export type WholesaleInvoice = {
+  id: string; // the order's id: opens on /portal/orders/[id]
+  order_number: string;
+  invoice_number: string | null;
+  branch_id: string;
+  branch_name: string | null;
+  customer_account_id: string;
+  legal_name: string;
+  account_code: string;
+  gstin: string | null;
+  sales_order_id: string | null;
+  so_number: string | null;
+  customer_po_ref: string | null;
+  placed_at: string;
+  due_date: string | null;
+  total_minor: number;
+  credited_minor: number;
+  paid_minor: number;
+  balance_minor: number;
+  payment_state: InvoiceState;
+  cursor?: string;
+};
+
 export type StatementEntry = {
   at: string;
   kind:

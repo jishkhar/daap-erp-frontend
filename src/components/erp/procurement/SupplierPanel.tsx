@@ -1,18 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
-import { formatDateTime, formatMoney, toMinor } from "@/lib/erp";
-import { usePaySupplier, useSupplierStatement } from "@/hooks/useProcurement";
-import { hasGrant, useStaffSession } from "@/lib/staffAuth";
-import { toast } from "@/lib/toast";
+import { formatDateTime, formatMoney } from "@/lib/erp";
+import { useSupplierStatement } from "@/hooks/useProcurement";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
-/** One supplier's account: what we bought, returned and paid, the balance, and a way to pay. */
+/** One supplier's account: what we bought, returned and paid, and the balance. Payments are made bill by bill from the purchase order
+ * or the Bills tab, not here. */
 export function SupplierPanel({
   supplierId,
   currency,
@@ -22,32 +16,8 @@ export function SupplierPanel({
   currency: string;
   onClose: () => void;
 }) {
-  const session = useStaffSession();
   const statement = useSupplierStatement(supplierId ?? "");
-  const paySupplier = usePaySupplier(supplierId ?? "");
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("BANK_TRANSFER");
-  const [reference, setReference] = useState("");
-  const busy = paySupplier.isPending;
-  const canPay = hasGrant(session, "procurement:pay");
   const d = statement.data;
-
-  function pay() {
-    const minor = toMinor(amount);
-    if (minor === null || minor === 0)
-      return toast.error("Enter a valid amount");
-    paySupplier.mutate(
-      { amount_minor: minor, method, reference: reference.trim() || null },
-      {
-        onSuccess: () => {
-          toast.success("Payment recorded");
-          setAmount("");
-          setReference("");
-        },
-        onError: (e) => toast.error("Couldn't record the payment", e.message),
-      },
-    );
-  }
 
   return (
     <Modal
@@ -117,49 +87,11 @@ export function SupplierPanel({
               </li>
             ))}
           </ul>
-          {canPay && d.balance.outstanding_minor > 0 && (
-            <div className="mt-space-4 border-t border-line pt-space-3">
-              <p className="text-label mb-space-2">Pay this supplier</p>
-              <div className="flex flex-wrap items-end gap-space-2">
-                <Field
-                  label={`Amount (${currency})`}
-                  htmlFor="sp_amt"
-                  className="!mb-0"
-                >
-                  <Input
-                    id="sp_amt"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-36"
-                  />
-                </Field>
-                <Field label="Method" htmlFor="sp_m" className="!mb-0">
-                  <Select
-                    id="sp_m"
-                    value={method}
-                    onChange={(e) => setMethod(e.target.value)}
-                    className="w-44"
-                  >
-                    <option value="BANK_TRANSFER">Bank transfer</option>
-                    <option value="UPI">UPI</option>
-                    <option value="CARD">Card</option>
-                    <option value="CASH">Cash</option>
-                  </Select>
-                </Field>
-                <Field label="Reference" htmlFor="sp_ref" className="!mb-0">
-                  <Input
-                    id="sp_ref"
-                    value={reference}
-                    onChange={(e) => setReference(e.target.value)}
-                    className="w-44"
-                  />
-                </Field>
-                <Button disabled={busy || !amount} onClick={pay}>
-                  Pay
-                </Button>
-              </div>
-            </div>
+          {d.balance.outstanding_minor > 0 && (
+            <p className="mt-space-4 border-t border-line pt-space-3 text-[13px] text-ink-600">
+              To pay, open the purchase order (or Procurement &gt; Bills) and
+              use Pay: each payment is recorded against the bills it settles.
+            </p>
           )}
         </>
       )}

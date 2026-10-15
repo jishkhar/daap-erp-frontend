@@ -1,10 +1,15 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Truck } from "lucide-react";
+import { Plus, Truck, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import {
+  BillsTab,
+  SupplierPaymentsTab,
+} from "@/components/erp/procurement/BillsTab";
 import { NewPurchaseOrder } from "@/components/erp/procurement/NewPurchaseOrder";
+import { PayPurchaseOrder } from "@/components/erp/procurement/PayBillsModal";
 import { SupplierPanel } from "@/components/erp/procurement/SupplierPanel";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -33,10 +38,15 @@ import {
   type PurchaseOrder,
   type Supplier,
 } from "@/lib/erp";
-import { hasGrant, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
+import {
+  hasGrant,
+  hasGrantAt,
+  hasTenantWide,
+  useStaffSession,
+} from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-type Tab = "orders" | "suppliers";
+type Tab = "orders" | "bills" | "payments" | "suppliers";
 export default function ProcurementPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
@@ -50,6 +60,7 @@ export default function ProcurementPage() {
   const createSupplierMutation = useCreateSupplier();
   const [newPo, setNewPo] = useState(false);
   const [openSupplier, setOpenSupplier] = useState<string | null>(null);
+  const [payingPo, setPayingPo] = useState<string | null>(null);
   const [addSupplier, setAddSupplier] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -111,6 +122,46 @@ export default function ProcurementPage() {
         ),
       },
       {
+        header: "Paid / owed",
+        cell: ({ row }) => {
+          const b = row.original.billing;
+          if (!b || b.billed_minor === 0)
+            return <span className="text-ink-400">Not billed yet</span>;
+          return b.owed_minor > 0 ? (
+            <div>
+              <p
+                className={`font-medium ${b.overdue ? "text-error" : "text-ink-900"}`}
+              >
+                Owe {formatMoney(b.owed_minor, row.original.currency)}
+              </p>
+              <p className="text-[12px] text-ink-400">
+                {b.overdue ? "Overdue · " : ""}paid{" "}
+                {formatMoney(b.paid_minor, row.original.currency)}
+              </p>
+            </div>
+          ) : (
+            <Badge tone="success">Paid</Badge>
+          );
+        },
+      },
+      {
+        header: "",
+        id: "pay",
+        cell: ({ row }) =>
+          (row.original.billing?.owed_minor ?? 0) > 0 &&
+          hasGrantAt(session, "procurement:pay", row.original.branch_id) ? (
+            <Button
+              variant="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPayingPo(row.original.id);
+              }}
+            >
+              <Wallet size={14} /> Pay
+            </Button>
+          ) : null,
+      },
+      {
         header: "Created",
         cell: ({ row }) => (
           <span className="text-ink-600">
@@ -119,7 +170,7 @@ export default function ProcurementPage() {
         ),
       },
     ],
-    [supplierName, branchCode],
+    [supplierName, branchCode, session],
   );
 
   if (!ready) return null;
@@ -213,6 +264,8 @@ export default function ProcurementPage() {
       <Tabs<Tab>
         tabs={[
           { key: "orders", label: "Purchase orders" },
+          { key: "bills", label: "Bills" },
+          { key: "payments", label: "Payments made" },
           { key: "suppliers", label: "Suppliers" },
         ]}
         value={tab}
@@ -266,6 +319,8 @@ export default function ProcurementPage() {
           </Card>
         </>
       )}
+      {tab === "bills" && <BillsTab currency={cur} />}
+      {tab === "payments" && <SupplierPaymentsTab currency={cur} />}
       {tab === "suppliers" && (
         <>
           {suppliers.error && (
@@ -297,6 +352,13 @@ export default function ProcurementPage() {
           router.push(`/portal/procurement/orders/${po.id}`);
         }}
       />
+      {payingPo && (
+        <PayPurchaseOrder
+          poId={payingPo}
+          currency={cur}
+          onClose={() => setPayingPo(null)}
+        />
+      )}
       <SupplierPanel
         supplierId={openSupplier}
         currency={cur}

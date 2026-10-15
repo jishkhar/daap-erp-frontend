@@ -127,6 +127,10 @@ export const queryKeys = {
   suppliers: ["erp", "procurement", "suppliers"] as const,
   supplierStatement: (id: string) =>
     ["erp", "procurement", "supplier-statement", id] as const,
+  supplierBillList: (params: Params) =>
+    ["erp", "procurement", "bills", params] as const,
+  supplierPaymentList: (params: Params) =>
+    ["erp", "procurement", "payments", params] as const,
   goodsReceipt: (id: string) =>
     ["erp", "procurement", "goods-receipt", id] as const,
 
@@ -148,6 +152,8 @@ export const queryKeys = {
   receivables: ["erp", "wholesale", "receivables"] as const,
   receiptList: (params: Params) =>
     ["erp", "wholesale", "receipts", params] as const,
+  wholesaleInvoiceList: (params: Params) =>
+    ["erp", "wholesale", "invoices", params] as const,
   wholesaleQuote: (body: string) =>
     ["erp", "wholesale", "quote", body] as const,
 

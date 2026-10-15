@@ -10,6 +10,7 @@ import {
   type PurchaseRequest,
   type Supplier,
 } from "@/lib/erp";
+import type { SupplierBill, SupplierPayment } from "@/lib/procurement";
 import { queryKeys } from "@/lib/queryKeys";
 
 /** Buying moves stock (goods received or returned) and the books (supplier bills, returns and payments), so every procurement change
@@ -216,18 +217,49 @@ export function useSupplierStatement(supplierId: string) {
   });
 }
 
-/** Pay a supplier. Each payment carries its own idempotency key, so a retried request is not booked twice. */
-export function usePaySupplier(supplierId: string) {
+// ------------------------------------------------------------------ bills and payments
+/** Supplier bills (goods receipts) with what is paid and owed, newest first. */
+export function useSupplierBills(filters: {
+  status?: string;
+  branch_id?: string | null;
+  supplier_id?: string;
+  q?: string;
+}) {
+  return usePagedQuery<SupplierBill>(
+    queryKeys.supplierBillList,
+    "/api/v1/supplier-bills",
+    filters,
+  );
+}
+
+/** Payments made to suppliers, newest first, each with the bills it paid. */
+export function useSupplierPayments(filters: { q?: string }) {
+  return usePagedQuery<SupplierPayment>(
+    queryKeys.supplierPaymentList,
+    "/api/v1/supplier-payments",
+    filters,
+  );
+}
+
+export type BillPaymentInput = {
+  amount_minor: number;
+  method: string;
+  reference: string | null;
+  paid_on: string | null;
+  allocations: { grn_id: string; amount_minor: number }[];
+};
+
+/** Pay bills of one purchase order. Each payment carries its own idempotency key, so a retried request is not booked twice. */
+export function usePayPurchaseOrder(poId: string) {
   const refresh = useRefreshProcurement();
   return useMutation({
-    mutationFn: (input: {
-      amount_minor: number;
-      method: string;
-      reference: string | null;
-    }) =>
-      erpSend(`/api/v1/suppliers/${supplierId}/payments`, "POST", input, {
-        "Idempotency-Key": crypto.randomUUID(),
-      }),
+    mutationFn: (input: BillPaymentInput) =>
+      erpSend<SupplierPayment>(
+        `/api/v1/purchase-orders/${poId}/payments`,
+        "POST",
+        input,
+        { "Idempotency-Key": crypto.randomUUID() },
+      ),
     onSuccess: refresh,
   });
 }

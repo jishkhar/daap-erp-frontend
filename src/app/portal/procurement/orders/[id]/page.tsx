@@ -6,10 +6,12 @@ import {
   CheckCircle2,
   PackageCheck,
   Undo2,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { PayBillsModal } from "@/components/erp/procurement/PayBillsModal";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -35,7 +37,8 @@ import {
   toMinor,
   type PoItem,
 } from "@/lib/erp";
-import { hasGrant, useStaffSession } from "@/lib/staffAuth";
+import { BILL_STATE_LABEL, BILL_STATE_TONE } from "@/lib/procurement";
+import { hasGrant, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
@@ -60,6 +63,7 @@ export default function PurchaseOrderPage() {
   const [retQty, setRetQty] = useState<Record<string, string>>({});
   const [retSerials, setRetSerials] = useState<Record<string, string>>({});
   const [retReason, setRetReason] = useState("");
+  const [paying, setPaying] = useState(false);
 
   if (!ready) return null;
   const o = po.data;
@@ -68,6 +72,8 @@ export default function PurchaseOrderPage() {
   const canApprove = hasGrant(session, "procurement:approve");
   const canReceive = hasGrant(session, "procurement:receive");
   const canReturn = hasGrant(session, "procurement:return");
+  const canPay = !!o && hasGrantAt(session, "procurement:pay", o.branch_id);
+  const billing = o?.billing;
   const canCancel = hasGrant(session, "procurement:create") || canApprove;
   const open = o?.status === "APPROVED" || o?.status === "PARTIALLY_RECEIVED";
   const splitList = (text: string) =>
@@ -262,42 +268,90 @@ export default function PurchaseOrderPage() {
                 </div>
               </Card>
               <Card className="p-space-4">
-                <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
-                  Goods receipts
-                </h2>
+                <div className="mb-space-2 flex items-center justify-between gap-space-2">
+                  <h2 className="text-[15px] font-bold text-ink-900">
+                    Bills &amp; payments
+                  </h2>
+                  {canPay && billing && billing.owed_minor > 0 && (
+                    <Button onClick={() => setPaying(true)}>
+                      <Wallet size={15} /> Pay
+                    </Button>
+                  )}
+                </div>
+                {billing && (o.receipts ?? []).length > 0 && (
+                  <div className="mb-space-2 grid grid-cols-3 gap-space-2 text-center">
+                    {(
+                      [
+                        [
+                          "Billed",
+                          billing.billed_minor - billing.returned_minor,
+                        ],
+                        ["Paid", billing.paid_minor],
+                        ["We owe", billing.owed_minor],
+                      ] as const
+                    ).map(([label, v]) => (
+                      <div
+                        key={label}
+                        className="rounded-md border border-line p-space-2"
+                      >
+                        <p className="text-[11.5px] text-ink-600">{label}</p>
+                        <p
+                          className={`text-[14px] font-bold ${label === "We owe" && billing.overdue ? "text-error" : "text-ink-900"}`}
+                        >
+                          {formatMoney(v, cur)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {(o.receipts ?? []).length === 0 && (
                   <p className="text-[13px] text-ink-400">
-                    Nothing received yet.
+                    Nothing received yet. Each goods receipt becomes the
+                    supplier&apos;s bill.
                   </p>
                 )}
                 <ul className="divide-y divide-line">
                   {(o.receipts ?? []).map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex items-center justify-between gap-space-2 py-2 text-[13.5px]"
-                    >
-                      <span>
-                        <strong>{r.grn_number}</strong>
-                        {r.supplier_invoice_number && (
-                          <span className="text-ink-400">
-                            {" "}
-                            · bill {r.supplier_invoice_number}
+                    <li key={r.id} className="py-2 text-[13.5px]">
+                      <div className="flex items-start justify-between gap-space-2">
+                        <span className="min-w-0">
+                          <strong>{r.grn_number}</strong>
+                          {r.supplier_invoice_number && (
+                            <span className="text-ink-400">
+                              {" "}
+                              · bill {r.supplier_invoice_number}
+                            </span>
+                          )}
+                          <br />
+                          <span className="text-[12px] text-ink-400">
+                            {formatDateTime(r.received_at)} ·{" "}
+                            {formatMoney(r.total_minor, cur)}
+                            {r.returned_minor
+                              ? ` · ${formatMoney(r.returned_minor, cur)} returned`
+                              : ""}
                           </span>
-                        )}
-                        <br />
-                        <span className="text-[12px] text-ink-400">
-                          {formatDateTime(r.received_at)} ·{" "}
-                          {formatMoney(r.total_minor, cur)}
+                          <br />
+                          <span className="text-[12px] text-ink-600">
+                            Paid {formatMoney(r.paid_minor, cur)}
+                            {r.owed_minor > 0
+                              ? ` · owes ${formatMoney(r.owed_minor, cur)} · due ${r.due_date}`
+                              : ""}
+                          </span>
                         </span>
-                      </span>
-                      {canReturn && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => openReturn(r.id)}
-                        >
-                          <Undo2 size={14} /> Return
-                        </Button>
-                      )}
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <Badge tone={BILL_STATE_TONE[r.payment_state]}>
+                            {BILL_STATE_LABEL[r.payment_state]}
+                          </Badge>
+                          {canReturn && (
+                            <Button
+                              variant="ghost"
+                              onClick={() => openReturn(r.id)}
+                            >
+                              <Undo2 size={14} /> Return
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -305,6 +359,15 @@ export default function PurchaseOrderPage() {
             </div>
           </div>
 
+          {paying && (
+            <PayBillsModal
+              poId={o.id}
+              poNumber={o.po_number}
+              bills={o.receipts ?? []}
+              currency={cur}
+              onClose={() => setPaying(false)}
+            />
+          )}
           <Modal
             open={cancelOpen}
             onClose={() => setCancelOpen(false)}

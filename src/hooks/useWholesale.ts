@@ -21,6 +21,7 @@ import type {
   SalesOrder,
   SalesOrderRow,
   Statement,
+  WholesaleInvoice,
   WholesaleSettings,
 } from "@/lib/wholesale";
 
@@ -350,6 +351,24 @@ export function useReceipts(filters: { q?: string }, enabled = true) {
   return usePagedQuery<Receipt>(
     queryKeys.receiptList,
     "/api/v1/customer-receipts",
+    filters,
+    enabled,
+  );
+}
+
+/** Every wholesale sale with what is paid and still owed, newest first. */
+export function useWholesaleInvoices(
+  filters: {
+    status?: string;
+    branch_id?: string | null;
+    customer_account_id?: string;
+    q?: string;
+  },
+  enabled = true,
+) {
+  return usePagedQuery<WholesaleInvoice>(
+    queryKeys.wholesaleInvoiceList,
+    "/api/v1/wholesale/invoices",
     filters,
     enabled,
   );
