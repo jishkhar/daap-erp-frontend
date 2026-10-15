@@ -128,6 +128,7 @@ export type ProductBarcode = {
 };
 
 export type Product = {
+  created_at?: string;
   id: string; // the variant id: the sellable, stockable unit
   parent_product_id: string;
   product_name: string;
