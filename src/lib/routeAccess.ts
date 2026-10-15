@@ -8,6 +8,7 @@ const ROUTES: [prefix: string, pageKey: string][] = [
   ["/portal/orders", "orders"],
   ["/portal/returns", "orders"],
   ["/portal/products", "products"],
+  ["/portal/collections", "products"],
   ["/portal/customers", "customers"],
   ["/portal/whatsapp-inbox", "whatsapp"],
   ["/portal/whatsapp-automation", "whatsapp"],
