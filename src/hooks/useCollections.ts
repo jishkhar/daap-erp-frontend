@@ -1,9 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { erpGet, erpSend, type Product } from "@/lib/erp";
+import { erpGet, erpSend, erpSendFile, type Product } from "@/lib/erp";
+
+export type CollectionCondition = {
+  field: "category_id" | "lifecycle_status" | "name";
+  value: string;
+};
 
 export type ProductCollection = {
+  image_url: string | null;
+  conditions: CollectionCondition[];
+  excluded_variant_ids: string[];
   id: string;
   name: string;
   description: string;
@@ -12,11 +20,18 @@ export type ProductCollection = {
   created_at: string;
   updated_at: string;
 };
-export type CollectionDetail = ProductCollection & { products: Product[] };
+export type CollectionDetail = ProductCollection & {
+  products: Product[];
+  manual_products: Product[];
+  variant_ids: string[];
+};
 export type CollectionInput = {
   name: string;
   description: string;
   variant_ids: string[];
+  image_url?: string | null;
+  conditions?: CollectionCondition[];
+  excluded_variant_ids?: string[];
 };
 
 export function useCollections() {
@@ -57,5 +72,25 @@ export function useDeleteCollection() {
   return useMutation({
     mutationFn: (id: string) => erpSend(`/api/v1/collections/${id}`, "DELETE"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["collections"] }),
+  });
+}
+
+export function useCollectionPreview(input: CollectionInput, enabled: boolean) {
+  return useQuery({
+    queryKey: ["collection-preview", input],
+    queryFn: () =>
+      erpSend<{ products: Product[]; item_count: number }>(
+        "/api/v1/collections/preview",
+        "POST",
+        input,
+      ),
+    enabled,
+  });
+}
+
+export function useUploadCollectionCover() {
+  return useMutation({
+    mutationFn: (file: File) =>
+      erpSendFile<{ image_url: string }>("/api/v1/collections/cover", file),
   });
 }

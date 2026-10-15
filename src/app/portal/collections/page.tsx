@@ -1,21 +1,23 @@
 "use client";
 
-import { FolderOpen, FolderPlus, Pencil, Trash2, Eye } from "lucide-react";
+import Image from "next/image";
+
+import Link from "next/link";
+import { FolderOpen, ImageIcon, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { CollectionEditor } from "@/components/erp/CollectionEditor";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { Select } from "@/components/ui/Select";
 import {
-  useCollection,
   useCollections,
   useDeleteCollection,
   type ProductCollection,
 } from "@/hooks/useCollections";
+import { useProductCategories } from "@/hooks/useProducts";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
@@ -23,167 +25,264 @@ export default function CollectionsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
   const [search, setSearch] = useState("");
-  const [editor, setEditor] = useState<string | "new" | null>(null);
-  const [deleting, setDeleting] = useState<ProductCollection | null>(null);
+  const [filter, setFilter] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState<ProductCollection[]>([]);
+  const [deletingBusy, setDeletingBusy] = useState(false);
   const collections = useCollections();
-  const detail = useCollection(editor && editor !== "new" ? editor : null);
+  const categories = useProductCategories();
   const remove = useDeleteCollection();
   const canCreate = hasTenantWide(session, "products:create");
-  const canEdit = hasTenantWide(session, "products:update");
   const canDelete = hasTenantWide(session, "products:archive");
-  const rows = (collections.data ?? []).filter((c) =>
-    `${c.name} ${c.description}`
-      .toLowerCase()
-      .includes(search.trim().toLowerCase()),
+  const rows = (collections.data ?? []).filter(
+    (c) =>
+      `${c.name} ${c.description}`
+        .toLowerCase()
+        .includes(search.trim().toLowerCase()) &&
+      (!filter ||
+        (filter === "automatic"
+          ? c.conditions?.length
+          : !c.conditions?.length)),
   );
-
+  const allSelected =
+    rows.length > 0 && rows.every((c) => selected.includes(c.id));
   if (!ready) return null;
   return (
     <PortalShell tenant={tenant} active="collections">
-      <PageHeader
-        icon={<FolderOpen size={20} />}
-        title="Collections"
-        description="Create your own product selections for occasions, themes or campaigns."
-        actions={
-          canCreate && (
-            <Button onClick={() => setEditor("new")}>
-              <FolderPlus size={16} /> Add collection
-            </Button>
-          )
-        }
-      />
-      <Card className="mb-space-4 p-space-3">
-        <Input
-          aria-label="Search collections"
-          placeholder="Search collections…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-md"
-        />
-      </Card>
-      {collections.error && (
-        <p role="alert" className="mb-space-3 text-sm text-error">
-          {collections.error.message}
-        </p>
-      )}
-      {collections.isLoading ? (
-        <p className="text-sm text-ink-600">Loading collections…</p>
-      ) : !collections.error && rows.length === 0 ? (
-        <Card className="p-space-6 text-center">
-          <FolderOpen size={32} className="mx-auto mb-space-3 text-brand-600" />
-          <h2 className="text-lg font-semibold">
-            {search.trim()
-              ? "No collections match your search"
-              : "Create your first collection"}
-          </h2>
-          <p className="mt-space-2 text-sm text-ink-600">
-            {search.trim()
-              ? "Try another name or theme."
-              : "Bring products together for a theme like “Wedding Day”. Choose dresses from any category, and reuse products across collections."}
-          </p>
-          {!search.trim() && canCreate && (
-            <Button className="mt-space-4" onClick={() => setEditor("new")}>
-              <FolderPlus size={16} /> Add collection
+      <div className="mb-space-4 flex items-center justify-between gap-space-3">
+        <h1 className="flex items-center gap-space-2 text-lg font-semibold">
+          <FolderOpen size={20} /> Collections{" "}
+          <span className="rounded-md bg-black/5 px-2 py-0.5 text-xs font-normal text-ink-500">
+            {collections.data?.length ?? 0}
+          </span>
+        </h1>
+        {canCreate && (
+          <Button href="/portal/collections/new">
+            <Plus size={15} /> Add collection
+          </Button>
+        )}
+      </div>
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center gap-space-2 border-b border-line p-space-2">
+          <Select
+            aria-label="Collection type"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="!h-9 !w-36 !border-0 !bg-transparent !text-sm"
+          >
+            <option value="">All collections</option>
+            <option value="manual">Manual</option>
+            <option value="automatic">With conditions</option>
+          </Select>
+          <div className="relative min-w-40 flex-1">
+            <Search size={16} className="absolute left-3 top-3 text-ink-400" />
+            <Input
+              aria-label="Search collections"
+              placeholder="Search and filter collections"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="!h-9 !border-0 !shadow-none pl-9"
+            />
+          </div>
+          {canDelete && selected.length > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setDeleting(
+                  (collections.data ?? []).filter((c) =>
+                    selected.includes(c.id),
+                  ),
+                )
+              }
+            >
+              <Trash2 size={14} /> Delete ({selected.length})
             </Button>
           )}
-        </Card>
-      ) : (
-        <div className="grid gap-space-4 md:grid-cols-2 xl:grid-cols-3">
-          {rows.map((collection) => (
-            <Card key={collection.id} className="flex flex-col p-space-4">
-              <button
-                type="button"
-                className="text-left"
-                onClick={() => setEditor(collection.id)}
-              >
-                <h2 className="text-lg font-semibold text-ink-900">
-                  {collection.name}
-                </h2>
-              </button>
-              <p className="mt-space-2 whitespace-pre-wrap break-words text-sm text-ink-600">
-                {collection.description || "No description yet."}
-              </p>
-              <p className="my-space-3 text-sm font-medium">
-                {collection.item_count}{" "}
-                {collection.item_count === 1 ? "product" : "products"}
-              </p>
-              <p className="mb-space-3 text-xs text-ink-600">
-                Updated{" "}
-                {new Date(collection.updated_at).toLocaleDateString("en-IN")}
-              </p>
-              <div className="mt-auto flex flex-wrap gap-space-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setEditor(collection.id)}
-                >
-                  {canEdit ? <Pencil size={15} /> : <Eye size={15} />}
-                  {canEdit ? "Edit collection" : "View products"}
-                </Button>
-                {canDelete && (
-                  <Button
-                    variant="ghost"
-                    aria-label={`Delete ${collection.name}`}
-                    onClick={() => {
-                      remove.reset();
-                      setDeleting(collection);
-                    }}
-                  >
-                    <Trash2 size={15} />
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))}
         </div>
-      )}
-      {editor && editor !== "new" && !detail.data && (
-        <Card className="mt-space-4 p-space-4">
-          <p
-            role={detail.error ? "alert" : "status"}
-            className={detail.error ? "text-error" : "text-ink-600"}
-          >
-            {detail.error ? detail.error.message : "Loading collection…"}
+        {collections.error && (
+          <p role="alert" className="p-4 text-sm text-error">
+            {collections.error.message}
           </p>
-          <Button variant="ghost" onClick={() => setEditor(null)}>
-            Cancel
-          </Button>
-        </Card>
-      )}
-      {(editor === "new" || (editor && detail.data)) && (
-        <CollectionEditor
-          key={editor}
-          collection={editor === "new" ? undefined : detail.data}
-          editable={editor === "new" ? canCreate : canEdit}
-          onClose={() => setEditor(null)}
-        />
-      )}
-      {remove.error && (
-        <p role="alert" className="mt-space-3 text-sm text-error">
-          {remove.error.message}
-        </p>
-      )}
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[580px] text-left text-sm">
+            <thead className="bg-paper/50 text-xs text-ink-500">
+              <tr>
+                {canDelete && (
+                  <th className="w-12 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all collections"
+                      className="h-4 w-4 accent-brand-600"
+                      checked={allSelected}
+                      disabled={!rows.length}
+                      onChange={(e) =>
+                        setSelected(
+                          e.target.checked
+                            ? [
+                                ...new Set([
+                                  ...selected,
+                                  ...rows.map((c) => c.id),
+                                ]),
+                              ]
+                            : selected.filter(
+                                (id) => !rows.some((c) => c.id === id),
+                              ),
+                        )
+                      }
+                    />
+                  </th>
+                )}
+                <th className="px-3 py-3 font-medium">Title</th>
+                <th className="px-4 py-3 text-right font-medium">Products</th>
+                <th className="w-[28%] px-4 py-3 font-medium">Conditions</th>
+                {canDelete && (
+                  <th className="w-12">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((collection) => (
+                <tr key={collection.id} className="group hover:bg-paper/60">
+                  {canDelete && (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${collection.name}`}
+                        className="h-4 w-4 accent-brand-600"
+                        checked={selected.includes(collection.id)}
+                        onChange={(e) =>
+                          setSelected(
+                            e.target.checked
+                              ? [...selected, collection.id]
+                              : selected.filter((id) => id !== collection.id),
+                          )
+                        }
+                      />
+                    </td>
+                  )}
+                  <td className="px-3 py-3">
+                    <Link
+                      href={`/portal/collections/${collection.id}`}
+                      className="flex items-center gap-space-3"
+                    >
+                      <span className="flex h-12 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-paper">
+                        {collection.image_url ? (
+                          <Image
+                            unoptimized
+                            width={320}
+                            height={400}
+                            src={collection.image_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon size={18} className="text-ink-400" />
+                        )}
+                      </span>
+                      <span className="line-clamp-2 max-w-xl font-medium text-ink-900 group-hover:text-brand-700">
+                        {collection.name}
+                      </span>
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {collection.item_count.toLocaleString("en-IN")}
+                  </td>
+                  <td className="px-4 py-3 text-xs leading-relaxed text-ink-500">
+                    {collection.conditions?.length
+                      ? collection.conditions.map((rule, index) => (
+                          <p key={index}>
+                            {rule.field === "category_id"
+                              ? `Category is ${categories.data?.find((c) => c.id === rule.value)?.name ?? "selected category"}`
+                              : rule.field === "lifecycle_status"
+                                ? `Status is ${rule.value}`
+                                : `Title contains “${rule.value}”`}
+                          </p>
+                        ))
+                      : "Manual selection"}
+                  </td>
+                  {canDelete && (
+                    <td className="pr-2">
+                      <button
+                        aria-label={`Delete ${collection.name}`}
+                        type="button"
+                        onClick={() => setDeleting([collection])}
+                        className="rounded-md p-2 text-ink-400 hover:bg-error-tint hover:text-error"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {collections.isLoading ? (
+          <p role="status" className="p-12 text-center text-sm text-ink-500">
+            Loading collections…
+          </p>
+        ) : (
+          !collections.error &&
+          !rows.length && (
+            <div className="p-12 text-center">
+              <FolderOpen size={30} className="mx-auto mb-3 text-ink-300" />
+              <h2 className="text-sm font-semibold">
+                {search || filter
+                  ? "No matching collections"
+                  : "Create your first collection"}
+              </h2>
+              <p className="mt-2 text-sm text-ink-500">
+                {search || filter
+                  ? "Try a different search or filter."
+                  : "Bring your products together for a theme like “Wedding Day”."}
+              </p>
+              {canCreate && !search && !filter && (
+                <Button href="/portal/collections/new" className="mt-4">
+                  <Plus size={15} /> Add collection
+                </Button>
+              )}
+            </div>
+          )
+        )}
+        {rows.length > 0 && (
+          <div className="border-t border-line px-4 py-3 text-xs text-ink-400">
+            {rows.length} {rows.length === 1 ? "collection" : "collections"}
+          </div>
+        )}
+      </Card>
       <ConfirmDialog
-        open={!!deleting}
-        title="Delete collection?"
-        message={`Delete “${deleting?.name ?? ""}”? Its products will remain in your catalogue and other collections.`}
-        confirmLabel="Delete collection"
+        open={deleting.length > 0}
+        title={
+          deleting.length > 1 ? "Delete collections?" : "Delete collection?"
+        }
+        message={`Delete ${deleting.length > 1 ? `${deleting.length} collections` : `“${deleting[0]?.name ?? ""}”`}? Products will remain in your catalogue.`}
+        confirmLabel="Delete"
         destructive
-        busy={remove.isPending}
+        busy={deletingBusy}
         onCancel={() => {
-          if (!remove.isPending) setDeleting(null);
+          if (!deletingBusy) setDeleting([]);
         }}
-        onConfirm={() => {
-          if (!deleting || remove.isPending) return;
-          remove.mutate(deleting.id, {
-            onSuccess: () => {
-              setDeleting(null);
-              toast.success("Collection deleted");
-            },
-            onError: (error) => {
-              setDeleting(null);
-              toast.error("Couldn't delete collection", error.message);
-            },
-          });
+        onConfirm={async () => {
+          if (deletingBusy) return;
+          setDeletingBusy(true);
+          try {
+            for (const c of deleting) {
+              await remove.mutateAsync(c.id);
+              setSelected((prev) => prev.filter((id) => id !== c.id));
+            }
+            toast.success("Collections deleted");
+          } catch (error) {
+            toast.error(
+              "Couldn't delete collection",
+              error instanceof Error ? error.message : "Please try again.",
+            );
+          } finally {
+            setDeletingBusy(false);
+            setDeleting([]);
+          }
         }}
       />
     </PortalShell>
