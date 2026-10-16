@@ -20,6 +20,7 @@ import {
   Wallet,
   Percent,
   Building2,
+  Tag,
   Layers,
   type LucideIcon,
 } from "lucide-react";
@@ -84,6 +85,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: "Wholesale",
     icon: Building2,
     href: "/portal/settings/wholesale",
+  },
+  {
+    slug: "labels",
+    label: "Barcode labels",
+    icon: Tag,
+    href: "/portal/settings/labels",
   },
   {
     slug: "taxes",

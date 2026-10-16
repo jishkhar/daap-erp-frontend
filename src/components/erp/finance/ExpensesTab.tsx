@@ -178,8 +178,8 @@ export function ExpensesTab({ currency }: { currency: string }) {
           </div>
         ),
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [branches, currency, canApprove, canPay],
   );
 

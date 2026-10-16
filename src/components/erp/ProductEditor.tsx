@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ProductColorField } from "@/components/erp/ProductColorField";
 import { ProductImagesModal } from "@/components/erp/ProductImagesModal";
 import { ExtraBarcodes } from "@/components/erp/ExtraBarcodes";
+import { SendLabelsToTill } from "@/components/erp/SendLabelsToTill";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -39,7 +40,7 @@ import {
   validateBarcode,
   type BarcodeType,
 } from "@/lib/barcode";
-import { hasGrant, useStaffSession } from "@/lib/staffAuth";
+import { hasGrant, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { PRODUCT_AUDIENCES } from "@/lib/productAudience";
 import { toast } from "@/lib/toast";
 
@@ -483,6 +484,11 @@ export function ProductEditor({ product }: { product?: Product }) {
                 <div className="mt-4">
                   <ExtraBarcodes product={product} />
                 </div>
+                {hasTenantWide(session, "products:update") && (
+                  <div className="mt-4 border-t border-line pt-4">
+                    <SendLabelsToTill product={product} />
+                  </div>
+                )}
               </details>
             ) : (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">

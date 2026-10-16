@@ -38,8 +38,31 @@ export type SupplierBill = {
   received_at: string;
   due_date: string;
   payment_state: BillState;
+  /** Where the shop labels this delivery asked the branch's till for stand (on a purchase order's receipts only). */
+  labels?: ReceiptLabels | null;
   cursor?: string;
 };
+
+/** A goods receipt's shop labels: the till prints them, then marks them printed (or dismisses them). */
+export type ReceiptLabels = {
+  status: "open" | "printed" | "dismissed";
+  part_printed: boolean;
+  labels: number;
+  printed: number;
+  closed_at: string | null;
+  closed_by_name: string | null;
+};
+
+/** One line saying where a receipt's labels stand. */
+export function receiptLabelsText(l: ReceiptLabels): string {
+  if (l.status === "printed")
+    return `Labels printed${l.closed_by_name ? ` by ${l.closed_by_name}` : ""}`;
+  if (l.status === "dismissed")
+    return `Labels dismissed${l.closed_by_name ? ` by ${l.closed_by_name}` : ""}`;
+  if (l.part_printed)
+    return `Labels: ${l.printed} of ${l.labels} printed on the till`;
+  return `Labels: ${l.labels} waiting to print on the till`;
+}
 
 /** A purchase order's bills added up. */
 export type PoBilling = {

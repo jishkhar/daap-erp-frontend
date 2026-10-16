@@ -37,7 +37,11 @@ import {
   toMinor,
   type PoItem,
 } from "@/lib/erp";
-import { BILL_STATE_LABEL, BILL_STATE_TONE } from "@/lib/procurement";
+import {
+  BILL_STATE_LABEL,
+  BILL_STATE_TONE,
+  receiptLabelsText,
+} from "@/lib/procurement";
 import { hasGrant, hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
@@ -337,6 +341,20 @@ export default function PurchaseOrderPage() {
                               ? ` · owes ${formatMoney(r.owed_minor, cur)} · due ${r.due_date}`
                               : ""}
                           </span>
+                          {r.labels && (
+                            <>
+                              <br />
+                              <span
+                                className={
+                                  r.labels.status === "open"
+                                    ? "text-[12px] text-warning"
+                                    : "text-[12px] text-ink-400"
+                                }
+                              >
+                                {receiptLabelsText(r.labels)}
+                              </span>
+                            </>
+                          )}
                         </span>
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <Badge tone={BILL_STATE_TONE[r.payment_state]}>

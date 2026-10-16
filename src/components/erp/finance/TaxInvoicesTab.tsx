@@ -82,8 +82,8 @@ export function TaxInvoicesTab({ currency }: { currency: string }) {
           </span>
         ),
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [currency],
   );
 
