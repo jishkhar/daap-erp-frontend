@@ -16,6 +16,7 @@ import {
   type ProductCategory,
 } from "@/hooks/useProducts";
 import { toast } from "@/lib/toast";
+import { useDebounced } from "@/lib/useDebounced";
 
 export function ProductCategoriesTab({
   createOpen,
@@ -27,6 +28,7 @@ export function ProductCategoriesTab({
   const categories = useProductCategories();
   const create = useCreateProductCategory();
   const [search, setSearch] = useState("");
+  const query = useDebounced(search.trim().toLowerCase());
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const columns = useMemo<ColumnDef<ProductCategory>[]>(
@@ -81,7 +83,7 @@ export function ProductCategoriesTab({
     [categories.data],
   );
   const rows = (categories.data ?? []).filter((category) =>
-    category.name.toLowerCase().includes(search.trim().toLowerCase()),
+    category.name.toLowerCase().includes(query),
   );
   const add = (event: React.FormEvent) => {
     event.preventDefault();

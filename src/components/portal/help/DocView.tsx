@@ -2,9 +2,25 @@ import { AlertTriangle, Info } from "lucide-react";
 import { RichText } from "@/components/portal/help/RichText";
 import { cn } from "@/lib/cn";
 import type { Block, Doc } from "@/content/help";
+import { Card } from "@/components/ui/Card";
 
 function BlockView({ block }: { block: Block }) {
   switch (block.t) {
+    case "cards":
+      return (
+        <div className="grid gap-space-3 sm:grid-cols-2">
+          {block.items.map((item) => (
+            <Card key={item.title} className="p-space-4">
+              <h3 className="mb-space-2 text-[14.5px] font-semibold text-ink-900">
+                {item.title}
+              </h3>
+              <p className="text-[13.5px] leading-relaxed text-ink-600">
+                <RichText text={item.text} />
+              </p>
+            </Card>
+          ))}
+        </div>
+      );
     case "p":
       return (
         <p className="text-[14.5px] leading-relaxed text-ink-600">

@@ -14,7 +14,6 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { descriptionText } from "@/lib/richText";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -29,7 +28,6 @@ import {
   fromMinor,
   humanize,
   toMinor,
-  formatMoney,
   useErpQuery,
   type Product,
 } from "@/lib/erp";
@@ -619,25 +617,6 @@ export function ProductEditor({ product }: { product?: Product }) {
                 </Select>
               </Field>
             </div>
-          </Section>
-          <Section title="Search engine preview">
-            <p className="text-xs font-medium text-ink-600">
-              {session?.tenant.name}
-            </p>
-            <p className="mt-2 break-words text-xl text-blue-700">
-              {draft.name || "Product title"}
-              {draft.variant_name ? ` · ${draft.variant_name}` : ""}
-            </p>
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-ink-600">
-              {descriptionText(draft.description).slice(0, 155) ||
-                "Add a description to help customers discover this product."}
-            </p>
-            <p className="mt-3 text-sm">
-              {formatMoney(toMinor(draft.price) ?? 0, currency)}
-            </p>
-            <p className="mt-4 border-t border-line pt-3 text-xs text-ink-600">
-              Preview uses your product title and description.
-            </p>
           </Section>
         </div>
         <aside className="min-w-0 space-y-5">

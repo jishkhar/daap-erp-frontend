@@ -9,6 +9,10 @@ export type CollectionCondition = {
 };
 
 export type ProductCollection = {
+  show_in_header: boolean;
+  header_order: number;
+  header_dropdown: boolean;
+  dropdown_collection_ids: string[];
   image_url: string | null;
   conditions: CollectionCondition[];
   excluded_variant_ids: string[];
@@ -26,6 +30,10 @@ export type CollectionDetail = ProductCollection & {
   variant_ids: string[];
 };
 export type CollectionInput = {
+  show_in_header?: boolean;
+  header_order?: number;
+  header_dropdown?: boolean;
+  dropdown_collection_ids?: string[];
   name: string;
   description: string;
   variant_ids: string[];
@@ -92,5 +100,14 @@ export function useUploadCollectionCover() {
   return useMutation({
     mutationFn: (file: File) =>
       erpSendFile<{ image_url: string }>("/api/v1/collections/cover", file),
+  });
+}
+
+export function useToggleCollectionHeader() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, version, show_in_header }: { id: string; version: number; show_in_header: boolean }) =>
+      erpSend<CollectionDetail>(`/api/v1/collections/${id}/header`, "PATCH", { version, show_in_header }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["collections"] }),
   });
 }

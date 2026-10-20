@@ -11,20 +11,24 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
+import { Switch } from "@/components/ui/Switch";
 import { Select } from "@/components/ui/Select";
 import {
   useCollections,
+  useToggleCollectionHeader,
   useDeleteCollection,
   type ProductCollection,
 } from "@/hooks/useCollections";
 import { useProductCategories } from "@/hooks/useProducts";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { useDebounced } from "@/lib/useDebounced";
 
 export default function CollectionsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
   const [search, setSearch] = useState("");
+  const query = useDebounced(search.trim().toLowerCase());
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [deleting, setDeleting] = useState<ProductCollection[]>([]);
@@ -32,13 +36,15 @@ export default function CollectionsPage() {
   const collections = useCollections();
   const categories = useProductCategories();
   const remove = useDeleteCollection();
+  const toggleHeader = useToggleCollectionHeader();
+  const canUpdate = hasTenantWide(session, "products:update");
   const canCreate = hasTenantWide(session, "products:create");
   const canDelete = hasTenantWide(session, "products:archive");
   const rows = (collections.data ?? []).filter(
     (c) =>
       `${c.name} ${c.description}`
         .toLowerCase()
-        .includes(search.trim().toLowerCase()) &&
+        .includes(query) &&
       (!filter ||
         (filter === "automatic"
           ? c.conditions?.length
@@ -136,6 +142,7 @@ export default function CollectionsPage() {
                 <th className="px-3 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 text-right font-medium">Products</th>
                 <th className="w-[28%] px-4 py-3 font-medium">Conditions</th>
+                <th className="px-4 py-3 font-medium">Show in header</th>
                 {canDelete && (
                   <th className="w-12">
                     <span className="sr-only">Actions</span>
@@ -202,6 +209,16 @@ export default function CollectionsPage() {
                           </p>
                         ))
                       : "Manual selection"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Switch
+                      checked={collection.show_in_header}
+                      disabled={!canUpdate || toggleHeader.isPending}
+                      aria-label={`Show ${collection.name} in header`}
+                      onChange={() => toggleHeader.mutate({ id: collection.id, version: collection.version, show_in_header: !collection.show_in_header }, {
+                        onError: (error) => toast.error("Couldn't update header visibility", error.message),
+                      })}
+                    />
                   </td>
                   {canDelete && (
                     <td className="pr-2">

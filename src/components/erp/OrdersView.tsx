@@ -11,6 +11,7 @@ import {
   PaymentStatusBadge,
 } from "@/components/erp/StatusBadges";
 import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import {
@@ -29,6 +30,7 @@ import {
   formatDateTime,
   formatMoney,
   humanize,
+  methodLabel,
   type Order,
 } from "@/lib/erp";
 import { useDebounced } from "@/lib/useDebounced";
@@ -131,11 +133,26 @@ export function OrdersView({ initialChannel = "" }: Props) {
         ),
       },
       {
+        header: "Payment mode",
+        cell: ({ row }) =>
+          row.original.payment_methods?.length ? (
+            <div className="flex flex-wrap gap-space-1">
+              {row.original.payment_methods.map((method) => (
+                <Badge key={method} tone="info" className="whitespace-nowrap">
+                  {methodLabel(method)}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <span className="text-ink-400">—</span>
+          ),
+      },
+      {
         header: "Status",
         cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
       },
       {
-        header: "Placed",
+        header: "Placed At",
         cell: ({ row }) => (
           <span className="text-ink-600">
             {formatDateTime(row.original.placed_at)}
@@ -214,7 +231,7 @@ export function OrdersView({ initialChannel = "" }: Props) {
           <option value="">Any status</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
-              {humanize(s)}
+              {s === "confirmed" ? "Placed" : humanize(s)}
             </option>
           ))}
         </Select>
