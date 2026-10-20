@@ -25,7 +25,11 @@ export function ChannelBadge({ channel }: { channel: Channel }) {
 }
 
 export function OrderStatusBadge({ status }: { status: Order["status"] }) {
-  return <Badge tone={ORDER_STATUS_TONE[status]}>{humanize(status)}</Badge>;
+  return (
+    <Badge tone={ORDER_STATUS_TONE[status]}>
+      {status === "confirmed" ? "Placed" : humanize(status)}
+    </Badge>
+  );
 }
 
 export function PaymentStatusBadge({

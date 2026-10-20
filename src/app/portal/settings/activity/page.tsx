@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { ClipboardList, Download, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChangeList } from "@/components/portal/ChangeList";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -24,6 +24,7 @@ import { useActiveBranch } from "@/lib/branch";
 import { fetchActivityForExport, useActivityLog } from "@/hooks/useActivity";
 import { humanize } from "@/lib/erp";
 import { toast } from "@/lib/toast";
+import { useDebounced } from "@/lib/useDebounced";
 
 const filterClass = "h-10 text-[13px]";
 
@@ -97,15 +98,6 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
     ),
   },
 ];
-
-function useDebounced<T>(value: T, ms = 300): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return v;
-}
 
 export default function ActivityPage() {
   const { tenant, ready } = usePortalGuard();

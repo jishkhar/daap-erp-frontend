@@ -21,6 +21,7 @@ import { toast } from "@/lib/toast";
 
 type Profile = {
   id: string;
+  display_id: string;
   name: string;
   email: string;
   phone: string | null;
@@ -214,7 +215,7 @@ export default function ProfilePage() {
                   ["Email", profile.email],
                   ["Phone", profile.phone || "—"],
                   ["Workspace", session?.tenant.name || "—"],
-                  ["Account ID", profile.id],
+                  ["Display ID", profile.display_id || "—"],
                 ].map(([label, value]) => (
                   <div
                     key={label}

@@ -83,6 +83,8 @@ export type Order = {
   customer_phone?: string | null;
   branch_name?: string | null;
   item_count?: number;
+  /** Distinct recorded payment methods in list responses, excluding failed attempts. */
+  payment_methods?: string[];
 };
 
 export type OrderItem = {

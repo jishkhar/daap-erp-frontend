@@ -22,6 +22,7 @@ import {
 } from "@/hooks/useTeam";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { useDebounced } from "@/lib/useDebounced";
 
 const CATEGORY_LABEL: Record<Role["category"], string> = {
   store: "Store",
@@ -45,15 +46,16 @@ export default function RolesPage() {
   const catalogue = useRoleCatalogue();
   const duplicate = useDuplicateRole();
   const [q, setQ] = useState("");
+  const query = useDebounced(q.trim().toLowerCase());
   const [overview, setOverview] = useState<"pages" | "till">("pages");
   const canWrite = hasPermission(session, "roles", "write");
 
   const shown = useMemo(
     () =>
       (roles.data ?? []).filter((r) =>
-        r.name.toLowerCase().includes(q.trim().toLowerCase()),
+        r.name.toLowerCase().includes(query),
       ),
-    [roles.data, q],
+    [roles.data, query],
   );
 
   // Portal pages: store roles (and the administrator), what each can view. The till: point-of-sale roles (and the administrator),

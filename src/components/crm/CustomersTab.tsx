@@ -29,6 +29,7 @@ import {
   type CrmCustomer,
 } from "@/lib/crm";
 import { formatMoney, qs, useErpQuery } from "@/lib/erp";
+import { useDebounced } from "@/lib/useDebounced";
 
 export function CustomersTab({
   currency,
@@ -47,9 +48,10 @@ export function CustomersTab({
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const query = useDebounced(search.trim());
   const [status, setStatus] = useState("");
   const list = useErpQuery<{ total: number; items: CrmCustomer[] }>(
-    `/api/v1/crm/customers${qs({ q: search, segment, tag, status, limit: 200 })}`,
+    `/api/v1/crm/customers${qs({ q: query, segment, tag, status, limit: 200 })}`,
   );
   const tags =
     useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");

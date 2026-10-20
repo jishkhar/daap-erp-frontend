@@ -3,6 +3,7 @@
  * Inline text understands **bold** and [label](/portal/path) links.
  */
 export type Block =
+  | { t: "cards"; items: { title: string; text: string }[] }
   | { t: "p"; text: string }
   | { t: "h3"; text: string }
   | { t: "steps"; items: string[] }

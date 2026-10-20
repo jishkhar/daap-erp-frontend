@@ -7,6 +7,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { useStaffSession } from "@/lib/staffAuth";
 import { SETTINGS_NAV } from "@/components/portal/settingsNav";
+import { useDebounced } from "@/lib/useDebounced";
 
 const initials = (s: string) =>
   s
@@ -21,8 +22,9 @@ export function SettingsNav() {
   const pathname = usePathname();
   const session = useStaffSession();
   const [q, setQ] = useState("");
+  const query = useDebounced(q.trim().toLowerCase());
   const items = SETTINGS_NAV.filter((i) =>
-    i.label.toLowerCase().includes(q.trim().toLowerCase()),
+    i.label.toLowerCase().includes(query),
   );
   const isActive = (href: string, slug: string) =>
     slug === "general"

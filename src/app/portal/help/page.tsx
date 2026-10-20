@@ -11,14 +11,16 @@ import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { DOCS } from "@/content/help";
+import { useDebounced } from "@/lib/useDebounced";
 
 /** Help centre index: one card per doc, searchable by title, summary and section headings. */
 export default function HelpPage() {
   const { tenant, ready } = usePortalGuard();
   const [q, setQ] = useState("");
+  const query = useDebounced(q.trim());
   const session = useStaffSession();
   if (!ready) return null;
-  const needle = q.trim().toLowerCase();
+  const needle = query.toLowerCase();
   const docs = DOCS.filter(
     (d) =>
       !needle ||
@@ -55,7 +57,7 @@ export default function HelpPage() {
         />
       </div>
       {docs.length === 0 && (
-        <p className="text-[14px] text-ink-400">Nothing matches “{q}”.</p>
+        <p className="text-[14px] text-ink-400">Nothing matches “{query}”.</p>
       )}
       <div className="grid gap-space-4 sm:grid-cols-2 lg:grid-cols-3">
         {docs.map((d) => (
