@@ -74,10 +74,16 @@ export function CollectionEditor({
   const [version, setVersion] = useState(collection?.version);
   const [name, setName] = useState(collection?.name ?? "");
   const [description, setDescription] = useState(collection?.description ?? "");
-  const [showInHeader, setShowInHeader] = useState(collection?.show_in_header ?? false);
+  const [showInHeader, setShowInHeader] = useState(
+    collection?.show_in_header ?? false,
+  );
   const [headerOrder, setHeaderOrder] = useState(collection?.header_order ?? 0);
-  const [headerDropdown, setHeaderDropdown] = useState(collection?.header_dropdown ?? false);
-  const [dropdownIds, setDropdownIds] = useState<string[]>(collection?.dropdown_collection_ids ?? []);
+  const [headerDropdown, setHeaderDropdown] = useState(
+    collection?.header_dropdown ?? false,
+  );
+  const [dropdownIds, setDropdownIds] = useState<string[]>(
+    collection?.dropdown_collection_ids ?? [],
+  );
   const [dropdownChoice, setDropdownChoice] = useState("");
   const allCollections = useCollections();
   const [image, setImage] = useState(collection?.image_url ?? null);
@@ -359,45 +365,187 @@ export function CollectionEditor({
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium">Show in header</p>
-                    <p className="mt-1 text-xs text-ink-500">The first five enabled collections, by header order, appear by name in the storefront desktop and mobile menus.</p>
+                    <p className="mt-1 text-xs text-ink-500">
+                      The first five enabled collections, by header order,
+                      appear by name in the storefront desktop and mobile menus.
+                    </p>
                   </div>
-                  <Switch checked={showInHeader} onChange={() => setShowInHeader(!showInHeader)} disabled={!editable || busy} aria-label="Show in header" />
+                  <Switch
+                    checked={showInHeader}
+                    onChange={() => setShowInHeader(!showInHeader)}
+                    disabled={!editable || busy}
+                    aria-label="Show in header"
+                  />
                 </div>
-                {showInHeader && <label className="mt-4 flex items-center gap-3 text-sm">
-                  Header order
-                  <Input type="number" min={0} max={10000} value={headerOrder} disabled={!editable || busy} onChange={(e) => setHeaderOrder(Math.min(10000, Math.max(0, Number(e.target.value) || 0)))} className="!w-24" />
-                  <span className="text-xs text-ink-500">Lower numbers appear first.</span>
-                </label>}
+                {showInHeader && (
+                  <label className="mt-4 flex items-center gap-3 text-sm">
+                    Header order
+                    <Input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      value={headerOrder}
+                      disabled={!editable || busy}
+                      onChange={(e) =>
+                        setHeaderOrder(
+                          Math.min(
+                            10000,
+                            Math.max(0, Number(e.target.value) || 0),
+                          ),
+                        )
+                      }
+                      className="!w-24"
+                    />
+                    <span className="text-xs text-ink-500">
+                      Lower numbers appear first.
+                    </span>
+                  </label>
+                )}
                 <div className="mt-4 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium">Use dropdown menu</p>
-                    <p className="mt-1 text-xs text-ink-500">Show links to other collections underneath this header. When off, the header opens this collection directly.</p>
+                    <p className="mt-1 text-xs text-ink-500">
+                      Show links to other collections underneath this header.
+                      When off, the header opens this collection directly.
+                    </p>
                   </div>
-                  <Switch checked={headerDropdown} onChange={() => setHeaderDropdown(!headerDropdown)} disabled={!editable || busy} aria-label="Use dropdown menu" />
+                  <Switch
+                    checked={headerDropdown}
+                    onChange={() => setHeaderDropdown(!headerDropdown)}
+                    disabled={!editable || busy}
+                    aria-label="Use dropdown menu"
+                  />
                 </div>
-                {headerDropdown && <div className="mt-4 space-y-3">
-                  <p className="text-xs text-ink-500">Choose up to 30 collections. Their own “Show in header” setting controls only top-level placement.</p>
-                  {allCollections.error && <p role="alert" className="text-xs text-error">{allCollections.error.message}</p>}
-                  <div className="flex items-center gap-2">
-                    <Select aria-label="Dropdown collection" value={dropdownChoice} onChange={(e) => setDropdownChoice(e.target.value)} disabled={!editable || busy || allCollections.isLoading || dropdownIds.length >= 30}>
-                      <option value="">Choose a collection</option>
-                      {(allCollections.data ?? []).filter((c) => c.id !== collection?.id && !dropdownIds.includes(c.id)).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </Select>
-                    <Button type="button" disabled={!editable || busy || !dropdownChoice || dropdownIds.length >= 30} onClick={() => { setDropdownIds([...dropdownIds, dropdownChoice]); setDropdownChoice(""); }}><Plus size={14} /> Add</Button>
+                {headerDropdown && (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs text-ink-500">
+                      Choose up to 30 collections. Their own “Show in header”
+                      setting controls only top-level placement.
+                    </p>
+                    {allCollections.error && (
+                      <p role="alert" className="text-xs text-error">
+                        {allCollections.error.message}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Select
+                        aria-label="Dropdown collection"
+                        value={dropdownChoice}
+                        onChange={(e) => setDropdownChoice(e.target.value)}
+                        disabled={
+                          !editable ||
+                          busy ||
+                          allCollections.isLoading ||
+                          dropdownIds.length >= 30
+                        }
+                      >
+                        <option value="">Choose a collection</option>
+                        {(allCollections.data ?? [])
+                          .filter(
+                            (c) =>
+                              c.id !== collection?.id &&
+                              !dropdownIds.includes(c.id),
+                          )
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                      </Select>
+                      <Button
+                        type="button"
+                        disabled={
+                          !editable ||
+                          busy ||
+                          !dropdownChoice ||
+                          dropdownIds.length >= 30
+                        }
+                        onClick={() => {
+                          setDropdownIds([...dropdownIds, dropdownChoice]);
+                          setDropdownChoice("");
+                        }}
+                      >
+                        <Plus size={14} /> Add
+                      </Button>
+                    </div>
+                    <ol className="divide-y divide-line rounded-lg border border-line">
+                      {dropdownIds.map((id, index) => {
+                        const childName =
+                          allCollections.data?.find((c) => c.id === id)?.name ??
+                          "Unavailable collection";
+                        return (
+                          <li
+                            key={id}
+                            className="flex items-center gap-2 px-3 py-2 text-sm"
+                          >
+                            <span className="min-w-0 flex-1 truncate">
+                              {childName}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label={`Move ${childName} up`}
+                              disabled={!editable || busy || index === 0}
+                              className="rounded p-1 hover:bg-paper disabled:opacity-30"
+                              onClick={() =>
+                                setDropdownIds((prev) => {
+                                  const next = [...prev];
+                                  [next[index - 1], next[index]] = [
+                                    next[index],
+                                    next[index - 1],
+                                  ];
+                                  return next;
+                                })
+                              }
+                            >
+                              <ArrowUp size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Move ${childName} down`}
+                              disabled={
+                                !editable ||
+                                busy ||
+                                index === dropdownIds.length - 1
+                              }
+                              className="rounded p-1 hover:bg-paper disabled:opacity-30"
+                              onClick={() =>
+                                setDropdownIds((prev) => {
+                                  const next = [...prev];
+                                  [next[index + 1], next[index]] = [
+                                    next[index],
+                                    next[index + 1],
+                                  ];
+                                  return next;
+                                })
+                              }
+                            >
+                              <ArrowDown size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Remove ${childName} from dropdown`}
+                              disabled={!editable || busy}
+                              className="rounded p-1 hover:bg-paper disabled:opacity-30"
+                              onClick={() =>
+                                setDropdownIds((prev) =>
+                                  prev.filter((v) => v !== id),
+                                )
+                              }
+                            >
+                              <X size={15} />
+                            </button>
+                          </li>
+                        );
+                      })}
+                      {!dropdownIds.length && (
+                        <li className="px-3 py-3 text-xs text-ink-500">
+                          Add collections above to build the dropdown. Until
+                          then, the header remains a direct link.
+                        </li>
+                      )}
+                    </ol>
                   </div>
-                  <ol className="divide-y divide-line rounded-lg border border-line">
-                    {dropdownIds.map((id, index) => {
-                      const childName = allCollections.data?.find((c) => c.id === id)?.name ?? "Unavailable collection";
-                      return <li key={id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate">{childName}</span>
-                        <button type="button" aria-label={`Move ${childName} up`} disabled={!editable || busy || index === 0} className="rounded p-1 hover:bg-paper disabled:opacity-30" onClick={() => setDropdownIds((prev) => { const next = [...prev]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next; })}><ArrowUp size={15} /></button>
-                        <button type="button" aria-label={`Move ${childName} down`} disabled={!editable || busy || index === dropdownIds.length - 1} className="rounded p-1 hover:bg-paper disabled:opacity-30" onClick={() => setDropdownIds((prev) => { const next = [...prev]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; return next; })}><ArrowDown size={15} /></button>
-                        <button type="button" aria-label={`Remove ${childName} from dropdown`} disabled={!editable || busy} className="rounded p-1 hover:bg-paper disabled:opacity-30" onClick={() => setDropdownIds((prev) => prev.filter((v) => v !== id))}><X size={15} /></button>
-                      </li>;
-                    })}
-                    {!dropdownIds.length && <li className="px-3 py-3 text-xs text-ink-500">Add collections above to build the dropdown. Until then, the header remains a direct link.</li>}
-                  </ol>
-                </div>}
+                )}
               </div>
               {upload.isPending && (
                 <p role="status" className="mt-2 text-xs text-ink-600">

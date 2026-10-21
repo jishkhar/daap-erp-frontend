@@ -106,8 +106,19 @@ export function useUploadCollectionCover() {
 export function useToggleCollectionHeader() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, version, show_in_header }: { id: string; version: number; show_in_header: boolean }) =>
-      erpSend<CollectionDetail>(`/api/v1/collections/${id}/header`, "PATCH", { version, show_in_header }),
+    mutationFn: ({
+      id,
+      version,
+      show_in_header,
+    }: {
+      id: string;
+      version: number;
+      show_in_header: boolean;
+    }) =>
+      erpSend<CollectionDetail>(`/api/v1/collections/${id}/header`, "PATCH", {
+        version,
+        show_in_header,
+      }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["collections"] }),
   });
 }

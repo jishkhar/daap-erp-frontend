@@ -1,6 +1,7 @@
 "use client";
 
-import { ClipboardCheck } from "lucide-react";
+import { ArrowLeft, ClipboardCheck } from "lucide-react";
+import Link from "next/link";
 import {
   ProgressBar,
   useStepAction,
@@ -25,7 +26,7 @@ const GROUPS: { title: string; keys: string[] }[] = [
   { title: "Account", keys: ["plan"] },
 ];
 
-/** Settings → Setup: what is configured, what is not, and where to change it. A reference, not a to-do list: nothing here blocks you. */
+/** Settings → General → Setup (opened from the card at the top of General): what is configured, what is not, and where to change it. A reference, not a to-do list: nothing here blocks you. */
 export default function SetupPage() {
   const { tenant, ready } = usePortalGuard();
   const { data, error, isFetching: loading, allowed } = useGuide();
@@ -41,6 +42,12 @@ export default function SetupPage() {
 
   return (
     <PortalShell tenant={tenant} active="settings">
+      <Link
+        href="/portal/settings"
+        className="mb-space-2 inline-flex items-center gap-space-1 text-[13px] font-medium text-ink-600 hover:text-ink-900"
+      >
+        <ArrowLeft size={14} /> General
+      </Link>
       <PageHeader
         icon={<ClipboardCheck size={20} />}
         title="Setup"

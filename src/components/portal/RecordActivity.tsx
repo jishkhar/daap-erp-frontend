@@ -51,7 +51,7 @@ export function RecordActivity({
                   {formatDateTime(e.created_at)}
                 </span>
               </p>
-              <ChangeList before={e.before} after={e.after} />
+              <ChangeList summary={e.summary} changes={e.changes} />
             </li>
           ))}
         </ul>

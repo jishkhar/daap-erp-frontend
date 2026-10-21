@@ -52,9 +52,7 @@ export default function RolesPage() {
 
   const shown = useMemo(
     () =>
-      (roles.data ?? []).filter((r) =>
-        r.name.toLowerCase().includes(query),
-      ),
+      (roles.data ?? []).filter((r) => r.name.toLowerCase().includes(query)),
     [roles.data, query],
   );
 

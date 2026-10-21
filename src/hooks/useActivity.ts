@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { erpGet, qs } from "@/lib/erp";
-import type { AuditEntry } from "@/lib/audit";
+import type { AuditChange, AuditEntry } from "@/lib/audit";
 import { queryKeys } from "@/lib/queryKeys";
 import { useCursorPager } from "@/lib/useCursorPager";
 
@@ -68,6 +68,8 @@ export type RecordActivityEntry = {
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
   created_at: string;
+  summary: string;
+  changes: AuditChange[];
 };
 
 /** The audit trail of one record (entity_type + entity_id) or of one branch (branch_id), newest first. `enabled: false` fetches nothing. */

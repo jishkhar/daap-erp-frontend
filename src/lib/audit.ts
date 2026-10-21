@@ -1,7 +1,5 @@
 import { humanize } from "@/lib/erp";
 
-export type ChangeItem = { field: string; from: string | null; to: string };
-
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** A uuid is unreadable in a table: show its first block. Anything else (a settings key) is shown whole. */
 export const shortRef = (ref: string | null) =>
@@ -11,55 +9,41 @@ export const shortRef = (ref: string | null) =>
 export const actionLabel = (action: string) =>
   action.split(".").map(humanize).join(" ");
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
-const show = (v: unknown) =>
-  v === null || v === undefined || v === ""
-    ? "—"
-    : typeof v === "object"
-      ? JSON.stringify(v)
-      : String(v);
-const label = (key: string) => key.split(".").pop() ?? key;
+/** One change of an entry, as the API words it (names instead of ids, ₹ amounts, readable field labels). */
+export type AuditChange =
+  | {
+      field: string;
+      label: string;
+      kind: "value";
+      /** false = the old value was not recorded: only `to` is known. */
+      known: boolean;
+      from: string | null;
+      to: string;
+    }
+  | {
+      field: string;
+      label: string;
+      kind: "list";
+      /** false = only the whole new list is known (in `added`). */
+      known: boolean;
+      added: AuditItem[];
+      removed: AuditItem[];
+    }
+  | { field: string; label: string; kind: "touched" };
 
-function collect(
-  value: unknown,
-  key: string,
-  before: unknown,
-  out: ChangeItem[],
-) {
-  if (isObject(value) && "from" in value && "to" in value)
-    return void out.push({
-      field: label(key),
-      from: show(value.from),
-      to: show(value.to),
-    });
-  if (isObject(value)) {
-    const prior = isObject(before) ? before : {};
-    return void Object.entries(value).forEach(([k, v]) =>
-      collect(v, k, prior[k], out),
-    );
-  }
-  if (key)
-    out.push({
-      field: label(key),
-      from: before === undefined ? null : show(before),
-      to: show(value),
-    });
-}
+/** A list item: its name, and the record's id when it names one (kept for support). */
+export type AuditItem = { text: string; id: string | null };
 
-/** What an entry changed, one item per field: recorded before → after values, `{from, to}` pairs, or just the new value when nothing was recorded before. */
-export function changeItems(before: unknown, after: unknown): ChangeItem[] {
-  const out: ChangeItem[] = [];
-  const prior = isObject(before) ? before : {};
-  if (isObject(after))
-    Object.entries(after).forEach(([k, v]) => collect(v, k, prior[k], out));
-  else if (isObject(before))
-    Object.entries(before).forEach(([k, v]) =>
-      out.push({ field: label(k), from: show(v), to: "—" }),
-    );
-  return out.filter(
-    (c) => c.from !== c.to && !(c.from === null && c.to === "—"),
-  ); // a field saved with the value it already had is not a change
+/** "Price: ₹1,200 -> ₹1,450", "Products: +Linen Kurta, -Cotton Dupatta" (plain text, for the CSV). */
+export function changeText(c: AuditChange): string {
+  if (c.kind === "touched") return `${c.label}: changed`;
+  if (c.kind === "value")
+    return c.known ? `${c.label}: ${c.from} -> ${c.to}` : `${c.label}: ${c.to}`;
+  const items = [
+    ...c.added.map((x) => `${c.known ? "+" : ""}${x.text}`),
+    ...c.removed.map((x) => `-${x.text}`),
+  ];
+  return `${c.label}: ${items.join(", ")}`;
 }
 
 const stamp = new Intl.DateTimeFormat("en-GB", {
@@ -88,6 +72,11 @@ export type AuditEntry = {
   ip: string | null;
   created_at: string;
   level: "platform" | "portal";
+  /** One line saying what happened, e.g. "Wedding Edit: added 3 products, removed 1". */
+  summary: string;
+  /** The record's name when the entry was written (kept even if it is renamed or deleted later). */
+  entity_label: string | null;
+  changes: AuditChange[];
 };
 
 const cell = (v: string) => `"${v.replace(/"/g, '""')}"`;
@@ -101,6 +90,7 @@ export function auditCsv(rows: AuditEntry[]): string {
     "Entity",
     "Branch",
     "IP",
+    "Summary",
     "Changes",
   ];
   const lines = rows.map((r) =>
@@ -109,12 +99,13 @@ export function auditCsv(rows: AuditEntry[]): string {
       r.action,
       r.level,
       r.actor_label ?? humanize(r.actor_type),
-      `${r.entity_type}${r.entity_id ? ` #${r.entity_id}` : ""}`,
+      [r.entity_type, r.entity_label, r.entity_id && `#${r.entity_id}`]
+        .filter(Boolean)
+        .join(" "),
       r.branch_name ?? "",
       r.ip ?? "",
-      changeItems(r.before, r.after)
-        .map((c) => `${c.field}: ${c.from === null ? "—" : c.from} -> ${c.to}`)
-        .join("; "),
+      r.summary,
+      r.changes.map(changeText).join("; "),
     ]
       .map(cell)
       .join(","),

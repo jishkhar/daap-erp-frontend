@@ -1,6 +1,12 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Circle } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Circle,
+  ClipboardCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -225,7 +231,7 @@ export function useStepAction() {
 }
 
 /** The four things a brand-new business needs before anything else works. Shown on the dashboard until they are done or dismissed;
- * everything else lives on Settings → Setup and in the Help centre. */
+ * everything else lives on Settings → General → Setup and in the Help centre. */
 const FIRST_RUN = ["profile", "locations", "products", "channels"];
 
 export function FirstRunChecklist() {
@@ -240,7 +246,10 @@ export function FirstRunChecklist() {
   function hide() {
     dismiss.mutate(true, {
       onSuccess: () =>
-        toast.success("Hidden", "The full list stays under Settings → Setup."),
+        toast.success(
+          "Hidden",
+          "The full list stays under Settings → General.",
+        ),
       onError: (e) => toast.error("Couldn't hide this", e.message),
     });
   }
@@ -312,5 +321,73 @@ export function GstNotice() {
         Set up GST
       </Link>
     </div>
+  );
+}
+
+/** The order Settings → Setup lists its steps in (the next step to suggest is the first open one). */
+export const SETUP_ORDER = [
+  "profile",
+  "gst",
+  "prices",
+  "locations",
+  "team",
+  "products",
+  "stock",
+  "channels",
+  "plan",
+];
+
+/** Top of Settings → General: how far setup is, the next open step, and a way into the full Setup page. Once everything is done it shrinks
+ * to one line (the page stays a reference of what is configured). Hidden from people who can't see tenant settings. */
+export function SetupCard() {
+  const { data, allowed } = useGuide();
+  if (!allowed || !data) return null;
+  if (data.complete)
+    return (
+      <Card className="mb-space-4 flex items-center gap-space-2 px-space-4 py-space-3 text-[13.5px]">
+        <CheckCircle2 size={16} className="shrink-0 text-success" />
+        <span className="flex-1 font-medium text-ink-900">Setup complete</span>
+        <Link
+          href="/portal/settings/setup"
+          className="font-semibold text-brand-600 hover:underline"
+        >
+          Review
+        </Link>
+      </Card>
+    );
+  const next = SETUP_ORDER.map((k) => data.steps.find((s) => s.key === k)).find(
+    (s) => s && (s.status === "todo" || s.status === "in_progress"),
+  );
+  return (
+    <Card className="mb-space-4 p-space-4">
+      <div className="mb-space-3 flex flex-wrap items-start justify-between gap-space-3">
+        <div className="flex min-w-0 items-start gap-space-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
+            <ClipboardCheck size={18} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-bold text-ink-900">
+              Finish setting up
+            </h2>
+            <p className="text-[13px] text-ink-600">
+              {next ? (
+                <>
+                  Next:{" "}
+                  <span className="font-medium text-ink-900">{next.title}</span>
+                </>
+              ) : (
+                "A few areas still need a look."
+              )}
+            </p>
+          </div>
+        </div>
+        <Link href="/portal/settings/setup">
+          <Button>
+            Complete setup <ArrowRight size={15} />
+          </Button>
+        </Link>
+      </div>
+      <ProgressBar done={data.done} total={data.total} />
+    </Card>
   );
 }

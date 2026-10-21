@@ -28,7 +28,7 @@ export function SettingsNav() {
   );
   const isActive = (href: string, slug: string) =>
     slug === "general"
-      ? pathname === href
+      ? pathname === href || pathname === "/portal/settings/setup" // Setup is reached from General's top card
       : pathname === href || pathname.startsWith(`${href}/`);
   const name = session?.tenant.name ?? "Settings";
 

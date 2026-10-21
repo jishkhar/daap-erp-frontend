@@ -2,6 +2,7 @@
 
 import { MapPin, Settings, Store } from "lucide-react";
 import { useState } from "react";
+import { SetupCard } from "@/components/portal/onboarding/guide";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Button } from "@/components/ui/Button";
@@ -391,6 +392,7 @@ export default function SettingsPage() {
           {view.error.message}
         </p>
       )}
+      <SetupCard />
       {!view.data && !view.error && (
         <div className="flex flex-col gap-space-4">
           <CardSkeleton rows={5} />

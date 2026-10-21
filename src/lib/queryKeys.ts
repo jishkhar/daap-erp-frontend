@@ -175,4 +175,10 @@ export const queryKeys = {
   settlements: ["erp", "finance", "settlements"] as const,
   taxDocuments: (params: Params) =>
     ["erp", "finance", "tax-documents", params] as const,
+
+  themes: ["erp", "themes"] as const,
+  theme: (key: string) => ["erp", "themes", "detail", key] as const,
+  themePreview: (key: string) => ["erp", "themes", "preview", key] as const,
+  /** A theme's schema and defaults, from the storefront app (not the ERP). */
+  themeDefinition: (key: string) => ["storefront", "theme", key] as const,
 };

@@ -42,9 +42,7 @@ export default function CollectionsPage() {
   const canDelete = hasTenantWide(session, "products:archive");
   const rows = (collections.data ?? []).filter(
     (c) =>
-      `${c.name} ${c.description}`
-        .toLowerCase()
-        .includes(query) &&
+      `${c.name} ${c.description}`.toLowerCase().includes(query) &&
       (!filter ||
         (filter === "automatic"
           ? c.conditions?.length
@@ -215,9 +213,22 @@ export default function CollectionsPage() {
                       checked={collection.show_in_header}
                       disabled={!canUpdate || toggleHeader.isPending}
                       aria-label={`Show ${collection.name} in header`}
-                      onChange={() => toggleHeader.mutate({ id: collection.id, version: collection.version, show_in_header: !collection.show_in_header }, {
-                        onError: (error) => toast.error("Couldn't update header visibility", error.message),
-                      })}
+                      onChange={() =>
+                        toggleHeader.mutate(
+                          {
+                            id: collection.id,
+                            version: collection.version,
+                            show_in_header: !collection.show_in_header,
+                          },
+                          {
+                            onError: (error) =>
+                              toast.error(
+                                "Couldn't update header visibility",
+                                error.message,
+                              ),
+                          },
+                        )
+                      }
                     />
                   </td>
                   {canDelete && (

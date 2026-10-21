@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ClipboardList, Download, Search } from "lucide-react";
 import { useState } from "react";
-import { ChangeList } from "@/components/portal/ChangeList";
+import { ChangeDetails, ChangeList } from "@/components/portal/ChangeList";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import {
@@ -28,7 +29,9 @@ import { useDebounced } from "@/lib/useDebounced";
 
 const filterClass = "h-10 text-[13px]";
 
-const columns: ColumnDef<AuditEntry, unknown>[] = [
+const buildColumns = (
+  view: (e: AuditEntry) => void,
+): ColumnDef<AuditEntry, unknown>[] => [
   {
     header: "Date",
     cell: ({ row }) => (
@@ -49,6 +52,7 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
     header: "Level",
     cell: ({ row }) => (
       <Badge
+        key="level"
         tone={row.original.level === "platform" ? "brand" : "neutral"}
         className="normal-case"
       >
@@ -69,11 +73,15 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
     cell: ({ row }) => (
       <span className="whitespace-nowrap">
         {row.original.entity_type}
-        {row.original.entity_id && (
-          <span className="text-ink-600">
-            {" "}
-            #{shortRef(row.original.entity_id)}
-          </span>
+        {row.original.entity_label ? (
+          <span className="text-ink-600"> {row.original.entity_label}</span>
+        ) : (
+          row.original.entity_id && (
+            <span className="text-ink-600">
+              {" "}
+              #{shortRef(row.original.entity_id)}
+            </span>
+          )
         )}
         {row.original.branch_name && (
           <span className="block text-[11.5px] text-ink-400">
@@ -86,7 +94,11 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
   {
     header: "Changes",
     cell: ({ row }) => (
-      <ChangeList before={row.original.before} after={row.original.after} />
+      <ChangeList
+        summary={row.original.summary}
+        changes={row.original.changes}
+        onMore={() => view(row.original)}
+      />
     ),
   },
   {
@@ -102,6 +114,8 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
 export default function ActivityPage() {
   const { tenant, ready } = usePortalGuard();
   const { branchId: activeBranch } = useActiveBranch();
+  const [viewing, setViewing] = useState<AuditEntry | null>(null);
+  const [columns] = useState(() => buildColumns(setViewing));
   const [f, setF] = useState({
     q: "",
     action: "",
@@ -219,6 +233,74 @@ export default function ActivityPage() {
         emptyMessage={log.data ? "Nothing recorded yet." : "Loading…"}
       />
       <CursorPager {...log.pager} />
+      <EntryModal entry={viewing} onClose={() => setViewing(null)} />
     </PortalShell>
+  );
+}
+
+/** One entry in full: who, what, where and when as labelled details, then every change it made. */
+function EntryModal({
+  entry,
+  onClose,
+}: {
+  entry: AuditEntry | null;
+  onClose: () => void;
+}) {
+  if (!entry) return null;
+  const details: [string, React.ReactNode][] = [
+    ["Date", formatTimestamp(entry.created_at)],
+    [
+      "Action",
+      <span key="action" className="font-mono">
+        {entry.action}
+      </span>,
+    ],
+    [
+      "Level",
+      <Badge
+        key="level"
+        tone={entry.level === "platform" ? "brand" : "neutral"}
+        className="normal-case"
+      >
+        {entry.level === "platform" ? "Platform" : "Portal"}
+      </Badge>,
+    ],
+    ["Actor", entry.actor_label ?? humanize(entry.actor_type)],
+    ["Entity", entry.entity_type],
+    ["Record", entry.entity_label ?? "—"],
+    [
+      "Entity id",
+      entry.entity_id ? (
+        <span className="font-mono break-all">{entry.entity_id}</span>
+      ) : (
+        "—"
+      ),
+    ],
+    ["Branch", entry.branch_name ?? "—"],
+    ["IP", entry.ip ?? "—"],
+  ];
+  return (
+    <Modal
+      open
+      title="Activity details"
+      description={entry.summary}
+      onClose={onClose}
+      width="lg"
+    >
+      <dl className="grid grid-cols-1 gap-x-space-4 gap-y-space-3 sm:grid-cols-2">
+        {details.map(([k, v]) => (
+          <div key={k} className="min-w-0">
+            <dt className="text-[11px] font-semibold tracking-wide text-ink-400 uppercase">
+              {k}
+            </dt>
+            <dd className="mt-0.5 text-[13px] text-ink-900">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <h3 className="mt-space-4 mb-space-2 border-t border-line pt-space-4 text-[13px] font-bold text-ink-900">
+        Changes
+      </h3>
+      <ChangeDetails changes={entry.changes} />
+    </Modal>
   );
 }

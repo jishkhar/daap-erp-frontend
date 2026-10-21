@@ -3,7 +3,6 @@ import {
   AppWindow,
   Bell,
   Boxes,
-  ClipboardCheck,
   CreditCard,
   FileText,
   Globe,
@@ -47,12 +46,6 @@ const soon = (
 
 export const SETTINGS_NAV: SettingsNavItem[] = [
   { slug: "general", label: "General", icon: Store, href: "/portal/settings" },
-  {
-    slug: "setup",
-    label: "Setup",
-    icon: ClipboardCheck,
-    href: "/portal/settings/setup",
-  },
   {
     slug: "billing",
     label: "Plan and billing",
@@ -104,7 +97,7 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     icon: MapPin,
     href: "/portal/settings/branches",
   },
-  soon("apps", "Apps", AppWindow),
+  // soon("apps", "Apps", AppWindow),
   {
     slug: "channels",
     label: "Sales channels",
@@ -112,10 +105,10 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     href: "/portal/settings/channels",
   },
   soon("domains", "Domains", Globe),
-  soon("customer-events", "Customer events", Sparkles),
+  // soon("customer-events", "Customer events", Sparkles),
   soon("notifications", "Notifications", Bell),
-  soon("metafields", "Metafields and metaobjects", Layers),
-  soon("languages", "Languages", Languages),
+  // soon("metafields", "Metafields and metaobjects", Layers),
+  // soon("languages", "Languages", Languages),
   soon("customer-privacy", "Customer privacy", Lock),
   soon("policies", "Policies", FileText),
   {

@@ -18,12 +18,12 @@ export default function OnlineChannelPage() {
       <PageHeader
         icon={<Globe size={20} />}
         title="Online store"
-        description="Pick a theme and edit the text on your website."
+        description="Pick a theme, customize it and publish it to your website."
         actions={<LearnMore doc="online-store" />}
       />
       <ServiceLock service="online">
         <ChannelStatusStrip channel="online" />
-        <OnlineStoreThemes storeName={tenant?.name ?? "Your store"} />
+        <OnlineStoreThemes />
       </ServiceLock>
     </PortalShell>
   );
