@@ -53,8 +53,27 @@ function BotCard({
   const [timeout, setTimeoutValue] = useState(
     String(settings.whatsapp_bot_timeout_minutes ?? DEFAULT_TIMEOUT),
   );
+  const [template, setTemplate] = useState(
+    settings.whatsapp_order_update_template ?? "",
+  );
+  const [language, setLanguage] = useState(
+    settings.whatsapp_order_update_template_language ?? "en",
+  );
   const save = useSaveSettings();
   const busy = save.isPending;
+
+  function saveTemplate() {
+    save.mutate(
+      {
+        whatsapp_order_update_template: template.trim(),
+        whatsapp_order_update_template_language: language.trim() || "en",
+      },
+      {
+        onSuccess: () => toast.success("Settings saved"),
+        onError: (e) => toast.error("Couldn't save", e.message),
+      },
+    );
+  }
 
   function toggle() {
     save.mutate(
@@ -149,6 +168,55 @@ function BotCard({
           )}
         </div>
       </Field>
+
+      <div className="border-t border-line pt-space-3">
+        <h3 className="text-[14px] font-semibold text-ink-900">
+          Order updates
+        </h3>
+        <p className="mb-space-3 text-[13px] text-ink-600">
+          Customers get a message when their order is confirmed, packed, shipped
+          or out for delivery, and delivered. If they haven&apos;t messaged you
+          in the last 24 hours, WhatsApp only allows an approved template.
+          Create one in WhatsApp Manager whose text uses{" "}
+          <code className="text-[12px]">{"{{1}}"}</code> for the order number
+          and <code className="text-[12px]">{"{{2}}"}</code> for the status, for
+          example: &ldquo;Your order {"{{1}}"} is now {"{{2}}"}.&rdquo; Without
+          a template, updates outside that window are skipped.
+        </p>
+        <div className="flex flex-wrap items-end gap-space-2">
+          <Field
+            label="Template name"
+            htmlFor="wa_tpl_name"
+            className="mb-0 min-w-[220px] flex-1"
+          >
+            <Input
+              id="wa_tpl_name"
+              placeholder="order_update"
+              disabled={!canEdit}
+              value={template}
+              onChange={(e) => setTemplate(e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Language"
+            htmlFor="wa_tpl_lang"
+            className="mb-0 w-[110px]"
+          >
+            <Input
+              id="wa_tpl_lang"
+              placeholder="en"
+              disabled={!canEdit}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            />
+          </Field>
+          {canEdit && (
+            <Button variant="secondary" disabled={busy} onClick={saveTemplate}>
+              Save
+            </Button>
+          )}
+        </div>
+      </div>
     </Card>
   );
 }

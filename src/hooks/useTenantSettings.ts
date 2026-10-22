@@ -34,6 +34,9 @@ export type TenantView = {
     whatsapp_bot_enabled?: boolean;
     /** A customer silent this long starts over at the bot's main menu (5–1440). */
     whatsapp_bot_timeout_minutes?: number;
+    /** Approved template for order updates outside WhatsApp's 24-hour window ('' = none). Body: {{1}} order number, {{2}} status. */
+    whatsapp_order_update_template?: string;
+    whatsapp_order_update_template_language?: string;
   };
 };
 
