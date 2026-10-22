@@ -21,6 +21,7 @@ import {
   usePublishTheme,
   useSaveThemeDraft,
   useTheme,
+  useThemeCollections,
   useThemeDefinition,
   useThemePreviewToken,
 } from "@/hooks/useThemes";
@@ -35,6 +36,7 @@ import {
   STOREFRONT_URL,
   type Group,
   type InstalledTheme,
+  type ThemeCollection,
   type ThemeConfig,
   type ThemeDefinition,
   type Values,
@@ -49,6 +51,7 @@ type Selection =
 export function ThemeEditor({ themeKey }: { themeKey: string }) {
   const theme = useTheme(themeKey);
   const definition = useThemeDefinition(themeKey);
+  const collections = useThemeCollections();
   if (theme.error)
     return (
       <Problem>Couldn&apos;t load this theme: {theme.error.message}</Problem>
@@ -60,13 +63,14 @@ export function ThemeEditor({ themeKey }: { themeKey: string }) {
         {definition.error.message}
       </Problem>
     );
-  if (theme.isPending || definition.isPending)
+  if (theme.isPending || definition.isPending || collections.isPending)
     return <Skeleton className="h-[480px] w-full" />;
   return (
     <Editor
       key={theme.data.theme_key}
       theme={theme.data}
       def={definition.data}
+      collections={collections.data ?? []}
     />
   );
 }
@@ -85,9 +89,11 @@ function Problem({ children }: { children: React.ReactNode }) {
 function Editor({
   theme,
   def,
+  collections,
 }: {
   theme: InstalledTheme;
   def: ThemeDefinition;
+  collections: ThemeCollection[];
 }) {
   const canEdit = usePermission("channels", "write");
   const save = useSaveThemeDraft();
@@ -205,7 +211,7 @@ function Editor({
       <ThemeFields
         fields={def.schema.settings[selected.group]}
         values={config.settings[selected.group]}
-        collections={def.collections}
+        collections={collections}
         disabled={!canEdit}
         onChange={(v) => setGroup(selected.group, v)}
       />
@@ -218,7 +224,7 @@ function Editor({
         <ThemeFields
           fields={type.fields}
           values={s.settings}
-          collections={def.collections}
+          collections={collections}
           disabled={!canEdit}
           onChange={(v) =>
             setHome(
@@ -305,6 +311,16 @@ function Editor({
         {heading("Bottom of every page")}
         {navRow(GROUP_LABELS.footer, "", () =>
           setSelected({ kind: "group", group: "footer" }),
+        )}
+        {def.schema.settings.pages && (
+          <>
+            {heading("Other pages")}
+            {navRow(
+              GROUP_LABELS.pages,
+              "About, shipping, returns, policies",
+              () => setSelected({ kind: "group", group: "pages" }),
+            )}
+          </>
         )}
       </nav>
     );

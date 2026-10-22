@@ -18,12 +18,17 @@ import {
   fieldProblem,
   fieldValues,
   STOREFRONT_URL,
-  type ThemeDefinition,
+  type ThemeCollection,
   type ThemeField,
   type Values,
 } from "@/lib/themes";
 
-type Collections = ThemeDefinition["collections"];
+type Collections = ThemeCollection[];
+
+const KIND = { category: "Category", craft: "Craft", occasion: "Occasion" };
+/** "Sarees · Category · 12 products", so same-named collections and empty ones are easy to tell apart. */
+const optionLabel = (c: ThemeCollection) =>
+  `${c.name} · ${KIND[c.kind]} · ${c.product_count} ${c.product_count === 1 ? "product" : "products"}`;
 
 /** Move item `i` of a list by `by` places (no-op at the ends). */
 export function move<T>(list: T[], i: number, by: -1 | 1): T[] {
@@ -129,7 +134,7 @@ function CollectionsInput({
             <option value="">Add a collection…</option>
             {left.map((c) => (
               <option key={c.slug} value={c.slug}>
-                {c.name}
+                {optionLabel(c)}
               </option>
             ))}
           </Select>
@@ -361,7 +366,7 @@ function FieldInput({
           <option value="">None</option>
           {collections.map((c) => (
             <option key={c.slug} value={c.slug}>
-              {c.name}
+              {optionLabel(c)}
             </option>
           ))}
           {value && !collections.some((c) => c.slug === value) ? (

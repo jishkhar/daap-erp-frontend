@@ -179,6 +179,7 @@ export const queryKeys = {
   themes: ["erp", "themes"] as const,
   theme: (key: string) => ["erp", "themes", "detail", key] as const,
   themePreview: (key: string) => ["erp", "themes", "preview", key] as const,
+  themeCollections: ["erp", "themes", "collections"] as const,
   /** A theme's schema and defaults, from the storefront app (not the ERP). */
   themeDefinition: (key: string) => ["storefront", "theme", key] as const,
 };

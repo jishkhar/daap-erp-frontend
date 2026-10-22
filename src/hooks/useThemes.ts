@@ -6,6 +6,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import {
   STOREFRONT_URL,
   type InstalledTheme,
+  type ThemeCollection,
   type ThemeConfig,
   type ThemeDefinition,
   type ThemeList,
@@ -45,6 +46,15 @@ export function useThemeDefinition(key: string) {
     },
     staleTime: 5 * 60_000,
     retry: 1,
+  });
+}
+
+/** The shop's own collections, for the editor's collection pickers. */
+export function useThemeCollections() {
+  return useQuery({
+    queryKey: queryKeys.themeCollections,
+    queryFn: () =>
+      erpGet<ThemeCollection[]>("/api/v1/store-admin/theme-collections"),
   });
 }
 
