@@ -110,7 +110,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
   // soon("metafields", "Metafields and metaobjects", Layers),
   // soon("languages", "Languages", Languages),
   soon("customer-privacy", "Customer privacy", Lock),
-  soon("policies", "Policies", FileText),
+  {
+    slug: "policies",
+    label: "Policies",
+    icon: FileText,
+    href: "/portal/settings/policies",
+  },
   {
     slug: "activity",
     label: "Activity log",

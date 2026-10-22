@@ -80,6 +80,8 @@ export const queryKeys = {
   returnable: (orderId: string) =>
     ["erp", "returns", "returnable", orderId] as const,
   returnPolicy: ["erp", "returns", "policy"] as const,
+  /** Settings > Policies (the shop's written policies). */
+  storePolicies: ["erp", "store-policies"] as const,
 
   analytics: ["erp", "analytics"] as const,
   today: (params: Params) => ["erp", "analytics", "today", params] as const,
