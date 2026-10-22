@@ -66,6 +66,10 @@ export const queryKeys = {
   whatsapp: ["erp", "whatsapp"] as const,
   whatsappAccount: ["erp", "whatsapp", "account"] as const,
   whatsappTemplates: ["erp", "whatsapp", "templates"] as const,
+  whatsappConversations: (params: Params) =>
+    ["erp", "whatsapp", "conversations", params] as const,
+  whatsappConversation: (id: string) =>
+    ["erp", "whatsapp", "conversation", id] as const,
 
   supportCategories: ["erp", "support", "categories"] as const,
   supportTickets: (params: Params) =>
