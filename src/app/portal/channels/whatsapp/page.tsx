@@ -2,6 +2,7 @@
 
 import { ChannelStatusStrip } from "@/components/portal/channels/ChannelStatusStrip";
 import { ServiceLock } from "@/components/portal/channels/ServiceLock";
+import { WhatsAppBot } from "@/components/portal/channels/WhatsAppBot";
 import { WhatsAppTemplates } from "@/components/portal/channels/WhatsAppTemplates";
 import { LearnMore } from "@/components/portal/help/HelpButton";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -24,6 +25,7 @@ export default function WhatsAppChannelPage() {
       />
       <ServiceLock service="whatsapp">
         <ChannelStatusStrip channel="whatsapp" />
+        <WhatsAppBot />
         <WhatsAppTemplates />
       </ServiceLock>
     </PortalShell>
