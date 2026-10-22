@@ -6,24 +6,108 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
+  Upload,
   X,
 } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
+import { useUploadThemeImage } from "@/hooks/useThemes";
 import {
   fieldProblem,
   fieldValues,
   STOREFRONT_URL,
-  type ThemeDefinition,
+  type ThemeCollection,
   type ThemeField,
   type Values,
 } from "@/lib/themes";
+import { toast } from "@/lib/toast";
 
-type Collections = ThemeDefinition["collections"];
+type Collections = ThemeCollection[];
+
+const MAX_IMAGE_BYTES = 1024 * 1024;
+
+/** An image setting: upload a file (stored by the ERP, the field gets its address) or type an address. */
+function ImageInput({
+  id,
+  value,
+  invalid,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  invalid: boolean;
+  disabled?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const upload = useUploadThemeImage();
+  const file = useRef<HTMLInputElement>(null);
+  return (
+    <div className="space-y-space-2">
+      <div className="flex gap-space-2">
+        <Input
+          id={id}
+          value={value}
+          maxLength={500}
+          disabled={disabled || upload.isPending}
+          invalid={invalid}
+          placeholder="Upload, or paste https://…"
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {!disabled && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0"
+            disabled={upload.isPending}
+            onClick={() => file.current?.click()}
+          >
+            <Upload size={14} /> {upload.isPending ? "Uploading…" : "Upload"}
+          </Button>
+        )}
+      </div>
+      <input
+        ref={file}
+        type="file"
+        className="hidden"
+        accept="image/jpeg,image/png,image/webp"
+        aria-label="Image file"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          if (f.size > MAX_IMAGE_BYTES) {
+            toast.error("Choose an image up to 1 MB");
+            return;
+          }
+          upload.mutate(f, {
+            onSuccess: (r) => onChange(r.image_url),
+            onError: (error) =>
+              toast.error("Couldn't upload the image", error.message),
+          });
+        }}
+      />
+      {value && !disabled && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="text-[12.5px] text-ink-600 hover:underline"
+        >
+          Remove image
+        </button>
+      )}
+    </div>
+  );
+}
+
+const KIND = { category: "Category", craft: "Craft", occasion: "Occasion" };
+/** "Sarees · Category · 12 products", so same-named collections and empty ones are easy to tell apart. */
+const optionLabel = (c: ThemeCollection) =>
+  `${c.name} · ${KIND[c.kind]} · ${c.product_count} ${c.product_count === 1 ? "product" : "products"}`;
 
 /** Move item `i` of a list by `by` places (no-op at the ends). */
 export function move<T>(list: T[], i: number, by: -1 | 1): T[] {
@@ -129,7 +213,7 @@ function CollectionsInput({
             <option value="">Add a collection…</option>
             {left.map((c) => (
               <option key={c.slug} value={c.slug}>
-                {c.name}
+                {optionLabel(c)}
               </option>
             ))}
           </Select>
@@ -279,9 +363,19 @@ function FieldInput({
   }
   let control: React.ReactNode;
   switch (field.type) {
+    case "image":
+      control = (
+        <ImageInput
+          id={id}
+          value={value as string}
+          invalid={!!problem}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      );
+      break;
     case "text":
     case "url":
-    case "image":
       control = (
         <Input
           id={id}
@@ -290,11 +384,7 @@ function FieldInput({
           disabled={disabled}
           invalid={!!problem}
           placeholder={
-            field.type === "url"
-              ? "/c/sarees or https://…"
-              : field.type === "image"
-                ? "https://… or /logo.png"
-                : undefined
+            field.type === "url" ? "/c/sarees or https://…" : undefined
           }
           onChange={(e) => onChange(e.target.value)}
         />
@@ -361,7 +451,7 @@ function FieldInput({
           <option value="">None</option>
           {collections.map((c) => (
             <option key={c.slug} value={c.slug}>
-              {c.name}
+              {optionLabel(c)}
             </option>
           ))}
           {value && !collections.some((c) => c.slug === value) ? (

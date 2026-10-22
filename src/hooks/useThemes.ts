@@ -1,11 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { erpGet, erpSend } from "@/lib/erp";
+import { erpGet, erpSend, erpSendFile } from "@/lib/erp";
 import { queryKeys } from "@/lib/queryKeys";
 import {
   STOREFRONT_URL,
   type InstalledTheme,
+  type ThemeCollection,
   type ThemeConfig,
   type ThemeDefinition,
   type ThemeList,
@@ -45,6 +46,26 @@ export function useThemeDefinition(key: string) {
     },
     staleTime: 5 * 60_000,
     retry: 1,
+  });
+}
+
+/** The shop's own collections, for the editor's collection pickers. */
+export function useThemeCollections() {
+  return useQuery({
+    queryKey: queryKeys.themeCollections,
+    queryFn: () =>
+      erpGet<ThemeCollection[]>("/api/v1/store-admin/theme-collections"),
+  });
+}
+
+/** Upload an image for a theme setting (JPEG, PNG or WebP up to 1 MB); resolves to its public https address. */
+export function useUploadThemeImage() {
+  return useMutation({
+    mutationFn: (file: File) =>
+      erpSendFile<{ image_url: string }>(
+        "/api/v1/store-admin/theme-images",
+        file,
+      ),
   });
 }
 

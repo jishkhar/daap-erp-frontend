@@ -33,13 +33,20 @@ export type SectionSchema = {
   name: string;
   fields: ThemeField[];
 };
-export const GROUPS = ["brand", "announcement", "header", "footer"] as const;
+export const GROUPS = [
+  "brand",
+  "announcement",
+  "header",
+  "footer",
+  "pages",
+] as const;
 export type Group = (typeof GROUPS)[number];
 export const GROUP_LABELS: Record<Group, string> = {
   brand: "Logo & name",
   announcement: "Announcement bar",
   header: "Header",
   footer: "Footer",
+  pages: "Store pages",
 };
 
 export type ThemeSchema = {
@@ -58,7 +65,14 @@ export type ThemeDefinition = {
   name: string;
   schema: ThemeSchema;
   defaults: ThemeConfig;
-  collections: { slug: string; name: string; kind: string }[];
+};
+
+/** One of the shop's collection pages (/c/<slug>), as the collection pickers offer them (GET /store-admin/theme-collections). */
+export type ThemeCollection = {
+  slug: string;
+  name: string;
+  kind: "category" | "craft" | "occasion";
+  product_count: number;
 };
 
 /** An installed theme as the ERP returns it. */
@@ -132,7 +146,7 @@ export function editableConfig(
     GROUPS.map((g) => [
       g,
       fieldValues(
-        def.schema.settings[g],
+        def.schema.settings[g] ?? [],
         g in savedSettings ? savedSettings[g] : def.defaults.settings?.[g],
       ),
     ]),
@@ -190,7 +204,7 @@ export function configProblems(
     }, 0);
   return (
     GROUPS.reduce(
-      (n, g) => n + count(def.schema.settings[g], config.settings[g]),
+      (n, g) => n + count(def.schema.settings[g] ?? [], config.settings[g]),
       0,
     ) +
     config.templates.home.reduce(

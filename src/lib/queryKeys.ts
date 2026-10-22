@@ -84,6 +84,8 @@ export const queryKeys = {
   returnable: (orderId: string) =>
     ["erp", "returns", "returnable", orderId] as const,
   returnPolicy: ["erp", "returns", "policy"] as const,
+  /** Settings > Policies (the shop's written policies). */
+  storePolicies: ["erp", "store-policies"] as const,
 
   analytics: ["erp", "analytics"] as const,
   today: (params: Params) => ["erp", "analytics", "today", params] as const,
@@ -183,6 +185,7 @@ export const queryKeys = {
   themes: ["erp", "themes"] as const,
   theme: (key: string) => ["erp", "themes", "detail", key] as const,
   themePreview: (key: string) => ["erp", "themes", "preview", key] as const,
+  themeCollections: ["erp", "themes", "collections"] as const,
   /** A theme's schema and defaults, from the storefront app (not the ERP). */
   themeDefinition: (key: string) => ["storefront", "theme", key] as const,
 };
