@@ -167,12 +167,12 @@ export function NewSalesOrder({
         </>
       }
     >
-      <div className="grid gap-x-space-4 sm:grid-cols-2">
+      <div className="grid gap-x-space-4 @min-[400px]:grid-cols-2">
         <Field
           label="Business customer"
           htmlFor="so_account"
           required
-          className="sm:col-span-2"
+          className="@min-[400px]:col-span-2"
         >
           <AccountSelect
             id="so_account"
@@ -181,7 +181,7 @@ export function NewSalesOrder({
           />
         </Field>
         {account && (
-          <div className="mb-space-3 sm:col-span-2">
+          <div className="mb-space-3 @min-[400px]:col-span-2">
             <CreditSummary accountId={account.id} currency={currency} compact />
           </div>
         )}
@@ -190,7 +190,7 @@ export function NewSalesOrder({
             <Select
               id="so_branch"
               value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
+              onValueChange={(value) => setBranchId(value)}
             >
               <option value="">Choose a branch</option>
               {branches.map((b) => (
@@ -257,8 +257,8 @@ export function NewSalesOrder({
         />
       </Field>
       {rows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13.5px]">
+        <div className="min-w-0 max-w-full overflow-x-auto">
+          <table className="min-w-[640px] w-full text-[13.5px] [&_td]:[overflow-wrap:anywhere]">
             <thead>
               <tr className="text-left text-label">
                 <th className="py-space-2 pr-space-2">Product</th>
@@ -359,7 +359,7 @@ export function NewSalesOrder({
             </tbody>
           </table>
           {q && (
-            <dl className="mt-space-3 ml-auto max-w-xs space-y-1 text-[13.5px]">
+            <dl className="mt-space-3 ml-auto max-w-xs space-y-1 text-[13.5px] [&>div]:gap-space-2 [&_dd]:min-w-0 [&_dd]:text-right [&_dd]:[overflow-wrap:anywhere]">
               <div className="flex justify-between">
                 <dt className="text-ink-600">Before GST</dt>
                 <dd>

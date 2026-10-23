@@ -53,7 +53,11 @@ export function WhatsAppTemplates() {
           .
         </p>
       ) : templates === null ? (
-        <Button variant="secondary" onClick={load}>
+        <Button
+          className="mobile-page-action"
+          variant="secondary"
+          onClick={load}
+        >
           Show templates
         </Button>
       ) : templates.length === 0 ? (

@@ -138,8 +138,8 @@ export function BranchForm({
             <Select
               id="b_status"
               value={draft.status}
-              onChange={(ev) =>
-                set({ status: ev.target.value as BranchDraft["status"] })
+              onValueChange={(value) =>
+                set({ status: value as BranchDraft["status"] })
               }
             >
               <option value="active">Active</option>
@@ -204,7 +204,7 @@ export function BranchForm({
             id="b_manager"
             disabled={!managers}
             value={draft.manager_user_id}
-            onChange={(ev) => set({ manager_user_id: ev.target.value })}
+            onValueChange={(value) => set({ manager_user_id: value })}
           >
             <option value="">No manager</option>
             {(managers ?? []).map((m) => (
@@ -262,7 +262,7 @@ export function BranchForm({
           <Select
             id="b_state"
             value={draft.state}
-            onChange={(ev) => set({ state: ev.target.value })}
+            onValueChange={(value) => set({ state: value })}
           >
             <option value="">Choose a state…</option>
             {INDIAN_STATES.map((s) => (
@@ -323,7 +323,7 @@ export function BranchForm({
             <Select
               id="b_gst"
               value={draft.gst_registration_id}
-              onChange={(ev) => set({ gst_registration_id: ev.target.value })}
+              onValueChange={(value) => set({ gst_registration_id: value })}
             >
               <option value="">
                 {gstOptions.length ? "Choose a registration…" : "None"}
@@ -391,10 +391,9 @@ export function BranchForm({
           <Select
             id="b_open"
             value={draft.is_open_override}
-            onChange={(ev) =>
+            onValueChange={(value) =>
               set({
-                is_open_override: ev.target
-                  .value as BranchDraft["is_open_override"],
+                is_open_override: value as BranchDraft["is_open_override"],
               })
             }
           >
@@ -411,7 +410,7 @@ export function BranchForm({
           <Select
             id="b_tz"
             value={draft.timezone}
-            onChange={(ev) => set({ timezone: ev.target.value })}
+            onValueChange={(value) => set({ timezone: value })}
           >
             <option value="">Same as the business</option>
             {zones.map((z) => (

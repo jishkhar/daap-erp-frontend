@@ -363,7 +363,7 @@ function OperationsCard({
         />
       </Field>
       {canEdit && (
-        <Button disabled={busy} onClick={save}>
+        <Button className="mobile-page-action" disabled={busy} onClick={save}>
           Save settings
         </Button>
       )}

@@ -111,9 +111,9 @@ export function PayBillsModal({
             {open.map((b) => (
               <li
                 key={b.id}
-                className="flex items-center justify-between gap-space-3 py-space-2"
+                className="flex min-w-0 flex-col items-stretch justify-between gap-space-2 py-space-2 @min-[420px]:flex-row @min-[420px]:items-center @min-[420px]:gap-space-3"
               >
-                <div className="min-w-0 text-[13.5px]">
+                <div className="min-w-0 text-[13.5px] [overflow-wrap:anywhere]">
                   <p className="font-semibold text-ink-900">{billName(b)}</p>
                   <p className="text-[12px] text-ink-400">
                     Owes {formatMoney(b.owed_minor, currency)} · due{" "}
@@ -128,18 +128,18 @@ export function PayBillsModal({
                   onChange={(e) =>
                     setAmounts({ ...amounts, [b.id]: e.target.value })
                   }
-                  className="w-32 text-right"
+                  className="w-full text-right @min-[420px]:w-32 @min-[420px]:shrink-0"
                 />
               </li>
             ))}
           </ul>
-          <div className="grid gap-x-space-3 sm:grid-cols-3">
+          <div className="grid gap-x-space-3 @min-[420px]:grid-cols-3">
             <Field label="Method" htmlFor="pb_method">
               <Select
                 id="pb_method"
                 value={method}
-                onChange={(e) =>
-                  setMethod(e.target.value as SupplierPaymentMethod)
+                onValueChange={(value) =>
+                  setMethod(value as SupplierPaymentMethod)
                 }
               >
                 {(

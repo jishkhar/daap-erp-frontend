@@ -95,10 +95,19 @@ export default function CustomersPage() {
         icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />}
         title="CRM"
         description="Manage your customers, build relationships and increase repeat sales."
+        actionsClassName="w-full justify-end md:w-auto"
         actions={
           canCreate && (
-            <Button onClick={() => setOpen(true)}>
-              <HugeiconsIcon icon={UserAdd01Icon} size={16} /> Add customer
+            <Button
+              onClick={() => setOpen(true)}
+              className="shrink-0 whitespace-nowrap"
+            >
+              <HugeiconsIcon
+                icon={UserAdd01Icon}
+                size={16}
+                className="shrink-0"
+              />{" "}
+              Add customer
             </Button>
           )
         }
@@ -110,33 +119,39 @@ export default function CustomersPage() {
       )}
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 md:grid-cols-3 xl:grid-cols-6">
         <KpiTile
+          stackOnMobile
           label="Total customers"
           value={s?.total_customers ?? "—"}
           icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />}
         />
         <KpiTile
+          stackOnMobile
           label="Active customers"
           value={s?.active_customers ?? "—"}
           hint="purchased in last 6 months"
           icon={<HugeiconsIcon icon={UserCheck01Icon} size={20} />}
         />
         <KpiTile
+          stackOnMobile
           label="VIP customers"
           value={s?.vip_customers ?? "—"}
           icon={<HugeiconsIcon icon={CrownIcon} size={20} />}
         />
         <KpiTile
+          stackOnMobile
           label="New customers"
           value={s?.new_this_month ?? "—"}
           hint="this month"
           icon={<HugeiconsIcon icon={UserAdd01Icon} size={20} />}
         />
         <KpiTile
+          stackOnMobile
           label="Avg. purchase value"
           value={s ? formatMoney(s.avg_purchase_value_minor, currency) : "—"}
           icon={<HugeiconsIcon icon={ShoppingCart01Icon} size={20} />}
         />
         <KpiTile
+          stackOnMobile
           label="Repeat customers"
           value={s ? `${s.repeat_rate_pct}%` : "—"}
           hint={s ? `${s.repeat_customers} customers` : undefined}

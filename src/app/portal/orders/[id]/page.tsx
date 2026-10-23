@@ -28,7 +28,7 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
+import { AnchoredSelect } from "@/components/ui/AnchoredSelect";
 import {
   useAdvanceOrder,
   useBindSerials,
@@ -63,9 +63,13 @@ const NEXT_STEP: Record<string, { to: string; label: string }[]> = {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-space-3 py-1.5 text-[14px]">
-      <span className="text-ink-600">{label}</span>
-      <span className="font-medium text-ink-900">{value}</span>
+    <div className="flex min-w-0 justify-between gap-space-3 py-1.5 text-[14px]">
+      <span className="min-w-0 text-ink-600 [overflow-wrap:anywhere]">
+        {label}
+      </span>
+      <span className="min-w-0 text-right font-medium text-ink-900 [overflow-wrap:anywhere]">
+        {value}
+      </span>
     </div>
   );
 }
@@ -141,8 +145,10 @@ export default function OrderDetailPage() {
       {o && (
         <>
           <div className="mb-space-5 flex flex-wrap items-start justify-between gap-space-3">
-            <div>
-              <h1 className="text-display">{o.order_number}</h1>
+            <div className="min-w-0">
+              <h1 className="text-display [overflow-wrap:anywhere]">
+                {o.order_number}
+              </h1>
               <div className="mt-space-2 flex flex-wrap items-center gap-space-2">
                 <ChannelBadge channel={o.channel} />
                 <OrderStatusBadge status={o.status} />
@@ -164,7 +170,7 @@ export default function OrderDetailPage() {
                   </Link>
                 )}
               </div>
-              <p className="mt-space-2 text-[13px] text-ink-600">
+              <p className="mt-space-2 text-[13px] text-ink-600 [overflow-wrap:anywhere]">
                 Placed {formatDateTime(o.placed_at)} · {humanize(o.order_type)}
                 {o.customer_id && (
                   <>
@@ -180,7 +186,10 @@ export default function OrderDetailPage() {
                 )}
               </p>
             </div>
-            <div id="order-actions" className="flex flex-wrap gap-space-2">
+            <div
+              id="order-actions"
+              className="mobile-page-actions flex w-full flex-wrap gap-space-2 md:w-auto [&>button]:whitespace-nowrap [&_svg]:shrink-0"
+            >
               {canUpdate &&
                 steps.map((s) => (
                   <Button
@@ -228,7 +237,7 @@ export default function OrderDetailPage() {
           </div>
 
           {o.status === "cancelled" && (
-            <Card className="mb-space-4 border-warning/40 bg-warning-tint p-space-3 text-[13.5px] text-warning">
+            <Card className="mb-space-4 border-warning/40 bg-warning-tint p-space-3 text-[13.5px] text-warning [overflow-wrap:anywhere]">
               Cancelled{o.cancel_reason ? `: ${o.cancel_reason}` : ""}.{" "}
               {o.paid_minor - o.refunded_minor > 0 && (
                 <strong>
@@ -239,8 +248,8 @@ export default function OrderDetailPage() {
             </Card>
           )}
 
-          <div className="grid gap-space-4 lg:grid-cols-3">
-            <Card className="p-space-4 lg:col-span-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-space-4 lg:grid-cols-3">
+            <Card className="min-w-0 p-space-3 md:p-space-4 lg:col-span-2">
               <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
                 Items
               </h2>
@@ -256,7 +265,7 @@ export default function OrderDetailPage() {
                     bound < item.quantity;
                   return (
                     <li key={item.id} className="py-space-3">
-                      <div className="flex items-start justify-between gap-space-3">
+                      <div className="grid grid-cols-[64px_minmax(0,1fr)] items-start gap-x-space-3 gap-y-space-2 md:flex md:justify-between md:gap-space-3">
                         {item.image_url ? (
                           <Image
                             src={item.image_url}
@@ -276,10 +285,10 @@ export default function OrderDetailPage() {
                           </span>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-ink-900">
+                          <p className="font-semibold text-ink-900 [overflow-wrap:anywhere]">
                             {item.name_snapshot}
                           </p>
-                          <p className="text-[12.5px] text-ink-600">
+                          <p className="text-[12.5px] text-ink-600 [overflow-wrap:anywhere]">
                             {item.sku_snapshot} · {item.quantity} ×{" "}
                             {formatMoney(item.unit_price_minor, cur)}
                             {item.tax_minor > 0 && (
@@ -290,12 +299,12 @@ export default function OrderDetailPage() {
                             )}
                           </p>
                         </div>
-                        <p className="shrink-0 font-semibold">
+                        <p className="col-start-2 min-w-0 font-semibold [overflow-wrap:anywhere] md:shrink-0">
                           {formatMoney(item.line_total_minor, cur)}
                         </p>
                       </div>
                       {item.serials && item.serials.length > 0 && (
-                        <p className="mt-1 text-[12.5px] text-ink-600">
+                        <p className="mt-1 text-[12.5px] text-ink-600 [overflow-wrap:anywhere]">
                           {item.serialization_type === "IMEI"
                             ? "IMEI"
                             : "Serial"}
@@ -309,7 +318,7 @@ export default function OrderDetailPage() {
                         </p>
                       )}
                       {canUpdate && needsSerials && (
-                        <div className="mt-space-2 flex flex-wrap items-center gap-space-2">
+                        <div className="mobile-page-actions mt-space-2 flex flex-wrap items-center gap-space-2">
                           <Input
                             aria-label={`${item.serialization_type === "IMEI" ? "IMEI" : "Serial"} numbers for ${item.name_snapshot}`}
                             placeholder={`${item.quantity - bound} ${item.serialization_type === "IMEI" ? "IMEI" : "serial"} number(s), comma separated`}
@@ -355,8 +364,8 @@ export default function OrderDetailPage() {
               </ul>
             </Card>
 
-            <div className="space-y-space-4">
-              <Card className="p-space-4">
+            <div className="min-w-0 space-y-space-4">
+              <Card className="min-w-0 p-space-3 md:p-space-4">
                 <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                   Summary
                 </h2>
@@ -399,7 +408,7 @@ export default function OrderDetailPage() {
                 )}
               </Card>
               {(returns.data ?? []).length > 0 && (
-                <Card className="p-space-4">
+                <Card className="min-w-0 p-space-3 md:p-space-4">
                   <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                     Returns
                   </h2>
@@ -407,15 +416,15 @@ export default function OrderDetailPage() {
                     {(returns.data ?? []).map((r) => (
                       <li
                         key={r.id}
-                        className="flex items-center justify-between gap-space-2 py-2 text-[13.5px]"
+                        className="flex min-w-0 flex-wrap items-center justify-between gap-space-2 py-2 text-[13.5px] md:flex-nowrap"
                       >
                         <Link
                           href={`/portal/returns?id=${r.id}`}
-                          className="font-semibold text-brand-700 hover:underline"
+                          className="min-w-0 font-semibold text-brand-700 [overflow-wrap:anywhere] hover:underline"
                         >
                           {r.return_number}
                         </Link>
-                        <span className="text-ink-600">
+                        <span className="min-w-0 text-ink-600 [overflow-wrap:anywhere]">
                           {formatMoney(r.items_value_minor, cur)}
                         </span>
                         <ReturnStatusBadge r={r} />
@@ -424,7 +433,7 @@ export default function OrderDetailPage() {
                   </ul>
                 </Card>
               )}
-              <Card className="p-space-4">
+              <Card className="min-w-0 p-space-3 md:p-space-4">
                 <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                   Payments
                 </h2>
@@ -435,9 +444,9 @@ export default function OrderDetailPage() {
                   {o.payments.map((p) => (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between gap-space-2 py-2 text-[13.5px]"
+                      className="flex min-w-0 flex-wrap items-center justify-between gap-space-2 py-2 text-[13.5px] md:flex-nowrap"
                     >
-                      <span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
                         <span className="font-medium text-ink-900">
                           {methodLabel(p.method)}
                         </span>
@@ -445,7 +454,7 @@ export default function OrderDetailPage() {
                           {formatMoney(p.amount_minor, cur)}
                         </span>
                       </span>
-                      <span className="flex items-center gap-space-2">
+                      <span className="mobile-page-actions flex min-w-0 max-w-full flex-wrap items-center gap-space-2">
                         <Badge
                           tone={
                             p.status === "paid"
@@ -551,19 +560,20 @@ export default function OrderDetailPage() {
             }
           >
             <Field label="Method" htmlFor="pay_method">
-              <Select
+              <AnchoredSelect
                 id="pay_method"
                 value={method}
-                onChange={(e) => setMethod(e.target.value)}
-              >
-                {["cash", "card", "upi", "netbanking", "cod", "wallet"].map(
-                  (m) => (
-                    <option key={m} value={m}>
-                      {methodLabel(m)}
-                    </option>
-                  ),
-                )}
-              </Select>
+                onValueChange={setMethod}
+                label="Method"
+                options={[
+                  "cash",
+                  "card",
+                  "upi",
+                  "netbanking",
+                  "cod",
+                  "wallet",
+                ].map((value) => ({ value, label: methodLabel(value) }))}
+              />
             </Field>
             <Field
               label={`Amount (${cur})`}

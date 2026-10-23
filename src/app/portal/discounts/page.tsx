@@ -344,6 +344,7 @@ export default function DiscountsPage() {
         icon={<HugeiconsIcon icon={Tag01Icon} size={20} />}
         title="Discounts"
         description="Coupon codes and promotions across Online, POS and WhatsApp."
+        actionsClassName="w-full justify-end md:w-auto"
         actions={
           canManage && (
             <Button onClick={openNew}>
@@ -404,7 +405,7 @@ export default function DiscountsPage() {
           <Select
             id="d_kind"
             value={form.kind}
-            onChange={(e) => set("kind", e.target.value as DiscountKind)}
+            onValueChange={(value) => set("kind", value as DiscountKind)}
           >
             {(Object.keys(KIND_LABEL) as DiscountKind[]).map((k) => (
               <option key={k} value={k}>

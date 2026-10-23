@@ -134,7 +134,7 @@ export function InvoicesTab({ currency }: { currency: string }) {
         <Select
           aria-label="Status"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onValueChange={(value) => setStatus(value)}
           className="w-44"
         >
           <option value="">Any status</option>

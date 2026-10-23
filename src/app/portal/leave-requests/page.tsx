@@ -50,7 +50,10 @@ function RequestCard({
 
   const crowded = r.conflicts && r.conflicts.role_off > 0;
   return (
-    <Card className="p-space-4" data-testid="leave-request">
+    <Card
+      className="min-w-0 p-space-3 [overflow-wrap:anywhere] md:p-space-4"
+      data-testid="leave-request"
+    >
       <div className="flex flex-wrap items-start justify-between gap-space-2">
         <div>
           <p className="text-[14px] font-semibold text-ink-900">
@@ -83,13 +86,13 @@ function RequestCard({
               ` ${r.balance.remaining} day${r.balance.remaining === 1 ? "" : "s"} of allowance left.`}
           </p>
           <PermissionGate page="leave_requests" action="write">
-            <div className="mt-space-3 flex flex-col gap-space-2 sm:flex-row sm:items-center">
+            <div className="mobile-page-actions mt-space-3 flex flex-col gap-space-2 md:flex-row md:items-center">
               <Input
                 aria-label="Note (optional)"
                 placeholder="Note (optional)"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="sm:max-w-xs"
+                className="md:max-w-xs"
               />
               <Button disabled={busy} onClick={() => decide("approve")}>
                 Approve
@@ -160,8 +163,9 @@ export default function LeaveRequestsPage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
+          stackOnMobile
           loading={!summary && !error}
           icon={<Hourglass size={22} />}
           label="Pending"
@@ -172,6 +176,7 @@ export default function LeaveRequestsPage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!summary && !error}
           icon={<CalendarCheck size={22} />}
           label="Approved"
@@ -182,6 +187,7 @@ export default function LeaveRequestsPage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!summary && !error}
           icon={<CalendarX size={22} />}
           label="Declined"
@@ -192,6 +198,7 @@ export default function LeaveRequestsPage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!summary && !error}
           icon={<CalendarOff size={22} />}
           label="On leave today"
@@ -205,7 +212,7 @@ export default function LeaveRequestsPage() {
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
-          <div className="mb-space-3 flex flex-wrap gap-space-5 border-b border-line">
+          <div className="mb-space-3 grid grid-cols-4 gap-space-2 border-b border-line md:flex md:flex-wrap md:gap-space-5">
             {TABS.map((t) => (
               <button
                 key={t.label}
@@ -235,7 +242,7 @@ export default function LeaveRequestsPage() {
           )}
         </div>
 
-        <Card className="h-fit p-space-5">
+        <Card className="min-w-0 h-fit p-space-3 md:p-space-5">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
             Yearly allowance
           </h2>
@@ -263,7 +270,11 @@ export default function LeaveRequestsPage() {
                   {allowanceError}
                 </p>
               )}
-              <Button type="submit" disabled={draft === ""}>
+              <Button
+                className="mobile-page-action"
+                type="submit"
+                disabled={draft === ""}
+              >
                 Save
               </Button>
             </form>

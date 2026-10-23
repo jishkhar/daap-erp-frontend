@@ -309,7 +309,7 @@ export default function TaxesPage() {
                       {r.branch_count === 1 ? "" : "es"}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-space-2">
+                  <div className="mobile-page-actions flex flex-wrap items-center gap-space-2">
                     {r.is_default && <Badge tone="brand">Default</Badge>}
                     {r.registration_type === "composition" && (
                       <Badge tone="warning">Composition</Badge>
@@ -362,7 +362,7 @@ export default function TaxesPage() {
                 {unlinked.map((b) => (
                   <li
                     key={b.id}
-                    className="flex items-center justify-between text-[13.5px]"
+                    className="mobile-page-action-row flex items-center justify-between text-[13.5px]"
                   >
                     <span>
                       {b.branch_name}{" "}
@@ -373,6 +373,7 @@ export default function TaxesPage() {
                     </span>
                     {canWrite && active.length > 0 && (
                       <Button
+                        className="mobile-page-action"
                         variant="ghost"
                         onClick={() =>
                           setAssign({
@@ -473,7 +474,7 @@ export default function TaxesPage() {
                         {canWrite && (
                           <button
                             type="button"
-                            className="mt-0.5 text-[12.5px] font-semibold text-brand-700 underline"
+                            className="mobile-page-action mt-0.5 text-[12.5px] font-semibold text-brand-700 underline"
                             onClick={() =>
                               setBandEdit({
                                 code: t.code,
@@ -580,7 +581,7 @@ export default function TaxesPage() {
               <Select
                 id="g_type"
                 value={draft.registration_type}
-                onChange={(e) => set({ registration_type: e.target.value })}
+                onValueChange={(value) => set({ registration_type: value })}
               >
                 <option value="regular">Regular</option>
                 <option value="composition">Composition</option>
@@ -697,6 +698,7 @@ export default function TaxesPage() {
               </div>
             ))}
             <Button
+              className="mobile-page-action"
               variant="secondary"
               onClick={() =>
                 setBandEdit({
@@ -734,8 +736,8 @@ export default function TaxesPage() {
             <Select
               id="a_reg"
               value={assign.registrationId}
-              onChange={(e) =>
-                setAssign({ ...assign, registrationId: e.target.value })
+              onValueChange={(value) =>
+                setAssign({ ...assign, registrationId: value })
               }
             >
               {active.map((r) => (

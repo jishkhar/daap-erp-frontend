@@ -259,14 +259,18 @@ export function CampaignsTab({
 
   return (
     <div>
-      <div className="mb-space-3 flex items-center justify-between gap-space-3">
-        <p className="text-[13px] text-ink-600">
+      <div className="mb-space-3 flex flex-col items-stretch justify-between gap-space-3 md:flex-row md:items-center">
+        <p className="min-w-0 text-[13px] text-ink-600">
           Send an offer or announcement to a group of customers, optionally with
           one of your discount codes.
         </p>
         {canEdit && (
-          <Button onClick={openNew}>
-            <HugeiconsIcon icon={Add01Icon} size={16} /> New campaign
+          <Button
+            onClick={openNew}
+            className="mobile-page-action shrink-0 self-end whitespace-nowrap md:self-auto"
+          >
+            <HugeiconsIcon icon={Add01Icon} size={16} className="shrink-0" />{" "}
+            New campaign
           </Button>
         )}
       </div>
@@ -319,8 +323,8 @@ export function CampaignsTab({
           <Select
             id="k_channel"
             value={form.channel}
-            onChange={(e) =>
-              setForm({ ...form, channel: e.target.value as MessageChannel })
+            onValueChange={(value) =>
+              setForm({ ...form, channel: value as MessageChannel })
             }
           >
             {(Object.keys(MESSAGE_CHANNELS) as MessageChannel[]).map((c) => (
@@ -335,7 +339,7 @@ export function CampaignsTab({
             <Select
               id="k_seg"
               value={form.segment}
-              onChange={(e) => setForm({ ...form, segment: e.target.value })}
+              onValueChange={(value) => setForm({ ...form, segment: value })}
             >
               <option value="">Everyone</option>
               {SEGMENT_ORDER.map((s: Segment) => (
@@ -349,7 +353,7 @@ export function CampaignsTab({
             <Select
               id="k_tag"
               value={form.tag}
-              onChange={(e) => setForm({ ...form, tag: e.target.value })}
+              onValueChange={(value) => setForm({ ...form, tag: value })}
             >
               <option value="">Any</option>
               {(tags.data ?? []).map((t) => (
@@ -373,7 +377,7 @@ export function CampaignsTab({
           <Select
             id="k_disc"
             value={form.discountId}
-            onChange={(e) => setForm({ ...form, discountId: e.target.value })}
+            onValueChange={(value) => setForm({ ...form, discountId: value })}
           >
             <option value="">None</option>
             {withCode.map((d) => (

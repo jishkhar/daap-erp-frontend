@@ -354,8 +354,11 @@ export function PortalSidebar({
       />
 
       <aside
+        style={{
+          paddingBottom: "calc(var(--space-4) + env(safe-area-inset-bottom))",
+        }}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-brand-700 py-space-4 text-white transition-transform duration-200 ease-out",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-brand-700 py-space-4 text-white transition-transform duration-200 ease-out",
           "lg:static lg:z-auto lg:w-64 lg:max-w-none lg:translate-x-0",
           open && "translate-x-0",
         )}
@@ -374,7 +377,7 @@ export function PortalSidebar({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
+            className="touch-target ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
           >
             <X size={18} strokeWidth={2} />
           </button>

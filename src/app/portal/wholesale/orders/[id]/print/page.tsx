@@ -29,11 +29,13 @@ export default function SalesOrderPrintPage() {
   const a = so.account;
   return (
     <div className="mx-auto max-w-3xl bg-white p-space-6 text-[13.5px] text-ink-900 print:p-0">
-      <div className="mb-space-4 flex justify-end gap-space-2 print:hidden">
+      <div className="mobile-page-actions mb-space-4 flex justify-end gap-space-2 print:hidden">
         <Button variant="ghost" href={`/portal/wholesale/orders/${so.id}`}>
           Back
         </Button>
-        <Button onClick={() => window.print()}>Print / save as PDF</Button>
+        <Button className="mobile-page-action" onClick={() => window.print()}>
+          Print / save as PDF
+        </Button>
       </div>
       <div className="flex items-start justify-between border-b border-ink-900 pb-space-3">
         <div>

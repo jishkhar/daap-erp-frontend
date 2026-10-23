@@ -105,43 +105,47 @@ export function DispatchModal({
         </>
       }
     >
-      <table className="w-full text-[13.5px]">
-        <thead>
-          <tr className="text-left text-label">
-            <th className="py-space-2 pr-space-2">Product</th>
-            <th className="w-28 pr-space-2 text-right">Still to go</th>
-            <th className="w-28">Dispatch now</th>
-          </tr>
-        </thead>
-        <tbody>
-          {so.items.map((i) => {
-            const n = Number(qty[i.id] ?? 0);
-            const wrong = !Number.isInteger(n) || n < 0 || n > left(i);
-            return (
-              <tr key={i.id} className="border-t border-line">
-                <td className="py-space-2 pr-space-2">
-                  <p className="font-medium text-ink-900">{i.name}</p>
-                  <p className="text-[12px] text-ink-400">
-                    {i.sku} · {i.reserved_quantity} held on the shelf
-                  </p>
-                </td>
-                <td className="pr-space-2 text-right">{left(i)}</td>
-                <td className="py-space-1">
-                  <Input
-                    aria-label={`Dispatch quantity of ${i.sku}`}
-                    inputMode="numeric"
-                    disabled={left(i) === 0}
-                    invalid={wrong}
-                    value={qty[i.id] ?? "0"}
-                    onChange={(e) => setQty({ ...qty, [i.id]: e.target.value })}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <p className="mt-space-2 text-right text-[13.5px] text-ink-600">
+      <div className="min-w-0 max-w-full overflow-x-auto">
+        <table className="min-w-[420px] w-full text-[13.5px] [&_td]:[overflow-wrap:anywhere]">
+          <thead>
+            <tr className="text-left text-label">
+              <th className="py-space-2 pr-space-2">Product</th>
+              <th className="w-28 pr-space-2 text-right">Still to go</th>
+              <th className="w-28">Dispatch now</th>
+            </tr>
+          </thead>
+          <tbody>
+            {so.items.map((i) => {
+              const n = Number(qty[i.id] ?? 0);
+              const wrong = !Number.isInteger(n) || n < 0 || n > left(i);
+              return (
+                <tr key={i.id} className="border-t border-line">
+                  <td className="py-space-2 pr-space-2">
+                    <p className="font-medium text-ink-900">{i.name}</p>
+                    <p className="text-[12px] text-ink-400">
+                      {i.sku} · {i.reserved_quantity} held on the shelf
+                    </p>
+                  </td>
+                  <td className="pr-space-2 text-right">{left(i)}</td>
+                  <td className="py-space-1">
+                    <Input
+                      aria-label={`Dispatch quantity of ${i.sku}`}
+                      inputMode="numeric"
+                      disabled={left(i) === 0}
+                      invalid={wrong}
+                      value={qty[i.id] ?? "0"}
+                      onChange={(e) =>
+                        setQty({ ...qty, [i.id]: e.target.value })
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-space-2 text-right text-[13.5px] text-ink-600 [overflow-wrap:anywhere]">
         About{" "}
         <span className="font-semibold text-ink-900">
           {formatMoney(estimate, cur)}
@@ -150,7 +154,7 @@ export function DispatchModal({
       </p>
 
       <div className="mt-space-3 rounded-lg border border-line p-space-3">
-        <div className="flex items-center justify-between">
+        <div className="mobile-page-action-row flex items-center justify-between">
           <div>
             <p className="text-[14px] font-semibold text-ink-900">
               Payment now
@@ -162,6 +166,7 @@ export function DispatchModal({
             </p>
           </div>
           <Button
+            className="mobile-page-action"
             variant="ghost"
             onClick={() =>
               setPays([
@@ -186,12 +191,13 @@ export function DispatchModal({
           return (
             <div
               key={p.key}
-              className="mt-space-2 grid grid-cols-[130px_1fr_1fr_36px] gap-space-2"
+              className="mt-space-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_36px] gap-space-2 md:grid-cols-[130px_minmax(0,1fr)_minmax(0,1fr)_36px]"
             >
               <Select
                 aria-label="Method"
+                className="col-span-3 min-w-0 md:col-span-1"
                 value={p.method}
-                onChange={(e) => set({ method: e.target.value })}
+                onValueChange={(value) => set({ method: value })}
               >
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
@@ -234,7 +240,7 @@ export function DispatchModal({
           </p>
         )}
       </div>
-      <div className="mt-space-3 grid gap-x-space-4 sm:grid-cols-2">
+      <div className="mt-space-3 grid gap-x-space-4 @min-[400px]:grid-cols-2">
         <Field
           label="Vehicle number"
           htmlFor="d_vehicle"

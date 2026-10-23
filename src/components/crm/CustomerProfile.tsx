@@ -278,7 +278,7 @@ export function CustomerProfile({
             Customer ID: {c.customer_code ?? "—"}
           </p>
         </div>
-        <div className="flex gap-space-2">
+        <div className="mobile-page-actions flex gap-space-2">
           {showOpenLink && (
             <Button
               variant="ghost"
@@ -356,7 +356,11 @@ export function CustomerProfile({
             />
           </div>
           {canAdjustLoyalty && (
-            <Button variant="ghost" onClick={() => setAdjusting(true)}>
+            <Button
+              className="mobile-page-action"
+              variant="ghost"
+              onClick={() => setAdjusting(true)}
+            >
               Adjust loyalty points
             </Button>
           )}
@@ -491,7 +495,10 @@ export function CustomerProfile({
       {tab === "communication" && (
         <div>
           {canEdit && (
-            <Button className="mb-space-3" onClick={() => setComposing(true)}>
+            <Button
+              className="mobile-page-action mb-space-3"
+              onClick={() => setComposing(true)}
+            >
               <HugeiconsIcon icon={Message01Icon} size={15} /> New message
             </Button>
           )}
@@ -533,7 +540,7 @@ export function CustomerProfile({
                   className="!h-9 w-auto"
                 />
                 <Button
-                  className="ml-auto"
+                  className="mobile-page-action ml-auto"
                   disabled={busy || !noteBody.trim()}
                   onClick={addNote}
                 >
@@ -567,7 +574,7 @@ export function CustomerProfile({
                     </Badge>
                   )}
                   {canEdit && (
-                    <span className="ml-auto flex gap-space-3">
+                    <span className="mobile-page-actions ml-auto flex gap-space-3">
                       {n.follow_up_at && (
                         <button
                           type="button"
@@ -646,7 +653,7 @@ export function CustomerProfile({
             <Select
               id="e_gender"
               value={form.gender}
-              onChange={(e) => setForm({ ...form, gender: e.target.value })}
+              onValueChange={(value) => setForm({ ...form, gender: value })}
             >
               <option value="">Not specified</option>
               <option value="female">Female</option>
@@ -682,7 +689,7 @@ export function CustomerProfile({
           <Select
             id="e_status"
             value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            onValueChange={(value) => setForm({ ...form, status: value })}
           >
             <option value="active">Active</option>
             <option value="blocked">Blocked</option>

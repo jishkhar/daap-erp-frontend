@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/Select";
+
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -37,7 +39,7 @@ function csvCell(value: string): string {
 }
 
 const SELECT_CLASS =
-  "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
+  "h-10 min-w-0 max-w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 const STATUS_FILTERS = [
   "",
   "on_time",
@@ -160,8 +162,9 @@ export default function MyAttendancePage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
+          stackOnMobile
           loading={!stats && !error}
           icon={<CalendarCheck size={22} />}
           label="Present days"
@@ -172,6 +175,7 @@ export default function MyAttendancePage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!stats && !error}
           icon={<UserX size={22} />}
           label="Absent days"
@@ -183,6 +187,7 @@ export default function MyAttendancePage() {
           upIsGood={false}
         />
         <StatTile
+          stackOnMobile
           loading={!stats && !error}
           icon={<TriangleAlert size={22} />}
           label="Late check-ins"
@@ -194,6 +199,7 @@ export default function MyAttendancePage() {
           upIsGood={false}
         />
         <StatTile
+          stackOnMobile
           loading={!stats && !error}
           icon={<TrendingUp size={22} />}
           label="Overtime hours"
@@ -205,8 +211,8 @@ export default function MyAttendancePage() {
         />
       </div>
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="p-space-4">
+      <div className="mb-space-4 grid min-w-0 grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <Card className="min-w-0 p-space-3 md:p-space-4">
           <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
             Attendance trend (this month)
           </h3>
@@ -260,12 +266,12 @@ export default function MyAttendancePage() {
         />
       </div>
 
-      <Card className="p-space-4">
+      <Card className="min-w-0 p-space-3 md:p-space-4">
         <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-3">
           <h3 className="text-[15px] font-bold text-ink-900">
             Attendance records
           </h3>
-          <div className="flex flex-wrap items-center gap-space-2">
+          <div className="flex min-w-0 w-full flex-col items-stretch gap-space-2 md:w-auto md:flex-row md:flex-wrap md:items-center">
             <input
               aria-label="Month"
               type="month"
@@ -273,21 +279,21 @@ export default function MyAttendancePage() {
               value={month}
               onChange={(e) => e.target.value && setMonth(e.target.value)}
             />
-            <select
+            <Select
               aria-label="Status"
               className={SELECT_CLASS}
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onValueChange={(value) => setStatus(value)}
             >
               {STATUS_FILTERS.map((s) => (
                 <option key={s} value={s}>
                   {s ? (DAY_STATE[s]?.label ?? s) : "All"}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
-        <div className="no-scrollbar overflow-x-auto">
+        <div className="no-scrollbar min-w-0 max-w-full overflow-x-auto">
           {!records ? (
             <SkeletonLines rows={3} />
           ) : filtered.length === 0 ? (
@@ -295,7 +301,7 @@ export default function MyAttendancePage() {
               No attendance in this period.
             </p>
           ) : (
-            <table className="w-full text-left text-[13px]">
+            <table className="w-full text-left text-[13px] max-md:min-w-[600px]">
               <thead>
                 <tr className="text-label border-b border-line text-ink-600">
                   <th className="px-space-3 py-space-2 font-medium">Date</th>

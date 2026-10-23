@@ -2,7 +2,13 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
-import { MessageSquareText, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Eye,
+  MessageSquareText,
+  MoreHorizontal,
+  RefreshCw,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -11,6 +17,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CursorPager } from "@/components/ui/CursorPager";
 import { DataTable } from "@/components/ui/DataTable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
@@ -25,6 +37,7 @@ const feedbackKey = (params: Record<string, unknown>) =>
 
 export default function FeedbackPage() {
   const { tenant, ready } = usePortalGuard();
+  const router = useRouter();
   const { branchId, branches, setBranch } = useActiveBranch();
   const [rating, setRating] = useState("");
   const [search, setSearch] = useState("");
@@ -103,8 +116,31 @@ export default function FeedbackPage() {
         header: "Received",
         cell: ({ row }) => formatDateTime(row.original.created_at),
       },
+      {
+        header: "Actions",
+        id: "actions",
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`Actions for ${row.original.product_name ?? "order feedback"} by ${row.original.customer_name ?? "customer"}`}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-ink-600 hover:bg-black/[0.04] hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+            >
+              <MoreHorizontal size={20} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(`/portal/feedback/${row.original.id}`)
+                }
+              >
+                <Eye size={16} /> View
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
     ],
-    [],
+    [router],
   );
   if (!ready) return null;
   return (
@@ -113,6 +149,7 @@ export default function FeedbackPage() {
         scopedToBranch
         icon={<MessageSquareText size={20} />}
         title="Feedback"
+        actionsClassName="w-full justify-end md:w-auto"
         description="Product ratings and reviews from customers who have placed orders. Ratings of 1 or 2 stars are highlighted."
         actions={
           <Button
@@ -135,7 +172,7 @@ export default function FeedbackPage() {
         <Select
           aria-label="Filter feedback by branch"
           value={branchId ?? ""}
-          onChange={(e) => setBranch(e.target.value || null)}
+          onValueChange={(value) => setBranch(value || null)}
         >
           <option value="">All branches</option>
           {branches.map((b) => (
@@ -147,7 +184,7 @@ export default function FeedbackPage() {
         <Select
           aria-label="Filter feedback by rating"
           value={rating}
-          onChange={(e) => setRating(e.target.value)}
+          onValueChange={(value) => setRating(value)}
         >
           <option value="">All ratings</option>
           {[5, 4, 3, 2, 1].map((r) => (

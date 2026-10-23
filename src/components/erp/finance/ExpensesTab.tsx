@@ -218,7 +218,7 @@ export function ExpensesTab({ currency }: { currency: string }) {
       <Card className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3 p-space-3">
         <Select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onValueChange={(value) => setStatus(value)}
           className="w-48"
           aria-label="Status"
         >
@@ -230,7 +230,7 @@ export function ExpensesTab({ currency }: { currency: string }) {
           ))}
         </Select>
         {canCreate && (
-          <Button onClick={() => setOpen(true)}>
+          <Button className="mobile-page-action" onClick={() => setOpen(true)}>
             <Plus size={16} /> New expense
           </Button>
         )}
@@ -280,7 +280,7 @@ export function ExpensesTab({ currency }: { currency: string }) {
             <Select
               id="x_branch"
               value={form.branch_id || String(branches[0]?.id ?? "")}
-              onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
+              onValueChange={(value) => setForm({ ...form, branch_id: value })}
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -293,8 +293,8 @@ export function ExpensesTab({ currency }: { currency: string }) {
             <Select
               id="x_cat"
               value={form.category_id}
-              onChange={(e) =>
-                setForm({ ...form, category_id: e.target.value })
+              onValueChange={(value) =>
+                setForm({ ...form, category_id: value })
               }
             >
               <option value="">Choose…</option>

@@ -251,16 +251,33 @@ export default function ProductsPage() {
         icon={<Package size={20} />}
         title="Products"
         description="The product master shared by every branch and every channel."
+        actionsClassName={
+          tab === "products"
+            ? "w-full md:w-auto"
+            : "w-full justify-end md:w-auto"
+        }
         actions={
           tab === "products"
             ? canWrite && (
-                <div className="flex gap-space-2">
-                  <Button variant="ghost" onClick={() => setImportOpen(true)}>
-                    <HugeiconsIcon icon={FileUploadIcon} size={16} /> Import CSV
-                    / Excel
+                <div className="mobile-page-actions mobile-page-actions-pair flex w-full flex-wrap justify-end gap-space-2 md:w-auto">
+                  <Button
+                    variant="ghost"
+                    className="min-w-0 gap-1 whitespace-nowrap !px-2 text-[12px] min-[360px]:text-[14px] md:gap-space-2 md:!px-space-4"
+                    onClick={() => setImportOpen(true)}
+                  >
+                    <HugeiconsIcon
+                      icon={FileUploadIcon}
+                      size={16}
+                      className="shrink-0"
+                    />
+                    <span>Import CSV / Excel</span>
                   </Button>
-                  <Button onClick={() => router.push("/portal/products/new")}>
-                    <PackagePlus size={16} /> Add product
+                  <Button
+                    className="min-w-0 gap-1 whitespace-nowrap !px-2 text-[12px] min-[360px]:text-[14px] md:gap-space-2 md:!px-space-4"
+                    onClick={() => router.push("/portal/products/new")}
+                  >
+                    <PackagePlus size={16} className="shrink-0" />
+                    <span>Add product</span>
                   </Button>
                 </div>
               )

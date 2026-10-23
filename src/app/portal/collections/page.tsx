@@ -53,16 +53,19 @@ export default function CollectionsPage() {
   if (!ready) return null;
   return (
     <PortalShell tenant={tenant} active="collections">
-      <div className="mb-space-4 flex items-center justify-between gap-space-3">
-        <h1 className="flex items-center gap-space-2 text-lg font-semibold">
-          <FolderOpen size={20} /> Collections{" "}
+      <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3 md:flex-nowrap">
+        <h1 className="flex shrink-0 items-center gap-space-2 whitespace-nowrap text-lg font-semibold">
+          <FolderOpen size={20} className="shrink-0" /> Collections{" "}
           <span className="rounded-md bg-black/5 px-2 py-0.5 text-xs font-normal text-ink-500">
             {collections.data?.length ?? 0}
           </span>
         </h1>
         {canCreate && (
-          <Button href="/portal/collections/new">
-            <Plus size={15} /> Add collection
+          <Button
+            href="/portal/collections/new"
+            className="mobile-page-action ml-auto h-11 shrink-0 whitespace-nowrap md:h-10"
+          >
+            <Plus size={15} className="shrink-0" /> Add collection
           </Button>
         )}
       </div>
@@ -71,7 +74,7 @@ export default function CollectionsPage() {
           <Select
             aria-label="Collection type"
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onValueChange={(value) => setFilter(value)}
             className="!h-9 !w-36 !border-0 !bg-transparent !text-sm"
           >
             <option value="">All collections</option>
@@ -90,6 +93,7 @@ export default function CollectionsPage() {
           </div>
           {canDelete && selected.length > 0 && (
             <Button
+              className="mobile-page-action"
               variant="ghost"
               onClick={() =>
                 setDeleting(
@@ -268,8 +272,11 @@ export default function CollectionsPage() {
                   : "Bring your products together for a theme like “Wedding Day”."}
               </p>
               {canCreate && !search && !filter && (
-                <Button href="/portal/collections/new" className="mt-4">
-                  <Plus size={15} /> Add collection
+                <Button
+                  href="/portal/collections/new"
+                  className="mobile-page-action mt-4 h-11 whitespace-nowrap md:h-10"
+                >
+                  <Plus size={15} className="shrink-0" /> Add collection
                 </Button>
               )}
             </div>

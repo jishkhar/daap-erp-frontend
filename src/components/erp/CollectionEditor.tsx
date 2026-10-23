@@ -188,21 +188,22 @@ export function CollectionEditor({
 
   return (
     <div className="mx-auto max-w-[1280px] pb-space-8">
-      <div className="-mx-space-2 mb-space-6 flex flex-wrap items-center justify-between gap-space-3 border-b border-line bg-paper/95 px-space-2 py-space-3">
+      <div className="-mx-space-2 mb-space-6 flex flex-col items-stretch justify-between gap-space-3 border-b border-line bg-paper/95 px-space-2 py-space-3 md:flex-row md:flex-wrap md:items-center">
         <div className="flex min-w-0 items-center gap-space-2 text-sm">
           <Button
             variant="ghost"
             aria-label="Back to collections"
             onClick={leave}
             disabled={busy}
+            className="h-11 w-11 shrink-0 !px-0 md:h-10 md:w-auto md:!px-space-4"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} className="shrink-0" />
           </Button>
           <FolderOpen size={17} className="shrink-0 text-ink-600" />
           <button
             onClick={leave}
             disabled={busy}
-            className="text-ink-600 hover:underline"
+            className="shrink-0 whitespace-nowrap text-ink-600 hover:underline"
           >
             Collections
           </button>
@@ -212,7 +213,7 @@ export function CollectionEditor({
           </h1>
         </div>
         {editable && (
-          <div className="flex items-center gap-space-2 rounded-full bg-ink-900 py-1 pl-4 pr-1 text-white shadow-md">
+          <div className="mobile-page-actions flex w-fit self-end items-center gap-2 rounded-lg bg-ink-900 p-1 text-white shadow-md md:w-auto md:self-auto md:gap-space-2 md:rounded-full md:py-1 md:pl-4 md:pr-1">
             <span className="mr-2 hidden text-xs md:inline">
               {busy
                 ? "Saving…"
@@ -221,8 +222,9 @@ export function CollectionEditor({
                   : "All changes saved"}
             </span>
             <button
+              type="button"
               disabled={busy}
-              className="rounded-full bg-white/10 px-3 py-2 text-xs hover:bg-white/20 disabled:opacity-50"
+              className="min-w-0 rounded-full bg-white/10 px-3 py-2 text-xs hover:bg-white/20 disabled:opacity-50"
               onClick={leave}
             >
               Discard
@@ -237,7 +239,7 @@ export function CollectionEditor({
                 selected.length > 2000 ||
                 (!!collection && !dirty)
               }
-              className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-ink-900 disabled:opacity-40"
+              className="min-w-0 rounded-full bg-white px-4 py-2 text-xs font-semibold text-ink-900 disabled:opacity-40"
             >
               Save
             </button>
@@ -325,7 +327,7 @@ export function CollectionEditor({
                       type="button"
                       onClick={() => setImage(null)}
                       disabled={busy}
-                      className="mt-2 text-xs text-ink-500 hover:underline"
+                      className="mobile-page-action mt-2 text-xs text-ink-500 hover:underline"
                     >
                       Remove image
                     </button>
@@ -427,11 +429,11 @@ export function CollectionEditor({
                         {allCollections.error.message}
                       </p>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="mobile-page-action-row flex items-center gap-2">
                       <Select
                         aria-label="Dropdown collection"
                         value={dropdownChoice}
-                        onChange={(e) => setDropdownChoice(e.target.value)}
+                        onValueChange={(value) => setDropdownChoice(value)}
                         disabled={
                           !editable ||
                           busy ||
@@ -453,6 +455,7 @@ export function CollectionEditor({
                           ))}
                       </Select>
                       <Button
+                        className="mobile-page-action"
                         type="button"
                         disabled={
                           !editable ||
@@ -598,7 +601,7 @@ export function CollectionEditor({
                   <Select
                     aria-label="Grid columns"
                     value={columns}
-                    onChange={(e) => setColumns(e.target.value)}
+                    onValueChange={(value) => setColumns(value)}
                     className="!h-8 !w-28 !text-xs"
                   >
                     <option value="3">3 columns</option>
@@ -608,7 +611,7 @@ export function CollectionEditor({
                 <Select
                   aria-label="Sort collection items"
                   value={sort}
-                  onChange={(e) => setSort(e.target.value)}
+                  onValueChange={(value) => setSort(value)}
                   className="!h-8 !w-40 !text-xs"
                 >
                   <option value="manual">Manual order</option>
@@ -635,7 +638,7 @@ export function CollectionEditor({
                 <Select
                   aria-label="Filter collection status"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  onValueChange={(value) => setStatus(value)}
                   className="!h-9 !w-32 !text-xs"
                 >
                   <option value="">All statuses</option>
@@ -652,7 +655,7 @@ export function CollectionEditor({
                       setSearch("");
                       setStatus("");
                     }}
-                    className="text-xs text-ink-600 hover:underline"
+                    className="mobile-page-action text-xs text-ink-600 hover:underline"
                   >
                     Clear all
                   </button>
@@ -690,6 +693,7 @@ export function CollectionEditor({
                     </p>
                     {editable && (
                       <Button
+                        className="mobile-page-action"
                         type="button"
                         variant="secondary"
                         disabled={busy}
@@ -857,13 +861,13 @@ export function CollectionEditor({
                       <Select
                         aria-label={`Condition ${index + 1} field`}
                         value={rule.field}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setConditions((prev) =>
                             prev.map((r, i) =>
                               i === index
                                 ? {
-                                    field: e.target
-                                      .value as CollectionCondition["field"],
+                                    field:
+                                      value as CollectionCondition["field"],
                                     value: "",
                                   }
                                 : r,
@@ -908,10 +912,10 @@ export function CollectionEditor({
                       <Select
                         aria-label={`Condition ${index + 1} value`}
                         value={rule.value}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setConditions((prev) =>
                             prev.map((r, i) =>
-                              i === index ? { ...r, value: e.target.value } : r,
+                              i === index ? { ...r, value: value } : r,
                             ),
                           )
                         }
@@ -939,7 +943,7 @@ export function CollectionEditor({
                   </div>
                 ))}
                 {editable && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="mobile-page-actions flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={conditions.length >= 20}
@@ -974,7 +978,7 @@ export function CollectionEditor({
                 type="button"
                 disabled={busy}
                 onClick={() => setPicker("exclude")}
-                className="flex items-center gap-2 px-3 py-2 text-xs text-ink-600"
+                className="mobile-page-action flex items-center gap-2 px-3 py-2 text-xs text-ink-600"
               >
                 <Plus size={14} /> Exclude products
                 {excluded.length > 0 && ` (${excluded.length})`}
@@ -988,7 +992,7 @@ export function CollectionEditor({
                     type="button"
                     disabled={busy}
                     onClick={() => setExcluded([])}
-                    className="mt-2 block font-medium text-brand-600 hover:underline"
+                    className="mobile-page-action mt-2 block font-medium text-brand-600 hover:underline"
                   >
                     Clear exclusions
                   </button>

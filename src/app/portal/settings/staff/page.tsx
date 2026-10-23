@@ -268,7 +268,7 @@ export default function TeamAccessPage() {
             <Select
               id="u_role"
               value={form.role_id}
-              onChange={(e) => setForm({ ...form, role_id: e.target.value })}
+              onValueChange={(value) => setForm({ ...form, role_id: value })}
             >
               <option value="">No access yet</option>
               {(roles.data ?? []).map((r) => (
@@ -286,7 +286,7 @@ export default function TeamAccessPage() {
             <Select
               id="u_branch"
               value={form.branch_id}
-              onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
+              onValueChange={(value) => setForm({ ...form, branch_id: value })}
             >
               <option value="">All branches</option>
               {openBranches.map((b) => (
@@ -319,7 +319,7 @@ export default function TeamAccessPage() {
                 {selected.roles.map((r) => (
                   <li
                     key={r.id}
-                    className="flex items-center justify-between py-2 text-[14px]"
+                    className="mobile-page-action-row flex items-center justify-between py-2 text-[14px]"
                   >
                     <span>
                       <strong>{roleLabel(r.role_code)}</strong>{" "}
@@ -329,6 +329,7 @@ export default function TeamAccessPage() {
                     </span>
                     {canManage && (
                       <Button
+                        className="mobile-page-action"
                         variant="ghost"
                         disabled={busy}
                         onClick={() =>
@@ -353,8 +354,8 @@ export default function TeamAccessPage() {
                   <Select
                     aria-label="Role to add"
                     value={grant.role_id}
-                    onChange={(e) =>
-                      setGrant({ ...grant, role_id: e.target.value })
+                    onValueChange={(value) =>
+                      setGrant({ ...grant, role_id: value })
                     }
                     className="w-56"
                   >
@@ -368,8 +369,8 @@ export default function TeamAccessPage() {
                   <Select
                     aria-label="Branch"
                     value={grant.branch_id}
-                    onChange={(e) =>
-                      setGrant({ ...grant, branch_id: e.target.value })
+                    onValueChange={(value) =>
+                      setGrant({ ...grant, branch_id: value })
                     }
                     className="w-56"
                   >
@@ -381,6 +382,7 @@ export default function TeamAccessPage() {
                     ))}
                   </Select>
                   <Button
+                    className="mobile-page-action"
                     variant="secondary"
                     disabled={busy || !grant.role_id}
                     onClick={() =>
@@ -403,7 +405,7 @@ export default function TeamAccessPage() {
             </div>
             {canManage && (
               <div className="flex flex-wrap items-end justify-between gap-space-3 border-t border-line pt-space-3">
-                <div className="flex items-end gap-space-2">
+                <div className="mobile-page-action-row flex items-end gap-space-2">
                   <Field
                     label="Reset password"
                     htmlFor="u_reset"
@@ -419,6 +421,7 @@ export default function TeamAccessPage() {
                     />
                   </Field>
                   <Button
+                    className="mobile-page-action"
                     variant="secondary"
                     disabled={busy || newPassword.length < 10}
                     onClick={() =>
@@ -438,6 +441,7 @@ export default function TeamAccessPage() {
                 </div>
                 {selected.status === "active" ? (
                   <Button
+                    className="mobile-page-action"
                     variant="destructive"
                     disabled={busy || selected.id === session?.id}
                     onClick={() =>
@@ -455,6 +459,7 @@ export default function TeamAccessPage() {
                   </Button>
                 ) : (
                   <Button
+                    className="mobile-page-action"
                     disabled={busy}
                     onClick={() =>
                       run(

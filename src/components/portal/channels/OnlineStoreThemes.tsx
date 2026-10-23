@@ -227,7 +227,7 @@ export function OnlineStoreThemes() {
 
   return (
     <div className="space-y-space-6">
-      <div className="flex justify-end">
+      <div className="mobile-page-actions flex justify-end">
         <Button
           variant="secondary"
           href={site}
@@ -264,7 +264,7 @@ export function OnlineStoreThemes() {
                 : `${DEFAULT_THEME.name} · as shipped, not customized yet`}
             </p>
           </div>
-          <div className="flex items-center gap-space-2">
+          <div className="mobile-page-actions flex items-center gap-space-2">
             <Button
               variant="secondary"
               disabled={install.isPending}
@@ -317,7 +317,7 @@ export function OnlineStoreThemes() {
                   </p>
                   <p className="text-[12.5px] text-ink-600">{savedLine(t)}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-space-2">
+                <div className="mobile-page-actions flex flex-wrap items-center gap-space-2">
                   {canEdit && (
                     <Button
                       variant="secondary"
@@ -364,7 +364,7 @@ export function OnlineStoreThemes() {
                 themeKey={t.theme_key}
                 className="aspect-square rounded-xl border border-line shadow-sm"
               />
-              <div className="mt-space-3 flex items-start justify-between gap-space-3">
+              <div className="mobile-page-action-row mt-space-3 flex items-start justify-between gap-space-3">
                 <div>
                   <p className="text-[14px] font-semibold text-ink-900">
                     {t.name}
@@ -373,6 +373,7 @@ export function OnlineStoreThemes() {
                 </div>
                 {canEdit && (
                   <Button
+                    className="mobile-page-action"
                     variant="secondary"
                     disabled={install.isPending}
                     onClick={() => add(t.theme_key)}

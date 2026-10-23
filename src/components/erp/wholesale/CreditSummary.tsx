@@ -39,12 +39,12 @@ export function CreditSummary({
           ["Available", formatMoney(c.available_minor ?? 0, currency)],
         ];
   return (
-    <div className="rounded-lg border border-line p-space-3">
+    <div className="@container min-w-0 rounded-lg border border-line p-space-3">
       <div
-        className={`grid gap-space-2 ${compact ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2"}`}
+        className={`grid grid-cols-1 gap-space-2 @min-[300px]:grid-cols-2 ${compact ? "@min-[560px]:grid-cols-4" : ""}`}
       >
         {tiles.map(([label, value, tone]) => (
-          <div key={label}>
+          <div key={label} className="min-w-0 [overflow-wrap:anywhere]">
             <p className="text-label">{label}</p>
             <p
               className={`text-[14px] font-semibold ${tone ?? "text-ink-900"}`}

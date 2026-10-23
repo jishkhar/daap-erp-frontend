@@ -56,7 +56,7 @@ function CorrectDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="correct-title"
-        className="w-full max-w-[420px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
+        className="max-h-[90dvh] min-w-0 w-full max-w-[420px] overflow-y-auto rounded-lg bg-card p-space-3 shadow-[var(--shadow-lg)] [overflow-wrap:anywhere] md:p-space-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h2
@@ -104,7 +104,7 @@ function CorrectDialog({
               {error}
             </p>
           )}
-          <div className="flex justify-end gap-space-2">
+          <div className="mobile-page-actions flex justify-end gap-space-2">
             <Button
               type="button"
               variant="secondary"
@@ -184,7 +184,7 @@ export default function TeamAttendancePage() {
             type="date"
             value={date}
             onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="w-auto"
+            className="w-full md:w-auto"
           />
         ) : (
           <Input
@@ -192,15 +192,16 @@ export default function TeamAttendancePage() {
             type="month"
             value={month}
             onChange={(e) => e.target.value && setMonth(e.target.value)}
-            className="w-auto"
+            className="w-full md:w-auto"
           />
         )}
       </div>
 
       {tab === "day" ? (
         <>
-          <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
+          <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-5">
             <StatTile
+              stackOnMobile
               loading={!rows && !error}
               icon={<CircleCheck size={22} />}
               label="On time"
@@ -211,6 +212,7 @@ export default function TeamAttendancePage() {
               filled
             />
             <StatTile
+              stackOnMobile
               loading={!rows && !error}
               icon={<TriangleAlert size={22} />}
               label="Late"
@@ -222,6 +224,7 @@ export default function TeamAttendancePage() {
               upIsGood={false}
             />
             <StatTile
+              stackOnMobile
               loading={!rows && !error}
               icon={<Clock size={22} />}
               label="Clocked in now"
@@ -232,6 +235,7 @@ export default function TeamAttendancePage() {
               filled
             />
             <StatTile
+              stackOnMobile
               loading={!rows && !error}
               icon={<UserX size={22} />}
               label="Absent / not in"
@@ -243,6 +247,7 @@ export default function TeamAttendancePage() {
               upIsGood={false}
             />
             <StatTile
+              stackOnMobile
               loading={!rows && !error}
               icon={<CalendarOff size={22} />}
               label="On leave"
@@ -253,13 +258,13 @@ export default function TeamAttendancePage() {
               filled
             />
           </div>
-          <Card className="no-scrollbar overflow-x-auto p-space-2">
+          <Card className="no-scrollbar min-w-0 max-w-full overflow-x-auto p-space-2">
             {!rows ? (
               <SkeletonLines rows={3} />
             ) : rows.length === 0 ? (
               <p className="p-space-4 text-[13px] text-ink-400">No staff.</p>
             ) : (
-              <table className="w-full text-left text-[13px]">
+              <table className="w-full text-left text-[13px] max-md:min-w-[680px]">
                 <thead>
                   <tr className="text-label border-b border-line text-ink-600">
                     <th className="px-space-3 py-space-2 font-medium">Name</th>
@@ -351,11 +356,11 @@ export default function TeamAttendancePage() {
           </Card>
         </>
       ) : (
-        <Card className="no-scrollbar overflow-x-auto p-space-2">
+        <Card className="no-scrollbar min-w-0 max-w-full overflow-x-auto p-space-2">
           {!summary ? (
             <SkeletonLines rows={3} />
           ) : (
-            <table className="w-full text-left text-[13px]">
+            <table className="w-full text-left text-[13px] max-md:min-w-[680px]">
               <thead>
                 <tr className="text-label border-b border-line text-ink-600">
                   {[

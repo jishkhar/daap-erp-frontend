@@ -205,9 +205,7 @@ function CollectionsInput({
           <Select
             id={id}
             value=""
-            onChange={(e) =>
-              e.target.value && onChange([...value, e.target.value])
-            }
+            onValueChange={(next) => next && onChange([...value, next])}
             aria-label="Add a collection"
           >
             <option value="">Add a collection…</option>
@@ -312,6 +310,7 @@ function ListInput({
       ))}
       {!disabled && (field.max === undefined || value.length < field.max) && (
         <Button
+          className="mobile-page-action"
           type="button"
           variant="ghost"
           onClick={() => {
@@ -430,7 +429,7 @@ function FieldInput({
           id={id}
           value={value as string}
           disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
+          onValueChange={(value) => onChange(value)}
         >
           {field.options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -446,7 +445,7 @@ function FieldInput({
           id={id}
           value={value as string}
           disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
+          onValueChange={(value) => onChange(value)}
         >
           <option value="">None</option>
           {collections.map((c) => (

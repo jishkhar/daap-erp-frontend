@@ -40,18 +40,31 @@ export function GoogleSignInButton({
 
   useEffect(() => {
     if (!ready || !CLIENT_ID || !holder.current || !window.google) return;
+    const element = holder.current;
     window.google.accounts.id.initialize({
       client_id: CLIENT_ID,
       callback: (res) => callback.current(res.credential),
     });
-    window.google.accounts.id.renderButton(holder.current, {
-      type: "standard",
-      theme: "outline",
-      size: "large",
-      text: "continue_with",
-      shape: "rectangular",
-      width,
-    });
+    let renderedWidth = 0;
+    const render = () => {
+      const available = Math.floor(element.clientWidth);
+      const nextWidth = Math.min(width, available);
+      if (nextWidth <= 0 || nextWidth === renderedWidth) return;
+      renderedWidth = nextWidth;
+      element.replaceChildren();
+      window.google?.accounts.id.renderButton(element, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: nextWidth,
+      });
+    };
+    const observer = new ResizeObserver(render);
+    observer.observe(element);
+    render();
+    return () => observer.disconnect();
   }, [ready, width]);
 
   if (!CLIENT_ID) return null;
@@ -62,7 +75,10 @@ export function GoogleSignInButton({
         strategy="afterInteractive"
         onReady={() => setReady(true)}
       />
-      <div ref={holder} className="flex min-h-10 justify-center" />
+      <div
+        ref={holder}
+        className="flex min-h-10 min-w-0 w-full justify-center"
+      />
       {divider && (
         <div className="my-space-4 flex items-center gap-space-3 text-[12.5px] text-ink-400">
           <span className="h-px flex-1 bg-line" />

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/Select";
+
 import { useState } from "react";
 import {
   CalendarClock,
@@ -80,8 +82,9 @@ export default function MyLeavePage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
+          stackOnMobile
           loading={!balance && !error}
           icon={<CalendarDays size={22} />}
           label="Yearly allowance"
@@ -92,6 +95,7 @@ export default function MyLeavePage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!balance && !error}
           icon={<Hourglass size={22} />}
           label="Used"
@@ -102,6 +106,7 @@ export default function MyLeavePage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!balance && !error}
           icon={<CalendarClock size={22} />}
           label="Waiting for approval"
@@ -112,6 +117,7 @@ export default function MyLeavePage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!balance && !error}
           icon={<CircleCheck size={22} />}
           label="Remaining"
@@ -123,18 +129,18 @@ export default function MyLeavePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <Card className="h-fit p-space-5">
+      <div className="grid min-w-0 grid-cols-1 gap-space-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <Card className="@container min-w-0 h-fit p-space-3 md:p-space-5">
           <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">
             Ask for leave
           </h2>
           <form onSubmit={submit} aria-label="Ask for leave">
             <Field label="Type" htmlFor="lv-type">
-              <select
+              <Select
                 id="lv-type"
                 className={SELECT_CLASS}
                 value={form.leave_type}
-                onChange={(e) => set({ leave_type: e.target.value })}
+                onValueChange={(value) => set({ leave_type: value })}
               >
                 {(types.length ? types : Object.keys(LEAVE_TYPE_LABEL)).map(
                   (t) => (
@@ -143,9 +149,9 @@ export default function MyLeavePage() {
                     </option>
                   ),
                 )}
-              </select>
+              </Select>
             </Field>
-            <div className="grid grid-cols-2 gap-space-3">
+            <div className="grid grid-cols-1 gap-space-3 @min-[300px]:grid-cols-2">
               <Field label="From" htmlFor="lv-from" required>
                 <Input
                   id="lv-from"
@@ -205,6 +211,7 @@ export default function MyLeavePage() {
               </p>
             )}
             <Button
+              className="mobile-page-action"
               type="submit"
               disabled={saving || !form.from_date || !form.reason.trim()}
             >
@@ -213,7 +220,7 @@ export default function MyLeavePage() {
           </form>
         </Card>
 
-        <Card className="p-space-5">
+        <Card className="min-w-0 p-space-3 md:p-space-5">
           <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
             My requests
           </h2>
@@ -229,9 +236,9 @@ export default function MyLeavePage() {
                 <li
                   key={r.id}
                   data-testid="leave-row"
-                  className="flex flex-col gap-space-2 py-space-3 sm:flex-row sm:items-start sm:justify-between"
+                  className="flex min-w-0 flex-col gap-space-2 py-space-3 md:flex-row md:items-start md:justify-between"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 [overflow-wrap:anywhere]">
                     <p className="text-[13.5px] font-semibold text-ink-900">
                       {LEAVE_TYPE_LABEL[r.leave_type] ?? r.leave_type} ·{" "}
                       {fmtDateRange(r.from_date, r.to_date)} ·{" "}
@@ -244,7 +251,7 @@ export default function MyLeavePage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-space-2">
+                  <div className="mobile-page-actions flex shrink-0 items-center gap-space-2">
                     <Badge tone={LEAVE_STATUS_TONE[r.status]}>{r.status}</Badge>
                     {r.status === "pending" && (
                       <Button

@@ -249,7 +249,7 @@ export function WhatsAppConnect() {
           </dd>
         </dl>
         {canManage && (
-          <div className="mt-space-3 flex flex-wrap gap-space-2">
+          <div className="mobile-page-actions mt-space-3 flex flex-wrap gap-space-2">
             <Button variant="secondary" disabled={busy} onClick={check}>
               Check connection
             </Button>
@@ -287,7 +287,11 @@ export function WhatsAppConnect() {
         </p>
         <CopyRow label="Callback URL" value={a.webhook_url} />
         <CopyRow label="Verify token" value={a.verify_token} />
-        <Button variant="ghost" onClick={() => setGuide((g) => !g)}>
+        <Button
+          className="mobile-page-action"
+          variant="ghost"
+          onClick={() => setGuide((g) => !g)}
+        >
           {guide
             ? "Hide the Meta walkthrough"
             : "Show me where to click in Meta"}

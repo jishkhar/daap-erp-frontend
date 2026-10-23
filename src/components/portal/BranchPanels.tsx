@@ -141,7 +141,7 @@ export function BranchPanels({
           {shownHours.map((h, i) => (
             <li
               key={`${h.weekday}-${h.opens_at}-${i}`}
-              className="flex items-center justify-between py-space-2 text-[14px]"
+              className="mobile-page-action-row flex items-center justify-between py-space-2 text-[14px]"
             >
               <span>
                 <strong className="text-ink-900">{DAYS[h.weekday]}</strong>{" "}
@@ -156,7 +156,7 @@ export function BranchPanels({
               {canWrite && (
                 <button
                   type="button"
-                  className="text-[13px] font-semibold text-error"
+                  className="mobile-page-action text-[13px] font-semibold text-error"
                   onClick={() => {
                     setDirtyHours(true);
                     setHours(shownHours.filter((_, j) => j !== i));
@@ -174,7 +174,7 @@ export function BranchPanels({
               <Select
                 aria-label="Day"
                 value={slot.weekday}
-                onChange={(e) => setSlot({ ...slot, weekday: e.target.value })}
+                onValueChange={(value) => setSlot({ ...slot, weekday: value })}
                 className="w-40"
               >
                 {DAYS.map((d, i) => (
@@ -199,11 +199,19 @@ export function BranchPanels({
                 }
                 className="w-32"
               />
-              <Button variant="secondary" onClick={addSlot}>
+              <Button
+                className="mobile-page-action"
+                variant="secondary"
+                onClick={addSlot}
+              >
                 Add
               </Button>
             </div>
-            <Button disabled={busy || !dirtyHours} onClick={saveHours}>
+            <Button
+              className="mobile-page-action"
+              disabled={busy || !dirtyHours}
+              onClick={saveHours}
+            >
               Save hours
             </Button>
           </>
@@ -231,7 +239,11 @@ export function BranchPanels({
           />
         </Field>
         {canWrite && (
-          <Button disabled={busy || !dirtyPins} onClick={savePins}>
+          <Button
+            className="mobile-page-action"
+            disabled={busy || !dirtyPins}
+            onClick={savePins}
+          >
             Save pincodes
           </Button>
         )}

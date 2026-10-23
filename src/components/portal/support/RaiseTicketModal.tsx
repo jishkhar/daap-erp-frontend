@@ -106,7 +106,7 @@ export function RaiseTicketModal({ onClose }: { onClose: () => void }) {
           <Select
             id="st-cat"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onValueChange={(value) => setCategory(value)}
           >
             <option value="">Select a category</option>
             {(cats.data ?? []).map((c) => (
@@ -120,7 +120,7 @@ export function RaiseTicketModal({ onClose }: { onClose: () => void }) {
           <Select
             id="st-prio"
             value={priority}
-            onChange={(e) => setPriority(e.target.value as SupportPriority)}
+            onValueChange={(value) => setPriority(value as SupportPriority)}
           >
             {PRIORITIES.map((p) => (
               <option key={p} value={p}>

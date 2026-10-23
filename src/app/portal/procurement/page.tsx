@@ -151,6 +151,7 @@ export default function ProcurementPage() {
           (row.original.billing?.owed_minor ?? 0) > 0 &&
           hasGrantAt(session, "procurement:pay", row.original.branch_id) ? (
             <Button
+              className="mobile-page-action"
               variant="secondary"
               onClick={(e) => {
                 e.stopPropagation();
@@ -277,7 +278,7 @@ export default function ProcurementPage() {
           <Card className="mb-space-4 p-space-3">
             <Select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onValueChange={(value) => setStatus(value)}
               className="w-52"
               aria-label="Status"
             >
@@ -382,12 +383,12 @@ export default function ProcurementPage() {
           </>
         }
       >
-        <div className="grid gap-x-space-4 sm:grid-cols-2">
+        <div className="grid gap-x-space-4 @min-[400px]:grid-cols-2">
           <Field
             label="Name"
             htmlFor="s_name"
             required
-            className="sm:col-span-2"
+            className="@min-[400px]:col-span-2"
           >
             <Input
               id="s_name"

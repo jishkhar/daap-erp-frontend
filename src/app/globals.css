@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Expand hit areas on touch screens without resizing the visible controls. */
+@layer utilities {
+  @media (pointer: coarse) {
+    :where(.touch-target) {
+      position: relative;
+    }
+    .touch-target::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 /* ==========================================================================
    Design tokens
    ==========================================================================
@@ -385,4 +403,48 @@ body {
 }
 .rich-description {
   overflow-wrap: anywhere;
+}
+
+/* Page actions fill their available mobile width, including editor and form rows. */
+@media screen and (width < 48rem) {
+  .mobile-page-actions {
+    display: flex;
+    width: 100%;
+    margin-inline-start: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .mobile-page-actions > :is(button, a) {
+    width: 100%;
+    max-width: 100%;
+    margin-inline-start: 0;
+    flex-shrink: 0;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .mobile-page-action-row {
+    flex-wrap: wrap;
+  }
+
+  .mobile-page-action {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    justify-content: center;
+  }
+
+  .mobile-page-action > :is(button, a) {
+    width: 100%;
+  }
+
+  .mobile-page-actions.mobile-page-actions-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
 }

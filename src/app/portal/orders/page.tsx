@@ -21,6 +21,7 @@ export default function OrdersPage() {
         icon={<ShoppingCart size={20} />}
         title="Orders"
         description="Every order from every channel and branch, in one place."
+        actionsClassName="w-full justify-end md:w-auto"
         actions={<Button href="/portal/orders/new">New order</Button>}
       />
       <GstNotice />

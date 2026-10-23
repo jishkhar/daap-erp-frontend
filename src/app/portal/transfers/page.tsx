@@ -144,7 +144,7 @@ export default function TransfersPage() {
       <Card className="mb-space-4 p-space-3">
         <Select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onValueChange={(value) => setStatus(value)}
           className="w-48"
           aria-label="Status"
         >
@@ -269,8 +269,8 @@ function NewTransfer({
           <Select
             id="t_from"
             value={from}
-            onChange={(e) => {
-              setFrom(e.target.value);
+            onValueChange={(value) => {
+              setFrom(value);
               setLines([]);
             }}
           >
@@ -282,7 +282,7 @@ function NewTransfer({
           </Select>
         </Field>
         <Field label="To branch" htmlFor="t_to">
-          <Select id="t_to" value={to} onChange={(e) => setTo(e.target.value)}>
+          <Select id="t_to" value={to} onValueChange={(value) => setTo(value)}>
             <option value="">Choose…</option>
             {branches
               .filter((b) => b.id !== from)
@@ -582,11 +582,12 @@ function TransferDetail({
               onChange={(e) => setReason(e.target.value)}
             />
           </Field>
-          <div className="flex justify-end gap-space-2">
+          <div className="mobile-page-actions flex justify-end gap-space-2">
             <Button variant="ghost" onClick={() => setRejecting(false)}>
               Back
             </Button>
             <Button
+              className="mobile-page-action"
               variant="destructive"
               disabled={busy || !reason.trim()}
               onClick={() =>

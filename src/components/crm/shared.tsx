@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { erp } from "@/lib/erp";
+import { cn } from "@/lib/cn";
 import {
   MESSAGE_CHANNELS,
   SEGMENT_META,
@@ -42,25 +43,65 @@ export function KpiTile({
   value,
   hint,
   icon,
+  stackOnMobile = false,
 }: {
   label: string;
   value: React.ReactNode;
   hint?: string;
   icon?: React.ReactNode;
+  /** Give narrow summary cards the full width for their labels and values. */
+  stackOnMobile?: boolean;
 }) {
   return (
-    <Card className="flex items-center gap-space-3 p-space-3">
+    <Card
+      className={cn(
+        "flex p-space-3",
+        stackOnMobile
+          ? "min-w-0 flex-col items-start gap-space-2 md:flex-row md:items-center md:gap-space-3"
+          : "items-center gap-space-3",
+      )}
+    >
       {icon && (
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700",
+            stackOnMobile ? "h-9 w-9 md:h-10 md:w-10" : "h-10 w-10",
+          )}
+        >
           {icon}
         </span>
       )}
-      <div className="min-w-0">
-        <p className="truncate text-[12px] text-ink-600">{label}</p>
-        <p className="text-[20px] font-bold leading-tight text-ink-900">
+      <div className={cn("min-w-0", stackOnMobile && "w-full md:w-auto")}>
+        <p
+          className={cn(
+            "text-[12px] text-ink-600",
+            stackOnMobile
+              ? "min-h-8 break-words md:min-h-0 md:truncate"
+              : "truncate",
+          )}
+        >
+          {label}
+        </p>
+        <p
+          className={cn(
+            stackOnMobile
+              ? "break-words text-[18px] md:break-normal md:text-[20px]"
+              : "text-[20px]",
+            "font-bold leading-tight text-ink-900",
+          )}
+        >
           {value}
         </p>
-        {hint && <p className="truncate text-[11px] text-ink-400">{hint}</p>}
+        {hint && (
+          <p
+            className={cn(
+              "text-[11px] text-ink-400",
+              stackOnMobile ? "break-words md:truncate" : "truncate",
+            )}
+          >
+            {hint}
+          </p>
+        )}
       </div>
     </Card>
   );
@@ -194,7 +235,7 @@ export function ComposeModal({
         <Select
           id="m_channel"
           value={channel}
-          onChange={(e) => setChannel(e.target.value as MessageChannel)}
+          onValueChange={(value) => setChannel(value as MessageChannel)}
         >
           {(Object.keys(MESSAGE_CHANNELS) as MessageChannel[]).map((c) => (
             <option key={c} value={c}>

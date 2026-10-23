@@ -192,7 +192,7 @@ export function ReceiptsTab({ currency }: { currency: string }) {
           placeholder="Search receipt number, customer or reference…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-80"
+          className="w-full md:w-80"
         />
       </Card>
       {receipts.error && (

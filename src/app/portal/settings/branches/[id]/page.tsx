@@ -34,10 +34,14 @@ function Section({
 }) {
   return (
     <Card className="p-space-4">
-      <div className="mb-space-3 flex items-center justify-between gap-space-3">
+      <div className="mobile-page-action-row mb-space-3 flex items-center justify-between gap-space-3">
         <h2 className="text-[15px] font-bold text-ink-900">{title}</h2>
         {onEdit && (
-          <Button variant="secondary" onClick={onEdit}>
+          <Button
+            className="mobile-page-action"
+            variant="secondary"
+            onClick={onEdit}
+          >
             Edit
           </Button>
         )}

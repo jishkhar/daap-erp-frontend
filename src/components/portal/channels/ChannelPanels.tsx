@@ -307,7 +307,7 @@ export function PosChannelPanel() {
                       {b.branch_code}
                     </span>
                   </span>
-                  <span className="flex flex-wrap items-center gap-space-3 text-[12.5px] text-ink-600">
+                  <span className="mobile-page-actions flex flex-wrap items-center gap-space-3 text-[12.5px] text-ink-600">
                     {summary.data && (
                       <>
                         <Badge tone={paired ? "success" : "warning"}>
@@ -361,7 +361,7 @@ export function PosChannelPanel() {
             {posBranches.length > 1 && (
               <Select
                 value={selected.id}
-                onChange={(e) => setPicked(e.target.value)}
+                onValueChange={(value) => setPicked(value)}
                 className="w-56"
                 aria-label="Branch"
               >

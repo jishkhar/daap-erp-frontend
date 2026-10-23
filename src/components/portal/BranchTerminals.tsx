@@ -332,7 +332,11 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
               onChange={(e) => setNextName(e.target.value)}
             />
           </Field>
-          <Button disabled={busy} onClick={generate}>
+          <Button
+            className="mobile-page-action"
+            disabled={busy}
+            onClick={generate}
+          >
             Generate pairing code
           </Button>
         </div>
@@ -342,7 +346,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           {list.data?.pairing_codes.map((c) => (
             <li
               key={c.id}
-              className="flex items-center justify-between gap-space-3 px-space-3 py-space-2 text-[13.5px]"
+              className="mobile-page-action-row flex items-center justify-between gap-space-3 px-space-3 py-space-2 text-[13.5px]"
             >
               <span>
                 Unused code{c.terminal_name ? ` for “${c.terminal_name}”` : ""}{" "}
@@ -353,7 +357,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
               {canManage && (
                 <button
                   type="button"
-                  className="text-[13px] font-semibold text-error"
+                  className="mobile-page-action text-[13px] font-semibold text-error"
                   onClick={() => cancelCode(c.id)}
                 >
                   Cancel
@@ -434,7 +438,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   </p>
                 )}
             </div>
-            <div className="flex gap-space-1">
+            <div className="mobile-page-actions flex gap-space-1">
               <Button variant="ghost" onClick={() => setHealth(t)}>
                 Sync health
               </Button>
@@ -660,7 +664,7 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
                 {c.roles.map(humanize).join(", ")}
               </span>
             </span>
-            <span className="flex items-center gap-space-2">
+            <span className="mobile-page-actions flex items-center gap-space-2">
               <Badge
                 tone={
                   c.status === "disabled"

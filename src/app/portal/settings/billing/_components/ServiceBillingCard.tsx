@@ -88,6 +88,7 @@ export function ServiceBillingCard({
             Waiting for your first payment.
           </p>
           <Button
+            className="mobile-page-action"
             href={sub!.razorpay_short_url!}
             target="_blank"
             rel="noopener noreferrer"
@@ -190,7 +191,7 @@ export function ServiceBillingCard({
       </div>
 
       {canManage && (
-        <div className="mt-space-3 flex flex-wrap justify-end gap-space-2">
+        <div className="mobile-page-actions mt-space-3 flex flex-wrap justify-end gap-space-2">
           {billed && !sub?.cancel_at_period_end && (
             <Button
               variant="secondary"

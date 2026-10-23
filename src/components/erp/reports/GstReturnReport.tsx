@@ -162,7 +162,7 @@ export function GstReturnReport({ currency }: { currency: string }) {
     body: React.ReactNode,
   ) => (
     <Card className="p-space-4">
-      <div className="mb-space-2 flex items-start justify-between gap-space-3">
+      <div className="mobile-page-action-row mb-space-2 flex items-start justify-between gap-space-3">
         <div>
           <h3 className="text-[15px] font-bold text-ink-900">
             {title}
@@ -171,7 +171,11 @@ export function GstReturnReport({ currency }: { currency: string }) {
           <p className="text-[12.5px] text-ink-600">{hint}</p>
         </div>
         {csv && (
-          <Button variant="secondary" onClick={csv}>
+          <Button
+            className="mobile-page-action"
+            variant="secondary"
+            onClick={csv}
+          >
             Download CSV
           </Button>
         )}
@@ -274,7 +278,7 @@ export function GstReturnReport({ currency }: { currency: string }) {
           <Select
             id="g1_reg"
             value={registration}
-            onChange={(e) => setRegistration(e.target.value)}
+            onValueChange={(value) => setRegistration(value)}
             className="w-64"
           >
             <option value="">All registrations</option>

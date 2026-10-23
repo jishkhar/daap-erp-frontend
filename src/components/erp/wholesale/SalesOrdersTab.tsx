@@ -125,7 +125,7 @@ export function SalesOrdersTab({ currency }: { currency: string }) {
         <Select
           aria-label="Status"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onValueChange={(value) => setStatus(value)}
           className="w-52"
         >
           <option value="">Any status</option>
@@ -137,7 +137,7 @@ export function SalesOrdersTab({ currency }: { currency: string }) {
           ))}
         </Select>
         {canCreate && (
-          <div className="ml-auto flex gap-space-2">
+          <div className="mobile-page-actions ml-auto flex gap-space-2">
             <Button
               variant="secondary"
               onClick={() => setCreating("quotation")}

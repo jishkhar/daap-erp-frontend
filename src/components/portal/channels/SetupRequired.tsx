@@ -57,7 +57,7 @@ export function SetupRequired({
           </p>
         )}
       </div>
-      <div className="flex items-center gap-space-3">
+      <div className="mobile-page-actions flex items-center gap-space-3">
         <Link
           href={SETUP[channel].doc}
           className="text-[13px] font-semibold text-ink-600 hover:underline"

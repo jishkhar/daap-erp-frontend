@@ -121,12 +121,12 @@ export function NewPurchaseOrder({
         </>
       }
     >
-      <div className="grid gap-x-space-4 sm:grid-cols-2">
+      <div className="grid gap-x-space-4 @min-[400px]:grid-cols-2">
         <Field label="Supplier" htmlFor="po_sup" required>
           <Select
             id="po_sup"
             value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
+            onValueChange={(value) => setSupplierId(value)}
           >
             <option value="">Choose a supplier…</option>
             {(suppliers.data ?? [])
@@ -144,7 +144,7 @@ export function NewPurchaseOrder({
             value={
               branchId || (branches.length === 1 ? String(branches[0].id) : "")
             }
-            onChange={(e) => setBranchId(e.target.value)}
+            onValueChange={(value) => setBranchId(value)}
           >
             <option value="">Choose a branch…</option>
             {branches.map((b) => (
@@ -163,7 +163,7 @@ export function NewPurchaseOrder({
         <Select
           id="po_category"
           value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
+          onValueChange={(value) => setCategoryId(value)}
           disabled={categories.isLoading}
         >
           <option value="">All categories</option>
@@ -182,21 +182,23 @@ export function NewPurchaseOrder({
         {rows.map((r, i) => (
           <div
             key={i}
-            className="grid grid-cols-[1fr_90px_130px_36px] items-center gap-space-2"
+            className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_36px] items-center gap-space-2 md:grid-cols-[minmax(0,1fr)_90px_130px_36px]"
           >
-            <ProductSelect
-              key={`${i}-${categoryId}`}
-              categoryId={categoryId || undefined}
-              value={r.product}
-              placeholder="Search product…"
-              exclude={rows
-                .filter((_, j) => j !== i)
-                .map((o) => o.variant_id)
-                .filter(Boolean)}
-              onChange={(p) =>
-                setRow(i, { product: p, variant_id: p ? String(p.id) : "" })
-              }
-            />
+            <div className="col-span-3 min-w-0 md:col-span-1">
+              <ProductSelect
+                key={`${i}-${categoryId}`}
+                categoryId={categoryId || undefined}
+                value={r.product}
+                placeholder="Search product…"
+                exclude={rows
+                  .filter((_, j) => j !== i)
+                  .map((o) => o.variant_id)
+                  .filter(Boolean)}
+                onChange={(p) =>
+                  setRow(i, { product: p, variant_id: p ? String(p.id) : "" })
+                }
+              />
+            </div>
             <Input
               aria-label="Quantity"
               inputMode="numeric"
@@ -225,12 +227,12 @@ export function NewPurchaseOrder({
       </div>
       <Button
         variant="ghost"
-        className="mt-space-2"
+        className="mobile-page-action mt-space-2"
         onClick={() => setRows((rs) => [...rs, { ...EMPTY_ROW }])}
       >
         <Plus size={15} /> Add item
       </Button>
-      <div className="mt-space-3 grid gap-x-space-4 sm:grid-cols-2">
+      <div className="mt-space-3 grid gap-x-space-4 @min-[400px]:grid-cols-2">
         <Field
           label={`Expected freight / duty (${currency})`}
           htmlFor="po_freight"

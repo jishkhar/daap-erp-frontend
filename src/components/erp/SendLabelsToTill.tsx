@@ -54,7 +54,11 @@ export function SendLabelsToTill({ product }: { product: Product }) {
 
   return (
     <>
-      <Button variant="secondary" onClick={() => setOpen(true)}>
+      <Button
+        className="mobile-page-action"
+        variant="secondary"
+        onClick={() => setOpen(true)}
+      >
         <Printer size={15} /> Send labels to till
       </Button>
       <Modal
@@ -86,7 +90,7 @@ export function SendLabelsToTill({ product }: { product: Product }) {
               <Select
                 id="labels-branch"
                 value={branch}
-                onChange={(e) => setBranchId(e.target.value)}
+                onValueChange={(value) => setBranchId(value)}
               >
                 {tills.map((b) => (
                   <option key={b.id} value={b.id}>

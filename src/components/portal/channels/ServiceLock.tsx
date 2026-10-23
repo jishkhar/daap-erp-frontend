@@ -97,7 +97,10 @@ export function ServiceLock({
             {WHY[state](label)}
           </p>
           {canBuy ? (
-            <Button className="mt-space-4" onClick={() => setPicking(true)}>
+            <Button
+              className="mobile-page-action mt-space-4"
+              onClick={() => setPicking(true)}
+            >
               {buyLabel(state)}
             </Button>
           ) : (

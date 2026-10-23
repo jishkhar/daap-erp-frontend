@@ -197,7 +197,7 @@ export function AccountModal({
               />
             </Field>
           ) : (
-            <div className="grid gap-x-space-4 sm:grid-cols-3">
+            <div className="grid gap-x-space-4 @min-[420px]:grid-cols-3">
               <Field label="Contact name" htmlFor="a_name" required>
                 <Input
                   id="a_name"
@@ -229,7 +229,7 @@ export function AccountModal({
         </div>
       )}
 
-      <div className="grid gap-x-space-4 sm:grid-cols-2">
+      <div className="grid gap-x-space-4 @min-[400px]:grid-cols-2">
         <Field
           label="Legal name"
           htmlFor="a_legal"
@@ -239,7 +239,7 @@ export function AccountModal({
               ? undefined
               : "As on their GST registration. Defaults to the contact name."
           }
-          className="sm:col-span-2"
+          className="@min-[400px]:col-span-2"
         >
           <Input
             id="a_legal"
@@ -284,7 +284,7 @@ export function AccountModal({
         <Field
           label="Billing address"
           htmlFor="a_addr"
-          className="sm:col-span-2"
+          className="@min-[400px]:col-span-2"
         >
           <Textarea
             id="a_addr"
@@ -298,12 +298,12 @@ export function AccountModal({
           label="Price list"
           htmlFor="a_list"
           hint="Their prices. None: your normal selling prices."
-          className="sm:col-span-2"
+          className="@min-[400px]:col-span-2"
         >
           <Select
             id="a_list"
             value={draft.price_list_id}
-            onChange={(e) => set({ price_list_id: e.target.value })}
+            onValueChange={(value) => set({ price_list_id: value })}
           >
             <option value="">None (normal prices)</option>
             {(lists.data ?? [])
@@ -336,7 +336,7 @@ export function AccountModal({
           />
         </div>
         {draft.credit && (
-          <div className="mt-space-3 grid gap-x-space-4 sm:grid-cols-2">
+          <div className="mt-space-3 grid gap-x-space-4 @min-[400px]:grid-cols-2">
             <Field
               label="Credit limit (₹)"
               htmlFor="a_limit"
@@ -372,13 +372,13 @@ export function AccountModal({
       </div>
 
       {account && (
-        <div className="mt-space-4 grid gap-x-space-4 sm:grid-cols-2">
+        <div className="mt-space-4 grid gap-x-space-4 @min-[400px]:grid-cols-2">
           <Field label="Status" htmlFor="a_status">
             <Select
               id="a_status"
               value={draft.status}
-              onChange={(e) =>
-                set({ status: e.target.value as CustomerAccount["status"] })
+              onValueChange={(value) =>
+                set({ status: value as CustomerAccount["status"] })
               }
             >
               <option value="active">Active</option>

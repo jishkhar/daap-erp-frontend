@@ -158,8 +158,8 @@ export function AccountPanel({
                 Nothing billed yet.
               </p>
             ) : (
-              <div className="max-h-96 overflow-y-auto">
-                <table className="w-full text-[13.5px]">
+              <div className="max-h-96 min-w-0 max-w-full overflow-auto">
+                <table className="min-w-[580px] w-full text-[13.5px] [&_td]:[overflow-wrap:anywhere]">
                   <thead>
                     <tr className="text-left text-label">
                       <th className="py-space-2 pr-space-2">Date</th>
@@ -217,7 +217,7 @@ export function AccountPanel({
 
           {view === "pay" && (
             <div className="pt-space-2">
-              <div className="grid gap-x-space-4 sm:grid-cols-2">
+              <div className="grid gap-x-space-4 @min-[400px]:grid-cols-2">
                 <Field label="Amount received (₹)" htmlFor="r_amount" required>
                   <Input
                     id="r_amount"
@@ -231,7 +231,7 @@ export function AccountPanel({
                   <Select
                     id="r_method"
                     value={method}
-                    onChange={(e) => setMethod(e.target.value as ReceiptMethod)}
+                    onValueChange={(value) => setMethod(value as ReceiptMethod)}
                   >
                     {(Object.keys(RECEIPT_METHOD_LABEL) as ReceiptMethod[]).map(
                       (m) => (
@@ -286,36 +286,38 @@ export function AccountPanel({
                   No open invoices: the whole amount is kept as their credit.
                 </p>
               ) : (
-                <table className="mt-space-1 w-full text-[13.5px]">
-                  <tbody>
-                    {invoices.map((i) => (
-                      <tr key={i.id} className="border-t border-line">
-                        <td className="py-space-2 pr-space-2">
-                          <p className="font-medium text-ink-900">
-                            {i.invoice_number ?? i.order_number}
-                          </p>
-                          <p className="text-[12px] text-ink-400">
-                            {i.due_date ? `Due ${i.due_date}` : "No due date"}
-                          </p>
-                        </td>
-                        <td className="pr-space-2 text-right">
-                          {formatMoney(i.outstanding_minor, cur)} owed
-                        </td>
-                        <td className="w-36 py-space-1">
-                          <Input
-                            aria-label={`Amount for ${i.invoice_number ?? i.order_number}`}
-                            inputMode="decimal"
-                            placeholder={fromMinor(i.outstanding_minor)}
-                            value={split[i.id] ?? ""}
-                            onChange={(e) =>
-                              setSplit({ ...split, [i.id]: e.target.value })
-                            }
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="mt-space-1 min-w-0 max-w-full overflow-x-auto">
+                  <table className="min-w-[400px] w-full text-[13.5px] [&_td]:[overflow-wrap:anywhere]">
+                    <tbody>
+                      {invoices.map((i) => (
+                        <tr key={i.id} className="border-t border-line">
+                          <td className="py-space-2 pr-space-2">
+                            <p className="font-medium text-ink-900">
+                              {i.invoice_number ?? i.order_number}
+                            </p>
+                            <p className="text-[12px] text-ink-400">
+                              {i.due_date ? `Due ${i.due_date}` : "No due date"}
+                            </p>
+                          </td>
+                          <td className="pr-space-2 text-right">
+                            {formatMoney(i.outstanding_minor, cur)} owed
+                          </td>
+                          <td className="w-36 py-space-1">
+                            <Input
+                              aria-label={`Amount for ${i.invoice_number ?? i.order_number}`}
+                              inputMode="decimal"
+                              placeholder={fromMinor(i.outstanding_minor)}
+                              value={split[i.id] ?? ""}
+                              onChange={(e) =>
+                                setSplit({ ...split, [i.id]: e.target.value })
+                              }
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               {minor !== null && advance > 0 && (
                 <p className="mt-space-2 text-[12.5px] text-ink-600">
@@ -323,7 +325,7 @@ export function AccountPanel({
                   is kept as their credit for later bills.
                 </p>
               )}
-              <div className="mt-space-3 flex justify-end">
+              <div className="mobile-page-actions mt-space-3 flex justify-end">
                 <Button disabled={invalid || pay.isPending} onClick={submit}>
                   {pay.isPending ? "Recording…" : "Record payment"}
                 </Button>

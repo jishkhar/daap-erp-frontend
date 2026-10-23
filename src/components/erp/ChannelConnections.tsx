@@ -76,7 +76,11 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
           </p>
         </div>
         {canManage && (
-          <Button variant="secondary" onClick={() => setOpen(true)}>
+          <Button
+            className="mobile-page-action"
+            variant="secondary"
+            onClick={() => setOpen(true)}
+          >
             <Plus size={16} /> New API key
           </Button>
         )}
@@ -106,7 +110,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
                   {c.status}
                 </Badge>
               </span>
-              <span className="flex items-center gap-space-3 text-[12.5px] text-ink-600">
+              <span className="mobile-page-actions flex items-center gap-space-3 text-[12.5px] text-ink-600">
                 {c.last_used_at
                   ? `Last used ${formatDateTime(c.last_used_at)}`
                   : "Never used"}
@@ -156,7 +160,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
           <Select
             id="ck_branch"
             value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
+            onValueChange={(value) => setBranchId(value)}
           >
             <option value="">Any branch</option>
             {activeBranches(session).map((b) => (
@@ -175,7 +179,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
         description="This is the only time it is shown. Store it somewhere safe."
         footer={<Button onClick={() => setNewKey(null)}>Done</Button>}
       >
-        <div className="flex items-center gap-space-2 rounded-md border border-line bg-paper p-space-3">
+        <div className="mobile-page-actions flex items-center gap-space-2 rounded-md border border-line bg-paper p-space-3">
           <code className="min-w-0 flex-1 break-all text-[13px] text-ink-900">
             {newKey}
           </code>

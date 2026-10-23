@@ -199,7 +199,7 @@ export default function OnboardingPage() {
                 id="state"
                 value={state}
                 disabled={gstinOk}
-                onChange={(e) => setPickedState(e.target.value)}
+                onValueChange={(value) => setPickedState(value)}
               >
                 <option value="">Select…</option>
                 {GST_STATES.map((st) => (
