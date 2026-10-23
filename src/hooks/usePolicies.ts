@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { erpGet, erpSend } from "@/lib/erp";
 import { queryKeys } from "@/lib/queryKeys";
 
-export type PolicyKind = "returns" | "privacy" | "terms" | "shipping";
+export type PolicyKind =
+  "returns" | "privacy" | "terms" | "shipping" | "contact" | "legal";
 
 /** One written policy (Settings > Policies). `body_html` is sanitized by the ERP; empty = "No policy set". */
 export type StorePolicy = {

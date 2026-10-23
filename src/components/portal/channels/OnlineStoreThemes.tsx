@@ -24,9 +24,11 @@ import { cn } from "@/lib/cn";
 import { erpSend } from "@/lib/erp";
 import { formatShortDateTime } from "@/lib/formatDate";
 import { usePermission } from "@/lib/staffAuth";
+import { useDomains } from "@/hooks/useDomains";
 import { getPortalTenant } from "@/lib/portalAuth";
 import {
   previewUrl,
+  primaryStoreUrl,
   storeUrl,
   STOREFRONT_URL,
   type InstalledTheme,
@@ -172,7 +174,9 @@ export function OnlineStoreThemes() {
   const remove = useRemoveTheme();
   const [removing, setRemoving] = useState<InstalledTheme | null>(null);
   const slug = getPortalTenant()?.code;
-  const site = storeUrl(slug); // this shop's own website address
+  const site = storeUrl(slug); // this shop's platform address: previews use it (it redirects to a custom primary domain)
+  const domains = useDomains();
+  const shopUrl = primaryStoreUrl(domains.data?.primary_host, slug); // where shoppers find the shop
 
   if (list.isPending)
     return <Skeleton className="h-[540px] w-full rounded-xl" />;
@@ -230,7 +234,7 @@ export function OnlineStoreThemes() {
       <div className="mobile-page-actions flex justify-end">
         <Button
           variant="secondary"
-          href={site}
+          href={shopUrl}
           target="_blank"
           rel="noreferrer"
         >
@@ -253,7 +257,7 @@ export function OnlineStoreThemes() {
         <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-space-3 p-space-5 text-white">
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-space-2 text-[18px] font-bold">
-              {hostOf(site)}
+              {hostOf(shopUrl)}
               {live?.has_unpublished_changes && (
                 <Badge tone="warning">Unpublished changes</Badge>
               )}
@@ -274,7 +278,7 @@ export function OnlineStoreThemes() {
             </Button>
             <MoreMenu label="More actions for the live theme">
               <DropdownMenuItem
-                onClick={() => window.open(site, "_blank", "noreferrer")}
+                onClick={() => window.open(shopUrl, "_blank", "noreferrer")}
               >
                 <ExternalLink size={15} /> View store
               </DropdownMenuItem>

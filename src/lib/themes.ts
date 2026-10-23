@@ -234,6 +234,24 @@ export function storeUrl(slug: string | null | undefined): string {
   }
 }
 
+/**
+ * Where shoppers find the shop: its primary custom domain (Settings > Domains) when it has one, else its platform address (storeUrl).
+ * The platform address still works then (it redirects), so previews keep using storeUrl.
+ */
+export function primaryStoreUrl(
+  primaryHost: string | null | undefined,
+  slug: string | null | undefined,
+): string {
+  const platform = storeUrl(slug);
+  if (!primaryHost) return platform;
+  try {
+    if (new URL(platform).hostname === primaryHost) return platform;
+  } catch {
+    // fall through to the custom domain
+  }
+  return `https://${primaryHost}`;
+}
+
 /** The shop's website showing a theme's saved draft (the token comes from POST /store-admin/themes/{key}/preview). */
 export function previewUrl(
   slug: string | null | undefined,

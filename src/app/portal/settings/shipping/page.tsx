@@ -12,13 +12,20 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { Switch } from "@/components/ui/Switch";
 import { useReturnPolicy, useSaveReturnPolicy } from "@/hooks/useReturns";
+import {
+  useSaveShippingSettings,
+  useShippingSettings,
+  type ShippingSettings,
+} from "@/hooks/useShipping";
+import { formatMoney } from "@/lib/erp";
 import type { ReturnPolicy } from "@/lib/returns";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 const MAX_DAYS = 365;
 
-/** Shipping and delivery settings. For now: the return policy every channel follows (the till, the website and the portal). */
+/** Shipping and delivery settings: what the website charges for delivery and how long it says delivery takes, and the return policy
+ * every channel follows (the till, the website and the portal). */
 export default function ShippingSettingsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
@@ -87,9 +94,10 @@ export default function ShippingSettingsPage() {
       <PageHeader
         icon={<Truck size={20} />}
         title="Shipping and delivery"
-        description="How long customers have to bring things back, and how you settle returns."
+        description="What your website charges for delivery, how long it takes, and how you handle returns."
       />
-      <Card className="max-w-2xl space-y-space-4 p-space-5">
+      <WebsiteDelivery canEdit={canEdit} />
+      <Card className="mt-space-4 max-w-2xl space-y-space-4 p-space-5">
         <div>
           <h2 className="text-[15px] font-bold text-ink-900">Return policy</h2>
           <p className="text-[13px] text-ink-600">
@@ -160,5 +168,168 @@ export default function ShippingSettingsPage() {
         )}
       </Card>
     </PortalShell>
+  );
+}
+
+/** Rupees typed by the person -> minor units; "" -> null. */
+const toMinor = (v: string) =>
+  v.trim() === "" ? null : Math.round(Number(v) * 100);
+const toRupees = (m: number | null) => (m == null ? "" : String(m / 100));
+const toDays = (v: string) => (v.trim() === "" ? null : Math.floor(Number(v)));
+
+type Draft = { fee: string; above: string; min: string; max: string };
+
+const draftOf = (s: ShippingSettings): Draft => ({
+  fee: toRupees(s.fee_minor),
+  above: toRupees(s.free_above_minor),
+  min: s.delivery_min_days == null ? "" : String(s.delivery_min_days),
+  max: s.delivery_max_days == null ? "" : String(s.delivery_max_days),
+});
+
+/** What the shopper reads on the product page and at checkout, from the settings being edited. */
+function preview(s: ShippingSettings): string {
+  const fee =
+    s.fee_minor === 0
+      ? "Free delivery"
+      : s.free_above_minor != null
+        ? `Delivery ${formatMoney(s.fee_minor)}, free on orders of ${formatMoney(s.free_above_minor)} or more`
+        : `Delivery ${formatMoney(s.fee_minor)}`;
+  if (s.delivery_min_days == null || s.delivery_max_days == null) return fee;
+  const days =
+    s.delivery_min_days === s.delivery_max_days
+      ? `${s.delivery_min_days}`
+      : `${s.delivery_min_days}–${s.delivery_max_days}`;
+  return `${fee} · arrives in ${days} business days`;
+}
+
+function WebsiteDelivery({ canEdit }: { canEdit: boolean }) {
+  const saved = useShippingSettings();
+  const save = useSaveShippingSettings();
+  const [edited, setEdited] = useState<Draft | null>(null);
+  const draft = edited ?? (saved.data ? draftOf(saved.data) : null);
+  const set = (patch: Partial<Draft>) =>
+    draft && setEdited({ ...draft, ...patch });
+
+  const value: ShippingSettings | null = draft && {
+    fee_minor: toMinor(draft.fee) ?? 0,
+    free_above_minor: toMinor(draft.above),
+    delivery_min_days: toDays(draft.min),
+    delivery_max_days: toDays(draft.max),
+  };
+  const problem = (() => {
+    if (!value) return null;
+    if (!(value.fee_minor >= 0 && value.fee_minor <= 1_000_000))
+      return "The delivery fee is between ₹0 and ₹10,000.";
+    if (value.free_above_minor != null && !(value.free_above_minor > 0))
+      return "Free delivery needs an order amount above ₹0.";
+    const { delivery_min_days: lo, delivery_max_days: hi } = value;
+    if ((lo == null) !== (hi == null))
+      return "Give both the fewest and the most days, or leave both empty.";
+    if (lo != null && hi != null && !(lo >= 1 && lo <= hi && hi <= 60))
+      return "Delivery days run from 1 to 60, fewest first.";
+    return null;
+  })();
+  const changed =
+    !!value &&
+    !!saved.data &&
+    JSON.stringify(value) !== JSON.stringify(saved.data);
+
+  const field = (
+    key: keyof Draft,
+    label: string,
+    hint: string,
+    unit: "₹" | "days",
+  ) => (
+    <Field label={label} htmlFor={`ship-${key}`} hint={hint}>
+      <div className="flex items-center gap-space-2">
+        {unit === "₹" && <span className="text-[13px] text-ink-600">₹</span>}
+        <Input
+          id={`ship-${key}`}
+          type="number"
+          min={unit === "₹" ? 0 : 1}
+          step={unit === "₹" ? "0.01" : 1}
+          disabled={!canEdit}
+          value={draft ? draft[key] : ""}
+          onChange={(e) => set({ [key]: e.target.value })}
+          className="w-32"
+        />
+        {unit === "days" && (
+          <span className="text-[13px] text-ink-600">days</span>
+        )}
+      </div>
+    </Field>
+  );
+
+  return (
+    <Card className="max-w-2xl space-y-space-4 p-space-5">
+      <div>
+        <h2 className="text-[15px] font-bold text-ink-900">Website delivery</h2>
+        <p className="text-[13px] text-ink-600">
+          Charged on website and WhatsApp orders that are delivered, never on
+          orders collected from a store. The fee includes GST, and it isn&apos;t
+          refunded when items are returned.
+        </p>
+      </div>
+      {!draft || !value ? (
+        <SkeletonLines rows={4} />
+      ) : (
+        <>
+          <div className="grid gap-space-4 sm:grid-cols-2">
+            {field("fee", "Delivery fee", "0 means free delivery.", "₹")}
+            {field(
+              "above",
+              "Free delivery on orders of",
+              "Leave empty to always charge the fee. Counted after coupons.",
+              "₹",
+            )}
+            {field("min", "Delivery takes at least", "Business days.", "days")}
+            {field(
+              "max",
+              "and at most",
+              "Leave both empty to show no delivery time.",
+              "days",
+            )}
+          </div>
+          <p className="rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] text-ink-700">
+            Shoppers see: <strong>{preview(value)}</strong>
+          </p>
+          {problem && (
+            <p className="text-[12.5px] text-error" role="alert">
+              {problem}
+            </p>
+          )}
+          {canEdit ? (
+            <div className="mobile-page-actions flex justify-end gap-space-2">
+              <Button
+                variant="ghost"
+                disabled={!changed}
+                onClick={() => setEdited(null)}
+              >
+                Discard
+              </Button>
+              <Button
+                disabled={!changed || !!problem || save.isPending}
+                onClick={() =>
+                  save.mutate(value, {
+                    onSuccess: () => {
+                      setEdited(null);
+                      toast.success("Delivery settings saved");
+                    },
+                    onError: (e: Error) =>
+                      toast.error("Couldn't save", e.message),
+                  })
+                }
+              >
+                {save.isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-[12.5px] text-ink-400">
+              Only an administrator can change delivery settings.
+            </p>
+          )}
+        </>
+      )}
+    </Card>
   );
 }

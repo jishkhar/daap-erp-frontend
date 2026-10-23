@@ -84,8 +84,11 @@ export const queryKeys = {
   returnable: (orderId: string) =>
     ["erp", "returns", "returnable", orderId] as const,
   returnPolicy: ["erp", "returns", "policy"] as const,
+  shippingSettings: ["erp", "shipping", "settings"] as const,
   /** Settings > Policies (the shop's written policies). */
   storePolicies: ["erp", "store-policies"] as const,
+  /** Settings > Domains (the shop's own domains). */
+  storeDomains: ["erp", "store-domains"] as const,
 
   analytics: ["erp", "analytics"] as const,
   today: (params: Params) => ["erp", "analytics", "today", params] as const,

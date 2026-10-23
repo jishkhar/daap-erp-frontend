@@ -111,6 +111,10 @@ export default function OrderDetailPage() {
   });
 
   const outstanding = o ? o.total_minor - o.paid_minor : 0;
+  // A website delivery fee, net of its GST (the GST is inside Tax): whatever the total holds beyond goods and tax.
+  const delivery = o
+    ? o.total_minor - (o.subtotal_minor - o.discount_minor + o.tax_minor)
+    : 0;
   const canPay =
     !!o &&
     [
@@ -377,6 +381,12 @@ export default function OrderDetailPage() {
                   <Row
                     label="Discount"
                     value={`− ${formatMoney(o.discount_minor, cur)}`}
+                  />
+                )}
+                {delivery > 0 && (
+                  <Row
+                    label="Delivery (before GST)"
+                    value={formatMoney(delivery, cur)}
                   />
                 )}
                 <Row label="Tax" value={formatMoney(o.tax_minor, cur)} />

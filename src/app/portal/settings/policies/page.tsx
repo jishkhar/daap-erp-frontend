@@ -2,8 +2,10 @@
 
 import {
   ChevronRight,
+  Contact,
   ExternalLink,
   FileText,
+  Landmark,
   Lock,
   ReceiptText,
   ScrollText,
@@ -14,6 +16,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { useReturnPolicy } from "@/hooks/useReturns";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -29,7 +32,8 @@ import {
 } from "@/hooks/usePolicies";
 import { getPortalTenant } from "@/lib/portalAuth";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
-import { storeUrl } from "@/lib/themes";
+import { useDomains } from "@/hooks/useDomains";
+import { primaryStoreUrl } from "@/lib/themes";
 import { toast } from "@/lib/toast";
 
 /** Where each policy appears on the shop's website (the footer links there by default; checkout links Terms and Privacy). */
@@ -38,6 +42,8 @@ const PAGES: Record<PolicyKind, { path: string; icon: LucideIcon }> = {
   privacy: { path: "/privacy", icon: Lock },
   terms: { path: "/terms", icon: ScrollText },
   shipping: { path: "/help/shipping", icon: Truck },
+  contact: { path: "/contact", icon: Contact },
+  legal: { path: "/legal", icon: Landmark },
 };
 
 /** Settings > Policies: the shop's written policies, edited with formatting and shown on its website. */
@@ -45,10 +51,15 @@ export default function PoliciesSettingsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
   const policies = usePolicies();
+  const rules = useReturnPolicy();
+  const domains = useDomains({ enabled: ready });
   const [open, setOpen] = useState<StorePolicy | null>(null);
   if (!ready) return null;
   const canEdit = hasTenantWide(session, "tenant:update");
-  const site = storeUrl(getPortalTenant()?.code);
+  const site = primaryStoreUrl(
+    domains.data?.primary_host,
+    getPortalTenant()?.code,
+  );
 
   return (
     <PortalShell tenant={tenant} active="settings">
@@ -58,7 +69,10 @@ export default function PoliciesSettingsPage() {
         description="Written policies appear on your website, linked from the footer, and Terms and Privacy from checkout."
       />
       <div className="max-w-2xl space-y-space-3">
-        <h2 className="text-[15px] font-bold text-ink-900">Written policies</h2>
+        {rules.data && <ReturnRules {...rules.data} />}
+        <h2 className="pt-space-2 text-[15px] font-bold text-ink-900">
+          Written policies
+        </h2>
         <Card className="divide-y divide-line p-0">
           {policies.isPending ? (
             <div className="p-space-5">
@@ -95,12 +109,7 @@ export default function PoliciesSettingsPage() {
         </Card>
         <p className="text-[12.5px] text-ink-600">
           These policies are not legal advice. You are responsible for making
-          sure they are accurate and comply with the law. How many days
-          customers have to return something is set in{" "}
-          <Link href="/portal/settings/shipping" className="underline">
-            Shipping and delivery
-          </Link>
-          .
+          sure they are accurate and comply with the law.
         </p>
       </div>
       {open && (
@@ -113,6 +122,62 @@ export default function PoliciesSettingsPage() {
         />
       )}
     </PortalShell>
+  );
+}
+
+const days = (n: number) =>
+  n <= 0 ? "no returns" : `${n} ${n === 1 ? "day" : "days"}`;
+
+/** The return rules the till, website and portal enforce (set in Shipping and delivery), next to the written return policy. */
+function ReturnRules({
+  online_window_days,
+  pos_window_days,
+  exchanges_enabled,
+  store_credit_enabled,
+}: {
+  online_window_days: number;
+  pos_window_days: number;
+  exchanges_enabled: boolean;
+  store_credit_enabled: boolean;
+}) {
+  const rows = [
+    [
+      "Website and WhatsApp orders",
+      `${days(online_window_days)} from delivery`,
+    ],
+    ["Counter (POS) bills", `${days(pos_window_days)} from the bill`],
+    ["Exchanges", exchanges_enabled ? "On" : "Off"],
+    ["Refund as store credit", store_credit_enabled ? "On" : "Off"],
+  ];
+  return (
+    <>
+      <div className="flex items-end justify-between gap-space-3">
+        <div>
+          <h2 className="text-[15px] font-bold text-ink-900">Return rules</h2>
+          <p className="text-[13px] text-ink-600">
+            Applied on the till, the website and in the portal. Keep your
+            written return policy in line with them.
+          </p>
+        </div>
+        <Link
+          href="/portal/settings/shipping"
+          className="shrink-0 text-[13px] font-medium text-ink-900 underline"
+        >
+          Edit
+        </Link>
+      </div>
+      <Card className="divide-y divide-line p-0">
+        {rows.map(([label, value]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between gap-space-3 px-space-4 py-space-3 text-[14px]"
+          >
+            <span className="text-ink-900">{label}</span>
+            <span className="text-ink-600">{value}</span>
+          </div>
+        ))}
+      </Card>
+    </>
   );
 }
 
