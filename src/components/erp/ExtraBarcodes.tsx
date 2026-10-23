@@ -105,8 +105,8 @@ export function ExtraBarcodes({ product }: { product: Product | null }) {
           aria-label="Barcode type"
           className="w-32"
           value={type}
-          onChange={(e) => {
-            const t = e.target.value as BarcodeType;
+          onValueChange={(value) => {
+            const t = value as BarcodeType;
             setType(t);
             setValue(sanitizeBarcode(t, value));
           }}
@@ -136,7 +136,7 @@ export function ExtraBarcodes({ product }: { product: Product | null }) {
           aria-label="Supplier this barcode came from"
           className="w-44"
           value={supplierId}
-          onChange={(e) => setSupplierId(e.target.value)}
+          onValueChange={(value) => setSupplierId(value)}
         >
           <option value="">Supplier (optional)</option>
           {(suppliers.data ?? []).map((sp) => (
@@ -156,6 +156,7 @@ export function ExtraBarcodes({ product }: { product: Product | null }) {
           />
         )}
         <Button
+          className="mobile-page-action"
           variant="secondary"
           disabled={busy || !value.trim()}
           onClick={add}

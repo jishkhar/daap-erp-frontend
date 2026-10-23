@@ -9,8 +9,10 @@ type PageHeaderProps = {
   description?: ReactNode;
   /** A lucide icon element shown in a brand-tinted square before the title, e.g. <CalendarCheck size={20} />. */
   icon?: ReactNode;
-  /** Buttons/controls for this page, e.g. "Add product" -- rendered right-aligned. */
+  /** Page actions fill the mobile width and keep their natural width on desktop. */
   actions?: ReactNode;
+  /** Optional sizing for the actions area, without changing other page headers. */
+  actionsClassName?: string;
   /** Shows "Viewing: <branch>" when the branch switcher is narrowing this page. Set it only on pages that really filter. */
   scopedToBranch?: boolean;
   className?: string;
@@ -21,6 +23,7 @@ export function PageHeader({
   description,
   icon,
   actions,
+  actionsClassName,
   scopedToBranch,
   className,
 }: PageHeaderProps) {
@@ -46,7 +49,15 @@ export function PageHeader({
         </div>
       </div>
       {actions && (
-        <div className="flex flex-wrap items-center gap-space-2">{actions}</div>
+        <div
+          data-page-actions
+          className={cn(
+            "mobile-page-actions flex flex-wrap items-center gap-space-2",
+            actionsClassName,
+          )}
+        >
+          {actions}
+        </div>
       )}
     </div>
   );

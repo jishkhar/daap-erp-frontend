@@ -202,7 +202,7 @@ export function ProductCategoriesTab({
             <Select
               id="category-parent"
               value={parentId}
-              onChange={(event) => setParentId(event.target.value)}
+              onValueChange={(value) => setParentId(value)}
               disabled={create.isPending || categories.isLoading}
             >
               <option value="">No parent (main category)</option>

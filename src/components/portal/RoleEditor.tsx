@@ -154,8 +154,8 @@ export function RoleEditor({ role }: { role?: Role }) {
             <Select
               id="role_cat"
               value={category}
-              onChange={(e) => {
-                setCategory(e.target.value as "store" | "pos" | "");
+              onValueChange={(value) => {
+                setCategory(value as "store" | "pos" | "");
                 setSelected(new Set());
               }}
             >
@@ -213,7 +213,7 @@ export function RoleEditor({ role }: { role?: Role }) {
       </Card>
 
       {canWrite && (
-        <div className="flex items-center gap-space-2">
+        <div className="mobile-page-actions flex items-center gap-space-2">
           <Button onClick={save} disabled={busy}>
             {role ? "Save changes" : "Create role"}
           </Button>

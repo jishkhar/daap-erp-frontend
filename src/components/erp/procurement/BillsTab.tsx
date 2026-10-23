@@ -150,7 +150,7 @@ export function BillsTab({ currency }: { currency: string }) {
         <Select
           aria-label="Status"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onValueChange={(value) => setStatus(value)}
           className="w-44"
         >
           <option value="">Any status</option>
@@ -283,7 +283,7 @@ export function SupplierPaymentsTab({ currency }: { currency: string }) {
           placeholder="Search payment number, reference or supplier…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-80"
+          className="w-full md:w-80"
         />
       </Card>
       {payments.error && (

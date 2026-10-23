@@ -204,7 +204,11 @@ export function SyncHealthModal({
           </ul>
           {rows.length >= limit && (
             <div className="mt-space-2 text-center">
-              <Button variant="ghost" onClick={() => setLimit(limit + PAGE)}>
+              <Button
+                className="mobile-page-action"
+                variant="ghost"
+                onClick={() => setLimit(limit + PAGE)}
+              >
                 Show more
               </Button>
             </div>

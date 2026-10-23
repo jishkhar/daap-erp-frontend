@@ -127,7 +127,7 @@ export default function ShippingSettingsPage() {
               )}
             </div>
             {canEdit ? (
-              <div className="flex justify-end gap-space-2">
+              <div className="mobile-page-actions flex justify-end gap-space-2">
                 <Button
                   variant="ghost"
                   disabled={!changed}

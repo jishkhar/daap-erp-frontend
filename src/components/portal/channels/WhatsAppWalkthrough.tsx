@@ -138,7 +138,10 @@ export function WhatsAppWalkthrough({
               Connected. Use Edit details above if you need to change anything.
             </p>
           ) : canConnect ? (
-            <Button className="mt-space-3" onClick={onConnect}>
+            <Button
+              className="mobile-page-action mt-space-3"
+              onClick={onConnect}
+            >
               Connect WhatsApp
             </Button>
           ) : (
@@ -202,7 +205,9 @@ export function WhatsAppWalkthrough({
             </p>
           </div>
           {!webhook && canConnect && (
-            <Button onClick={onConnect}>Connect WhatsApp</Button>
+            <Button className="mobile-page-action" onClick={onConnect}>
+              Connect WhatsApp
+            </Button>
           )}
         </div>
         <ol

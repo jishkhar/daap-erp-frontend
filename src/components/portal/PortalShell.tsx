@@ -99,7 +99,10 @@ export function PortalShell({ tenant, active, children }: Props) {
         Your role does not include it. Ask an administrator if you need it.
       </p>
       {session && (
-        <Button className="mt-space-4" href={landingPath(session)}>
+        <Button
+          className="mobile-page-action mt-space-4"
+          href={landingPath(session)}
+        >
           Go to a page you can use
         </Button>
       )}
@@ -110,7 +113,10 @@ export function PortalShell({ tenant, active, children }: Props) {
   if (shared) return body;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-paper">
+    <div
+      className="flex h-dvh overflow-hidden bg-paper"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       {!inSettings && (
         <PortalSidebar
           tenant={tenant}
@@ -152,6 +158,7 @@ export function PortalShell({ tenant, active, children }: Props) {
             <UserMenu />
           </div>
         </header>
+        <BranchSwitcher mobile />
 
         {/* Settings on a wide screen: the settings menu is a fixed full-height column and only the page beside it scrolls, so the
             menu never moves with the page. Below `lg` it is a row above the page and the whole thing scrolls as usual. */}

@@ -183,7 +183,7 @@ function ProfitAndLoss({ currency }: { currency: string }) {
           <Select
             id="r_group"
             value={group}
-            onChange={(e) => setGroup(e.target.value)}
+            onValueChange={(value) => setGroup(value)}
             className="w-52"
           >
             <option value="none">Whole company</option>
@@ -513,7 +513,7 @@ function GstReport({ currency }: { currency: string }) {
           <Select
             id="r_reg"
             value={registration}
-            onChange={(e) => setRegistration(e.target.value)}
+            onValueChange={(value) => setRegistration(value)}
             className="w-64"
           >
             <option value="">All registrations</option>
@@ -528,7 +528,7 @@ function GstReport({ currency }: { currency: string }) {
           <Select
             id="r_branch"
             value={branch}
-            onChange={(e) => setBranch(e.target.value)}
+            onValueChange={(value) => setBranch(value)}
             className="w-52"
           >
             <option value="">All branches</option>
@@ -738,7 +738,7 @@ function ProductReport({ currency }: { currency: string }) {
           <Select
             id="p_group"
             value={group}
-            onChange={(e) => setGroup(e.target.value)}
+            onValueChange={(value) => setGroup(value)}
             className="w-44"
           >
             <option value="product">Product</option>

@@ -157,6 +157,7 @@ export default function ProfilePage() {
               </div>
               {!editing && (
                 <Button
+                  className="mobile-page-action"
                   variant="secondary"
                   onClick={() => {
                     setName(profile.name);
@@ -195,7 +196,7 @@ export default function ProfilePage() {
                 <p className="mb-space-4 text-sm text-ink-600">
                   Your email is your login and cannot be changed here.
                 </p>
-                <div className="flex gap-space-2">
+                <div className="mobile-page-actions flex gap-space-2">
                   <Button type="submit" disabled={saving || !name.trim()}>
                     {saving ? "Saving…" : "Save profile"}
                   </Button>
@@ -295,6 +296,7 @@ export default function ProfilePage() {
                 Changing your password signs you out on all devices.
               </p>
               <Button
+                className="mobile-page-action"
                 type="submit"
                 disabled={changing || !current || !password || !confirm}
               >

@@ -212,7 +212,7 @@ export default function ActivityPage() {
         <Select
           className={`${filterClass} w-32`}
           value={f.level}
-          onChange={set("level")}
+          onValueChange={(value) => setF((prev) => ({ ...prev, level: value }))}
           aria-label="Level"
         >
           <option value="">All levels</option>

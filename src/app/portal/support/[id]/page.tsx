@@ -234,7 +234,7 @@ export default function SupportTicketPage() {
                   max={REPLY_MAX_CHARS}
                   unit="characters"
                 />
-                <div className="mt-space-2 flex justify-end">
+                <div className="mobile-page-actions mt-space-2 flex justify-end">
                   <Button
                     disabled={!body.trim() || reply.isPending}
                     onClick={send}

@@ -162,7 +162,7 @@ export function HandoverBillsModal({
               </p>
             )}
             {b.status === "held" && canDecide && (
-              <div className="mt-space-2 flex flex-wrap items-center gap-space-2">
+              <div className="mobile-page-actions mt-space-2 flex flex-wrap items-center gap-space-2">
                 {rejecting === b.id ? (
                   <>
                     <Input

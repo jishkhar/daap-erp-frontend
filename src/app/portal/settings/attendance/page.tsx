@@ -178,7 +178,7 @@ function SettingsForm({
           size="md"
           onClick={useMyLocation}
           disabled={locating}
-          className="mb-space-4"
+          className="mobile-page-action mb-space-4"
         >
           <MapPin size={14} />{" "}
           {locating ? "Locating…" : "Use my current location"}
@@ -208,7 +208,11 @@ function SettingsForm({
           </p>
         )}
         <PermissionGate page="attendance_settings" action="write">
-          <Button type="submit" disabled={saving}>
+          <Button
+            className="mobile-page-action"
+            type="submit"
+            disabled={saving}
+          >
             {saving ? "Saving…" : "Save settings"}
           </Button>
         </PermissionGate>

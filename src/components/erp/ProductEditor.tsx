@@ -53,7 +53,7 @@ function Section({
 }) {
   return (
     <Card className="overflow-hidden rounded-xl">
-      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div className="mobile-page-action-row flex items-center justify-between gap-3 border-b border-line px-5 py-4">
         <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
         {action}
       </div>
@@ -283,7 +283,7 @@ export function ProductEditor({ product }: { product?: Product }) {
             {humanize(draft.lifecycle_status)}
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="mobile-page-actions flex items-center gap-2">
           {dirty && (
             <span className="text-xs text-ink-600">Unsaved changes</span>
           )}
@@ -332,7 +332,11 @@ export function ProductEditor({ product }: { product?: Product }) {
             title="Media"
             action={
               product && canEdit ? (
-                <Button variant="ghost" onClick={() => setMediaOpen(true)}>
+                <Button
+                  className="mobile-page-action"
+                  variant="ghost"
+                  onClick={() => setMediaOpen(true)}
+                >
                   <ImagePlus size={16} />
                   Manage media
                 </Button>
@@ -395,7 +399,7 @@ export function ProductEditor({ product }: { product?: Product }) {
                 <Select
                   id="product-tax"
                   value={draft.tax_code}
-                  onChange={(event) => set("tax_code", event.target.value)}
+                  onValueChange={(value) => set("tax_code", value)}
                 >
                   <option value="">No tax</option>
                   {(taxes.data ?? []).map((tax) => (
@@ -464,9 +468,7 @@ export function ProductEditor({ product }: { product?: Product }) {
                 <Select
                   id="product-tracking"
                   value={draft.serialization_type}
-                  onChange={(event) =>
-                    set("serialization_type", event.target.value)
-                  }
+                  onValueChange={(value) => set("serialization_type", value)}
                 >
                   <option value="NONE">Counted quantity</option>
                   <option value="SERIAL">Serial number</option>
@@ -498,14 +500,11 @@ export function ProductEditor({ product }: { product?: Product }) {
                   <Select
                     id="product-barcode-type"
                     value={draft.barcode_type}
-                    onChange={(event) => {
-                      set("barcode_type", event.target.value);
+                    onValueChange={(value) => {
+                      set("barcode_type", value);
                       set(
                         "barcode",
-                        sanitizeBarcode(
-                          event.target.value as BarcodeType,
-                          draft.barcode,
-                        ),
+                        sanitizeBarcode(value as BarcodeType, draft.barcode),
                       );
                     }}
                   >
@@ -557,6 +556,7 @@ export function ProductEditor({ product }: { product?: Product }) {
             action={
               product && canEdit ? (
                 <Button
+                  className="mobile-page-action"
                   variant="ghost"
                   onClick={() => {
                     if (dirty)
@@ -590,7 +590,7 @@ export function ProductEditor({ product }: { product?: Product }) {
                 <Select
                   id="product-age"
                   value={draft.age_group}
-                  onChange={(event) => set("age_group", event.target.value)}
+                  onValueChange={(value) => set("age_group", value)}
                 >
                   <option value="">Not specified</option>
                   {["Adult", "Teen", "Child", "Infant"].map((age) => (
@@ -604,9 +604,7 @@ export function ProductEditor({ product }: { product?: Product }) {
                 <Select
                   id="product-audience"
                   value={draft.target_audience}
-                  onChange={(event) =>
-                    set("target_audience", event.target.value)
-                  }
+                  onValueChange={(value) => set("target_audience", value)}
                 >
                   <option value="">Not specified</option>
                   {PRODUCT_AUDIENCES.map((option) => (
@@ -624,7 +622,7 @@ export function ProductEditor({ product }: { product?: Product }) {
             <Select
               aria-label="Product status"
               value={draft.lifecycle_status}
-              onChange={(event) => set("lifecycle_status", event.target.value)}
+              onValueChange={(value) => set("lifecycle_status", value)}
             >
               {["draft", "active", "discontinued", "archived"].map((status) => (
                 <option key={status} value={status}>
@@ -642,7 +640,7 @@ export function ProductEditor({ product }: { product?: Product }) {
                 id="product-category"
                 value={draft.category_id}
                 disabled={categories.isLoading}
-                onChange={(event) => set("category_id", event.target.value)}
+                onValueChange={(value) => set("category_id", value)}
               >
                 <option value="">No category</option>
                 {(categories.data ?? []).map((category) => (
@@ -667,7 +665,7 @@ export function ProductEditor({ product }: { product?: Product }) {
               <Select
                 id="product-brand"
                 value={draft.brand_id}
-                onChange={(event) => set("brand_id", event.target.value)}
+                onValueChange={(value) => set("brand_id", value)}
               >
                 <option value="">No brand</option>
                 {(brands.data ?? []).map((brand) => (
@@ -703,7 +701,11 @@ export function ProductEditor({ product }: { product?: Product }) {
               <p className="mb-3 text-sm text-ink-600">
                 Receive stock and review movements in Inventory.
               </p>
-              <Button href="/portal/inventory" variant="secondary">
+              <Button
+                className="mobile-page-action"
+                href="/portal/inventory"
+                variant="secondary"
+              >
                 <Package size={15} />
                 Open inventory
               </Button>

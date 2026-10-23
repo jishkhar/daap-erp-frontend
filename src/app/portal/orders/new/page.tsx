@@ -231,7 +231,7 @@ function NewOrder() {
                 <Select
                   id="o_channel"
                   value={channel}
-                  onChange={(e) => setChannel(e.target.value as Channel)}
+                  onValueChange={(value) => setChannel(value as Channel)}
                 >
                   {CHANNEL_ORDER.map((c) => (
                     <option key={c} value={c}>
@@ -248,7 +248,7 @@ function NewOrder() {
                 <Select
                   id="o_branch"
                   value={branchId}
-                  onChange={(e) => setBranch(e.target.value)}
+                  onValueChange={(value) => setBranch(value)}
                 >
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -350,7 +350,7 @@ function NewOrder() {
                   <Select
                     id="o_type"
                     value={orderType}
-                    onChange={(e) => setOrderType(e.target.value)}
+                    onValueChange={(value) => setOrderType(value)}
                   >
                     <option value="shipping">Shipping</option>
                     <option value="delivery">Local delivery</option>
@@ -492,8 +492,8 @@ function NewOrder() {
                 <Select
                   id="o_pay"
                   value={payNow ? method : "later"}
-                  onChange={(e) => {
-                    const v = e.target.value;
+                  onValueChange={(value) => {
+                    const v = value;
                     setPayNow(v !== "later");
                     if (v !== "later") setMethod(v);
                   }}
@@ -513,7 +513,7 @@ function NewOrder() {
                 <Select
                   id="o_rpay"
                   value={remoteMethod}
-                  onChange={(e) => setRemoteMethod(e.target.value)}
+                  onValueChange={(value) => setRemoteMethod(value)}
                 >
                   <option value="cod">
                     Cash on delivery (confirms the order)

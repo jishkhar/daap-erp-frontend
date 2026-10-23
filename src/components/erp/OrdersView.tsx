@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { AnchoredSelect } from "@/components/ui/AnchoredSelect";
 import { useOrderList } from "@/hooks/useOrders";
 import { useActiveBranch } from "@/lib/branch";
 import {
@@ -209,45 +209,45 @@ export function OrdersView({ initialChannel = "" }: Props) {
           className="max-w-xs"
           aria-label="Search orders"
         />
-        <Select
+        <AnchoredSelect
           value={channelFilter}
-          onChange={(e) => setChannelFilter(e.target.value)}
+          onValueChange={setChannelFilter}
           className="w-44"
-          aria-label="Channel"
-        >
-          <option value="">All channels</option>
-          {CHANNEL_ORDER.map((c) => (
-            <option key={c} value={c}>
-              {CHANNELS[c].label}
-            </option>
-          ))}
-        </Select>
-        <Select
+          label="Channel"
+          options={[
+            { value: "", label: "All channels" },
+            ...CHANNEL_ORDER.map((channel) => ({
+              value: channel,
+              label: CHANNELS[channel].label,
+            })),
+          ]}
+        />
+        <AnchoredSelect
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onValueChange={setStatus}
           className="w-44"
-          aria-label="Order status"
-        >
-          <option value="">Any status</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s === "confirmed" ? "Placed" : humanize(s)}
-            </option>
-          ))}
-        </Select>
-        <Select
+          label="Order status"
+          options={[
+            { value: "", label: "Any status" },
+            ...STATUSES.map((status) => ({
+              value: status,
+              label: status === "confirmed" ? "Placed" : humanize(status),
+            })),
+          ]}
+        />
+        <AnchoredSelect
           value={paymentStatus}
-          onChange={(e) => setPaymentStatus(e.target.value)}
+          onValueChange={setPaymentStatus}
           className="w-48"
-          aria-label="Payment status"
-        >
-          <option value="">Any payment</option>
-          {PAYMENT_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {humanize(s)}
-            </option>
-          ))}
-        </Select>
+          label="Payment status"
+          options={[
+            { value: "", label: "Any payment" },
+            ...PAYMENT_STATUSES.map((status) => ({
+              value: status,
+              label: humanize(status),
+            })),
+          ]}
+        />
       </Card>
 
       {orders.error && (

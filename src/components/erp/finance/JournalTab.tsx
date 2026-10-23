@@ -135,7 +135,7 @@ export function JournalTab({ currency }: { currency: string }) {
           can&apos;t be edited — a mistake is fixed by reversing it.
         </p>
         {canManage && (
-          <Button onClick={() => setOpen(true)}>
+          <Button className="mobile-page-action" onClick={() => setOpen(true)}>
             <Plus size={16} /> Manual entry
           </Button>
         )}
@@ -236,12 +236,13 @@ export function JournalTab({ currency }: { currency: string }) {
           {rows.map((r, i) => (
             <div
               key={i}
-              className="grid grid-cols-[1fr_110px_110px_36px] items-center gap-space-2"
+              className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_36px] items-center gap-space-2 md:grid-cols-[minmax(0,1fr)_110px_110px_36px]"
             >
               <Select
                 aria-label="Account"
+                className="col-span-3 min-w-0 md:col-span-1"
                 value={r.account}
-                onChange={(e) => setRow(i, { account: e.target.value })}
+                onValueChange={(value) => setRow(i, { account: value })}
               >
                 <option value="">Account…</option>
                 {(accounts.data ?? []).map((a) => (
@@ -288,7 +289,7 @@ export function JournalTab({ currency }: { currency: string }) {
         </div>
         <Button
           variant="ghost"
-          className="mt-space-2"
+          className="mobile-page-action mt-space-2"
           onClick={() =>
             setRows((rs) => [...rs, { account: "", debit: "", credit: "" }])
           }

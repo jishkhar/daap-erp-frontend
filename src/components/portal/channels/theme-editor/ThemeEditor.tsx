@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -291,8 +291,8 @@ function Editor({
             <Select
               value=""
               aria-label="Add a section"
-              onChange={(e) => {
-                const type = sectionType(e.target.value);
+              onValueChange={(value) => {
+                const type = sectionType(value);
                 if (!type) return;
                 const s = newSection(type);
                 setHome([...home, s]);
@@ -361,7 +361,7 @@ function Editor({
             ` · ${problems} ${problems === 1 ? "field needs" : "fields need"} fixing`}
         </span>
         {canEdit && (
-          <div className="ml-auto flex items-center gap-space-2">
+          <div className="mobile-page-actions ml-auto flex items-center gap-space-2">
             <Button
               variant="secondary"
               disabled={!dirty || busy}
@@ -376,8 +376,8 @@ function Editor({
         )}
       </div>
 
-      <div className="grid gap-space-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
-        <Card className="max-h-[calc(100vh-220px)] overflow-y-auto p-space-3">
+      <div className="grid gap-space-4 xl:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
+        <Card className="max-h-[calc(100dvh-220px)] overflow-y-auto p-space-3">
           {panelTitle !== null && (
             <div className="mb-space-3 flex items-center gap-space-2 border-b border-line pb-space-2">
               <SmallButton label="Back" onClick={() => setSelected(null)}>
@@ -391,7 +391,7 @@ function Editor({
           <div className={panelTitle !== null ? "px-space-1" : ""}>{panel}</div>
         </Card>
 
-        <Card className="flex min-h-[520px] flex-col overflow-hidden">
+        <Card className="flex min-h-[520px] min-w-0 flex-col overflow-hidden">
           <div className="flex items-center gap-space-2 border-b border-line px-space-3 py-2 text-[12.5px] text-ink-600">
             <span className="min-w-0 flex-1 truncate">
               Preview of your saved draft
@@ -415,11 +415,9 @@ function Editor({
             )}
           </div>
           {preview.data ? (
-            <iframe
+            <StorePreview
               key={frame}
-              title="Store preview"
               src={previewUrl(slug, preview.data.token)}
-              className="h-[calc(100vh-260px)] min-h-[480px] w-full flex-1 bg-white"
             />
           ) : (
             <div className="grid flex-1 place-items-center p-space-5 text-[13px] text-ink-600">
@@ -451,6 +449,55 @@ function Editor({
         busy={busy}
         onCancel={() => setConfirmPublish(false)}
         onConfirm={doPublish}
+      />
+    </div>
+  );
+}
+
+/** Keep the existing preview panel, but render a real desktop viewport inside it on wide screens. */
+function StorePreview({ src }: { src: string }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0, desktop: false });
+
+  useEffect(() => {
+    const element = container.current;
+    if (!element) return;
+    const desktop = window.matchMedia("(min-width: 1280px)");
+    const measure = () =>
+      setSize({
+        width: element.clientWidth,
+        height: element.clientHeight,
+        desktop: desktop.matches,
+      });
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    desktop.addEventListener("change", measure);
+    return () => {
+      observer.disconnect();
+      desktop.removeEventListener("change", measure);
+    };
+  }, []);
+
+  const scale =
+    size.desktop && size.width > 0 ? Math.min(1, size.width / 1440) : 1;
+  return (
+    <div
+      ref={container}
+      className="relative h-[calc(100dvh-260px)] min-h-[480px] w-full flex-1 overflow-hidden bg-white"
+    >
+      <iframe
+        title="Store preview"
+        src={src}
+        className="absolute inset-0 h-full w-full origin-top-left border-0 bg-white"
+        style={
+          size.desktop && size.width > 0
+            ? {
+                width: Math.max(1440, size.width),
+                height: size.height / scale,
+                transform: `scale(${scale})`,
+              }
+            : undefined
+        }
       />
     </div>
   );

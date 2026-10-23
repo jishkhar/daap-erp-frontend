@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/Select";
+
 import { useEffect, useRef, useState } from "react";
 import {
   Bold,
@@ -142,7 +144,7 @@ export function RichTextEditor({
         aria-label="Description formatting"
         className="flex flex-wrap items-center gap-0.5 border-b border-line bg-paper/70 px-2 py-1.5"
       >
-        <select
+        <Select
           aria-label="Text style"
           value={block}
           disabled={disabled || source}
@@ -154,18 +156,18 @@ export function RichTextEditor({
             )
               selection.current = selected.getRangeAt(0).cloneRange();
           }}
-          onChange={(event) => {
-            setBlock(event.target.value);
-            command("formatBlock", event.target.value);
+          onValueChange={(value) => {
+            setBlock(value);
+            command("formatBlock", value);
           }}
-          className="mr-1 max-w-[115px] rounded border-0 bg-transparent py-1 text-xs"
+          className="mr-1 h-7 w-[115px] rounded border-0 bg-transparent px-1 py-1 text-xs shadow-none"
         >
           <option value="p">Paragraph</option>
           <option value="h1">Heading 1</option>
           <option value="h2">Heading 2</option>
           <option value="h3">Heading 3</option>
           <option value="blockquote">Quote</option>
-        </select>
+        </Select>
         <span className="mx-1 h-5 border-l border-line" />
         {tool("Bold", "bold", <Bold size={15} />)}
         {tool("Italic", "italic", <Italic size={15} />)}

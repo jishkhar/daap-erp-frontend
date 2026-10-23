@@ -95,11 +95,19 @@ export default function SetupPage() {
           })}
           <div className="text-right">
             {data.dismissed ? (
-              <Button variant="ghost" onClick={() => setDismissed(false)}>
+              <Button
+                className="mobile-page-action"
+                variant="ghost"
+                onClick={() => setDismissed(false)}
+              >
                 Show the getting-started list on my dashboard
               </Button>
             ) : (
-              <Button variant="ghost" onClick={() => setDismissed(true)}>
+              <Button
+                className="mobile-page-action"
+                variant="ghost"
+                onClick={() => setDismissed(true)}
+              >
                 Hide the getting-started list from my dashboard
               </Button>
             )}

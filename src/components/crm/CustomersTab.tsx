@@ -193,7 +193,7 @@ export function CustomersTab({
           </span>
           <Select
             value={segment}
-            onChange={(e) => onFilterChange({ segment: e.target.value })}
+            onValueChange={(value) => onFilterChange({ segment: value })}
             className="!w-auto"
             aria-label="Segment"
           >
@@ -206,7 +206,7 @@ export function CustomersTab({
           </Select>
           <Select
             value={tag}
-            onChange={(e) => onFilterChange({ tag: e.target.value })}
+            onValueChange={(value) => onFilterChange({ tag: value })}
             className="!w-auto"
             aria-label="Tag"
           >
@@ -219,7 +219,7 @@ export function CustomersTab({
           </Select>
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onValueChange={(value) => setStatus(value)}
             className="!w-auto"
             aria-label="Status"
           >

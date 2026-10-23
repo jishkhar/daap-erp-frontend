@@ -173,7 +173,7 @@ export default function BranchesPage() {
           </ul>
           <button
             type="button"
-            className="mt-space-2 text-[12.5px] text-ink-400 underline"
+            className="mobile-page-action mt-space-2 text-[12.5px] text-ink-400 underline"
             onClick={() => setAdded(null)}
           >
             Dismiss

@@ -96,7 +96,7 @@ export function CommunicationTab({
                   {n.customer_name}
                 </button>
                 <p className="text-ink-900">{n.body}</p>
-                <p className="flex items-center gap-space-2 text-[12px] text-ink-400">
+                <p className="mobile-page-action-row flex items-center gap-space-2 text-[12px] text-ink-400">
                   <Badge tone={overdue ? "error" : "warning"}>
                     {overdue ? "Overdue" : "Due"}{" "}
                     {n.follow_up_at ? formatDateTime(n.follow_up_at) : ""}
@@ -104,7 +104,7 @@ export function CommunicationTab({
                   {canEdit && (
                     <button
                       type="button"
-                      className="font-semibold text-brand-600 hover:underline"
+                      className="mobile-page-action font-semibold text-brand-600 hover:underline"
                       onClick={() => done(n)}
                     >
                       Mark done

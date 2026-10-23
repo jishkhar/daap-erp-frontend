@@ -156,7 +156,7 @@ export default function PurchaseOrderPage() {
       {o && (
         <>
           <div className="mb-space-5 flex flex-wrap items-start justify-between gap-space-3">
-            <div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               <h1 className="text-display">{o.po_number}</h1>
               <div className="mt-space-2 flex flex-wrap items-center gap-space-2">
                 <Badge tone={PO_STATUS_TONE[o.status]}>
@@ -173,7 +173,7 @@ export default function PurchaseOrderPage() {
                 {o.expected_date ? ` · expected ${o.expected_date}` : ""}
               </p>
             </div>
-            <div className="flex flex-wrap gap-space-2">
+            <div className="mobile-page-actions flex flex-wrap gap-space-2">
               {o.status === "DRAFT" && canApprove && (
                 <Button
                   disabled={busy}
@@ -210,7 +210,7 @@ export default function PurchaseOrderPage() {
           </div>
 
           <div className="grid gap-space-4 lg:grid-cols-3">
-            <Card className="p-space-4 lg:col-span-2">
+            <Card className="min-w-0 p-space-4 lg:col-span-2">
               <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
                 Items
               </h2>
@@ -218,9 +218,9 @@ export default function PurchaseOrderPage() {
                 {(o.items ?? []).map((i) => (
                   <li
                     key={i.id}
-                    className="flex items-start justify-between gap-space-3 py-space-3"
+                    className="flex min-w-0 flex-col items-start justify-between gap-space-2 py-space-3 min-[480px]:flex-row min-[480px]:gap-space-3"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 [overflow-wrap:anywhere]">
                       <p className="font-semibold text-ink-900">
                         {i.product_name}
                       </p>
@@ -236,14 +236,14 @@ export default function PurchaseOrderPage() {
                           : ""}
                       </p>
                     </div>
-                    <p className="shrink-0 font-semibold">
+                    <p className="min-w-0 max-w-full font-semibold [overflow-wrap:anywhere]">
                       {formatMoney(i.line_total_minor, cur)}
                     </p>
                   </li>
                 ))}
               </ul>
             </Card>
-            <div className="space-y-space-4">
+            <div className="min-w-0 space-y-space-4">
               <Card className="p-space-4">
                 <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                   Order value
@@ -255,35 +255,38 @@ export default function PurchaseOrderPage() {
                 ].map(([k, v]) => (
                   <div
                     key={k as string}
-                    className="flex justify-between py-1 text-[14px]"
+                    className="flex justify-between gap-space-2 py-1 text-[14px]"
                   >
-                    <span className="text-ink-600">{k}</span>
-                    <span className="font-medium">
+                    <span className="min-w-0 text-ink-600">{k}</span>
+                    <span className="min-w-0 text-right font-medium [overflow-wrap:anywhere]">
                       {formatMoney(v as number, cur)}
                     </span>
                   </div>
                 ))}
                 <div className="my-1 border-t border-line" />
-                <div className="flex justify-between py-1 text-[15px]">
+                <div className="flex justify-between gap-space-2 py-1 text-[15px]">
                   <span className="font-semibold">Total</span>
-                  <span className="font-bold">
+                  <span className="min-w-0 text-right font-bold [overflow-wrap:anywhere]">
                     {formatMoney(o.total_minor, cur)}
                   </span>
                 </div>
               </Card>
-              <Card className="p-space-4">
-                <div className="mb-space-2 flex items-center justify-between gap-space-2">
+              <Card className="@container min-w-0 p-space-4">
+                <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
                   <h2 className="text-[15px] font-bold text-ink-900">
                     Bills &amp; payments
                   </h2>
                   {canPay && billing && billing.owed_minor > 0 && (
-                    <Button onClick={() => setPaying(true)}>
+                    <Button
+                      className="mobile-page-action w-full @min-[300px]:w-auto"
+                      onClick={() => setPaying(true)}
+                    >
                       <Wallet size={15} /> Pay
                     </Button>
                   )}
                 </div>
                 {billing && (o.receipts ?? []).length > 0 && (
-                  <div className="mb-space-2 grid grid-cols-3 gap-space-2 text-center">
+                  <div className="mb-space-3 grid grid-cols-1 gap-space-2 @min-[300px]:grid-cols-3">
                     {(
                       [
                         [
@@ -296,11 +299,13 @@ export default function PurchaseOrderPage() {
                     ).map(([label, v]) => (
                       <div
                         key={label}
-                        className="rounded-md border border-line p-space-2"
+                        className="flex min-w-0 items-center justify-between gap-space-2 rounded-md border border-line p-space-2 @min-[300px]:flex-col @min-[300px]:justify-center @min-[300px]:gap-0"
                       >
-                        <p className="text-[11.5px] text-ink-600">{label}</p>
+                        <p className="shrink-0 text-[11.5px] text-ink-600">
+                          {label}
+                        </p>
                         <p
-                          className={`text-[14px] font-bold ${label === "We owe" && billing.overdue ? "text-error" : "text-ink-900"}`}
+                          className={`min-w-0 text-right text-[14px] font-bold [overflow-wrap:anywhere] @min-[300px]:text-center ${label === "We owe" && billing.overdue ? "text-error" : "text-ink-900"}`}
                         >
                           {formatMoney(v, cur)}
                         </p>
@@ -316,60 +321,78 @@ export default function PurchaseOrderPage() {
                 )}
                 <ul className="divide-y divide-line">
                   {(o.receipts ?? []).map((r) => (
-                    <li key={r.id} className="py-2 text-[13.5px]">
+                    <li key={r.id} className="min-w-0 py-space-3 text-[13.5px]">
                       <div className="flex items-start justify-between gap-space-2">
-                        <span className="min-w-0">
-                          <strong>{r.grn_number}</strong>
-                          {r.supplier_invoice_number && (
-                            <span className="text-ink-400">
-                              {" "}
-                              · bill {r.supplier_invoice_number}
-                            </span>
-                          )}
-                          <br />
-                          <span className="text-[12px] text-ink-400">
-                            {formatDateTime(r.received_at)} ·{" "}
-                            {formatMoney(r.total_minor, cur)}
-                            {r.returned_minor
-                              ? ` · ${formatMoney(r.returned_minor, cur)} returned`
-                              : ""}
-                          </span>
-                          <br />
-                          <span className="text-[12px] text-ink-600">
-                            Paid {formatMoney(r.paid_minor, cur)}
-                            {r.owed_minor > 0
-                              ? ` · owes ${formatMoney(r.owed_minor, cur)} · due ${r.due_date}`
-                              : ""}
-                          </span>
-                          {r.labels && (
-                            <>
-                              <br />
-                              <span
-                                className={
-                                  r.labels.status === "open"
-                                    ? "text-[12px] text-warning"
-                                    : "text-[12px] text-ink-400"
-                                }
-                              >
-                                {receiptLabelsText(r.labels)}
-                              </span>
-                            </>
-                          )}
-                        </span>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <Badge tone={BILL_STATE_TONE[r.payment_state]}>
-                            {BILL_STATE_LABEL[r.payment_state]}
-                          </Badge>
-                          {canReturn && (
-                            <Button
-                              variant="ghost"
-                              onClick={() => openReturn(r.id)}
-                            >
-                              <Undo2 size={14} /> Return
-                            </Button>
-                          )}
-                        </div>
+                        <strong className="min-w-0 [overflow-wrap:anywhere]">
+                          {r.grn_number}
+                        </strong>
+                        <Badge
+                          tone={BILL_STATE_TONE[r.payment_state]}
+                          className="shrink-0"
+                        >
+                          {BILL_STATE_LABEL[r.payment_state]}
+                        </Badge>
                       </div>
+                      {r.supplier_invoice_number && (
+                        <p className="mt-1 text-[12px] text-ink-600 [overflow-wrap:anywhere]">
+                          Bill {r.supplier_invoice_number}
+                        </p>
+                      )}
+                      <p className="mt-1 text-[12px] text-ink-400 [overflow-wrap:anywhere]">
+                        {formatDateTime(r.received_at)} ·{" "}
+                        {formatMoney(r.total_minor, cur)}
+                        {r.returned_minor
+                          ? ` · ${formatMoney(r.returned_minor, cur)} returned`
+                          : ""}
+                      </p>
+                      <dl className="mt-space-2 space-y-1 text-[12px]">
+                        <div className="flex justify-between gap-space-2">
+                          <dt className="text-ink-600">Paid</dt>
+                          <dd className="min-w-0 text-right font-medium [overflow-wrap:anywhere]">
+                            {formatMoney(r.paid_minor, cur)}
+                          </dd>
+                        </div>
+                        {r.owed_minor > 0 && (
+                          <>
+                            <div className="flex justify-between gap-space-2">
+                              <dt className="text-ink-600">We owe</dt>
+                              <dd className="min-w-0 text-right font-medium [overflow-wrap:anywhere]">
+                                {formatMoney(r.owed_minor, cur)}
+                              </dd>
+                            </div>
+                            {r.due_date && (
+                              <div className="flex justify-between gap-space-2">
+                                <dt className="text-ink-600">Due</dt>
+                                <dd>
+                                  <time
+                                    dateTime={r.due_date}
+                                    className="whitespace-nowrap"
+                                  >
+                                    {r.due_date}
+                                  </time>
+                                </dd>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </dl>
+                      {r.labels && (
+                        <p
+                          className={`mt-1 text-[12px] [overflow-wrap:anywhere] ${r.labels.status === "open" ? "text-warning" : "text-ink-400"}`}
+                        >
+                          {receiptLabelsText(r.labels)}
+                        </p>
+                      )}
+                      {canReturn && (
+                        <div className="mobile-page-actions mt-space-2 flex justify-end">
+                          <Button
+                            variant="ghost"
+                            onClick={() => openReturn(r.id)}
+                          >
+                            <Undo2 size={14} /> Return
+                          </Button>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -492,7 +515,7 @@ export default function PurchaseOrderPage() {
                   </li>
                 ))}
             </ul>
-            <div className="mt-space-3 grid gap-x-space-4 sm:grid-cols-2">
+            <div className="mt-space-3 grid gap-x-space-4 @min-[400px]:grid-cols-2">
               <Field
                 label="Supplier bill number"
                 htmlFor="grn_inv"

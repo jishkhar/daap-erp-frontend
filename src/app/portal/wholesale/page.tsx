@@ -206,7 +206,10 @@ function WholesaleView() {
             Turn it on to sell in bulk to retailers and dealers with their own
             prices and credit terms.
           </p>
-          <Button className="mt-space-3" href="/portal/settings/wholesale">
+          <Button
+            className="mobile-page-action mt-space-3"
+            href="/portal/settings/wholesale"
+          >
             Open Settings &gt; Wholesale
           </Button>
         </Card>
@@ -271,7 +274,7 @@ function WholesaleView() {
             <Select
               aria-label="Status"
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onValueChange={(value) => setStatus(value)}
               className="w-44"
             >
               <option value="">Any status</option>

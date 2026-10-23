@@ -292,7 +292,7 @@ export function ReturnDetailPanel({
             <Select
               id="recv_mode"
               value={mode || defaultMode}
-              onChange={(e) => setMode(e.target.value as RefundMode)}
+              onValueChange={(value) => setMode(value as RefundMode)}
             >
               {(
                 [
@@ -322,7 +322,7 @@ export function ReturnDetailPanel({
               onChange={(e) => setNote(e.target.value)}
             />
           </Field>
-          <div className="flex flex-wrap gap-space-2">
+          <div className="mobile-page-actions flex flex-wrap gap-space-2">
             {r.status === "requested" && (
               <Button
                 variant="secondary"

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Toaster } from "@/components/ui/toast";
@@ -47,6 +47,8 @@ export const metadata: Metadata = {
   description:
     "One ERP for every branch and every sales channel — Online, POS and WhatsApp.",
 };
+
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export default function RootLayout({
   children,

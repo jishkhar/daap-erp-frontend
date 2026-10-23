@@ -80,7 +80,7 @@ export function ReconciliationTab({ currency }: { currency: string }) {
           onChange={(e) => setText(e.target.value)}
         />
         <Button
-          className="mt-space-2"
+          className="mobile-page-action mt-space-2"
           disabled={busy || !text.trim()}
           onClick={importLines}
         >

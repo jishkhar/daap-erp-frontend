@@ -184,8 +184,8 @@ export function PriceListEditor({
               No prices yet. Every product sells at its normal price.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13.5px]">
+            <div className="min-w-0 max-w-full overflow-x-auto">
+              <table className="min-w-[560px] w-full text-[13.5px] [&_td]:[overflow-wrap:anywhere]">
                 <thead>
                   <tr className="text-left text-label">
                     <th className="py-space-2 pr-space-2">Product</th>

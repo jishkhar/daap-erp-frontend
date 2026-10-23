@@ -102,35 +102,44 @@ function ReturnsView() {
         title="Returns & exchanges"
         description="Goods customers brought back, from the counter, the website and WhatsApp. Take a new one from the order's page."
       />
-      <div className="mb-space-4 grid gap-space-3 sm:grid-cols-3">
+      <div
+        aria-label="Return views"
+        className="mb-space-4 grid grid-cols-3 gap-2 md:gap-space-3"
+      >
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
+            aria-pressed={tab === t.key}
             onClick={() => {
               setTab(t.key);
               setSelected(null);
             }}
             className={cn(
-              "flex items-center justify-center gap-space-2 rounded-lg border px-space-4 py-space-3 text-[14px] font-semibold",
+              "flex min-w-0 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-center text-[12px] leading-4 font-semibold md:flex-row md:gap-space-2 md:px-space-4 md:py-space-3 md:text-[14px] md:leading-normal",
               tab === t.key
                 ? "border-brand-500 bg-brand-50 text-brand-700"
                 : "border-line bg-card text-ink-700 hover:bg-black/[0.02]",
             )}
           >
-            {t.icon} {t.label}
-            {t.count !== undefined && (
-              <span
-                className={cn(
-                  "rounded-full px-2 text-[12px]",
-                  t.key === "requests" && t.count > 0
-                    ? "bg-warning-tint text-warning"
-                    : "bg-black/[0.05]",
-                )}
-              >
-                {t.count}
-              </span>
-            )}
+            <span className="flex items-center gap-1.5 md:contents">
+              {t.icon}
+              {t.count !== undefined && (
+                <span
+                  className={cn(
+                    "rounded-full px-2 text-[12px] md:order-2",
+                    t.key === "requests" && t.count > 0
+                      ? "bg-warning-tint text-warning"
+                      : "bg-black/[0.05]",
+                  )}
+                >
+                  {t.count}
+                </span>
+              )}
+            </span>
+            <span className="flex min-h-8 items-center justify-center md:order-1 md:min-h-0">
+              {t.label}
+            </span>
           </button>
         ))}
       </div>
@@ -138,20 +147,20 @@ function ReturnsView() {
       <div className="grid gap-space-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card className="min-w-0 p-space-4">
           <div className="mb-space-3 flex flex-wrap gap-space-2">
-            <label className="flex h-10 min-w-[220px] flex-1 items-center gap-space-2 rounded-md border border-line bg-card px-space-3 text-ink-400 focus-within:border-brand-400">
-              <Search size={16} />
+            <label className="flex h-11 min-w-0 basis-full items-center gap-space-2 rounded-md border border-line bg-card px-space-3 text-ink-400 focus-within:border-brand-400 md:h-10 md:min-w-[220px] md:flex-1 md:basis-auto">
+              <Search size={16} className="shrink-0" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by bill, order, return number, customer or product…"
-                className="w-full bg-transparent text-[14px] text-ink-900 outline-none placeholder:text-ink-400"
+                className="min-w-0 w-full bg-transparent text-[14px] text-ink-900 outline-none placeholder:text-ink-400"
               />
             </label>
             <Select
               aria-label="Channel"
               value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              className="w-36"
+              onValueChange={(value) => setChannel(value)}
+              className="w-full min-[430px]:flex-1 md:w-36 md:flex-none"
             >
               <option value="">All channels</option>
               <option value="pos">POS</option>
@@ -162,8 +171,8 @@ function ReturnsView() {
               <Select
                 aria-label="Period"
                 value={period}
-                onChange={(e) => setPeriod(e.target.value as Period)}
-                className="w-40"
+                onValueChange={(value) => setPeriod(value as Period)}
+                className="w-full min-[430px]:flex-1 md:w-40 md:flex-none"
               >
                 {(Object.keys(PERIODS) as Period[]).map((p) => (
                   <option key={p} value={p}>

@@ -88,7 +88,7 @@ export function CollectionProductPicker({
           <Select
             aria-label="Filter by category"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onValueChange={(value) => setCategory(value)}
           >
             <option value="">All categories</option>
             {categories.data?.map((c) => (
@@ -100,7 +100,7 @@ export function CollectionProductPicker({
           <Select
             aria-label="Filter by status"
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onValueChange={(value) => setStatus(value)}
           >
             <option value="">All statuses</option>
             {["active", "draft", "discontinued", "archived"].map((s) => (

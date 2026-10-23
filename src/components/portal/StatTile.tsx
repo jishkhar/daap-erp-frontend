@@ -63,6 +63,8 @@ type Props = {
   loading?: boolean;
   /** Optional explanation shown from an info icon next to the label. */
   info?: ReactNode;
+  /** Stack the icon above readable, full-width content in mobile summary grids. */
+  stackOnMobile?: boolean;
 };
 
 export function StatTile({
@@ -77,6 +79,7 @@ export function StatTile({
   hint = "vs last week",
   loading = false,
   info,
+  stackOnMobile = false,
 }: Props) {
   const isUp = deltaPct !== null && deltaPct > 0;
   const isDown = deltaPct !== null && deltaPct < 0;
@@ -87,7 +90,14 @@ export function StatTile({
     Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
 
   return (
-    <Card className="flex items-start gap-space-3 p-space-4">
+    <Card
+      className={cn(
+        "flex items-start",
+        stackOnMobile
+          ? "min-w-0 flex-col gap-space-2 p-space-3 md:flex-row md:gap-space-3 md:p-space-4"
+          : "gap-space-3 p-space-4",
+      )}
+    >
       {icon && (
         <span
           className={cn(
@@ -98,14 +108,27 @@ export function StatTile({
           {icon}
         </span>
       )}
-      <div className="min-w-0">
-        <p className="text-[13px] leading-snug font-semibold text-ink-600">
+      <div className={cn("min-w-0", stackOnMobile && "w-full md:w-auto")}>
+        <p
+          className={cn(
+            "text-[13px] leading-snug font-semibold text-ink-600",
+            stackOnMobile &&
+              "min-h-9 [overflow-wrap:anywhere] md:min-h-0 md:[overflow-wrap:normal]",
+          )}
+        >
           {label}
           {info}
         </p>
-        <div className="mt-1 flex items-baseline gap-space-2">
+        <div
+          className={cn(
+            "mt-1 flex items-baseline gap-space-2",
+            stackOnMobile && "flex-wrap md:flex-nowrap",
+          )}
+        >
           {loading ? (
-            <Skeleton className="h-[30px] w-24" />
+            <Skeleton
+              className={cn("h-[30px] w-24", stackOnMobile && "max-w-full")}
+            />
           ) : (
             <span
               className={cn(
@@ -114,6 +137,8 @@ export function StatTile({
                   value.length + (prefix?.length ?? 0) > 9
                   ? "text-[24px]"
                   : "text-[30px]",
+                stackOnMobile &&
+                  "max-md:min-w-0 max-md:max-w-full max-md:text-[24px] max-md:leading-tight max-md:[overflow-wrap:anywhere]",
               )}
             >
               {prefix}
@@ -137,7 +162,17 @@ export function StatTile({
             </span>
           )}
         </div>
-        {showHint && !loading && <p className="text-hint mt-1">{hint}</p>}
+        {showHint && !loading && (
+          <p
+            className={cn(
+              "text-hint mt-1",
+              stackOnMobile &&
+                "[overflow-wrap:anywhere] md:[overflow-wrap:normal]",
+            )}
+          >
+            {hint}
+          </p>
+        )}
       </div>
     </Card>
   );

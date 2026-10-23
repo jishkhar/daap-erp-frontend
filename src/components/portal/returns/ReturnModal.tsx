@@ -326,7 +326,7 @@ export function ReturnModal({
               <Select
                 id="ret_reason"
                 value={reason}
-                onChange={(e) => setReason(e.target.value as ReturnReason)}
+                onValueChange={(value) => setReason(value as ReturnReason)}
               >
                 {REASONS.map((x) => (
                   <option key={x} value={x}>
@@ -339,7 +339,7 @@ export function ReturnModal({
               <Select
                 id="ret_branch"
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
+                onValueChange={(value) => setBranchId(value)}
               >
                 {(session?.branches ?? []).map((b) => (
                   <option key={b.id} value={b.id}>
@@ -471,7 +471,7 @@ export function ReturnModal({
               <Select
                 id="ret_mode"
                 value={mode}
-                onChange={(e) => setMode(e.target.value as RefundMode)}
+                onValueChange={(value) => setMode(value as RefundMode)}
               >
                 {modes.map((m) => (
                   <option key={m} value={m}>
@@ -489,8 +489,8 @@ export function ReturnModal({
                   <Select
                     id="ret_pay"
                     value={payMethod}
-                    onChange={(e) =>
-                      setPayMethod(e.target.value as "cash" | "card" | "upi")
+                    onValueChange={(value) =>
+                      setPayMethod(value as "cash" | "card" | "upi")
                     }
                   >
                     <option value="cash">Cash</option>

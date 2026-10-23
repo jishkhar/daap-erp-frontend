@@ -147,11 +147,11 @@ function TimelineRow({
       </div>
       <div
         className={cn(
-          "mb-space-3 flex min-w-0 flex-1 items-start gap-space-3 rounded-md px-space-3 py-space-2",
+          "mb-space-3 grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-space-2 gap-y-1 rounded-md px-space-3 py-space-2 [overflow-wrap:anywhere] md:flex md:gap-space-3",
           tone === "brand" && "bg-success-tint",
         )}
       >
-        <span className="mt-0.5 w-16 shrink-0 text-[12px] font-medium text-ink-600">
+        <span className="col-span-2 mt-0.5 w-16 shrink-0 text-[12px] font-medium text-ink-600 md:col-auto">
           {time}
         </span>
         <span className="mt-0.5 text-ink-600">{icon}</span>
@@ -324,8 +324,9 @@ export default function CheckInOutPage() {
         </p>
       )}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
+          stackOnMobile
           loading={!today && !clockError}
           icon={<LogIn size={22} />}
           label="Current status"
@@ -336,6 +337,7 @@ export default function CheckInOutPage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!today && !clockError}
           icon={<Clock size={22} />}
           label="Check-in time"
@@ -346,6 +348,7 @@ export default function CheckInOutPage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!today && !clockError}
           icon={<Coffee size={22} />}
           label="Break taken"
@@ -356,6 +359,7 @@ export default function CheckInOutPage() {
           filled
         />
         <StatTile
+          stackOnMobile
           loading={!today && !clockError}
           icon={<Briefcase size={22} />}
           label="Working hours"
@@ -367,8 +371,8 @@ export default function CheckInOutPage() {
         />
       </div>
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">
-        <Card className="p-space-4">
+      <div className="mb-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-2">
+        <Card className="@container min-w-0 p-space-3 md:p-space-4">
           <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
             Today&apos;s activity
           </h3>
@@ -385,8 +389,8 @@ export default function CheckInOutPage() {
           )}
         </Card>
 
-        <Card className="p-space-4">
-          <div className="mb-space-3 flex items-center justify-between">
+        <Card className="@container min-w-0 p-space-3 md:p-space-4">
+          <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
             <h3 className="text-[15px] font-bold text-ink-900">
               Live work timer
             </h3>
@@ -440,13 +444,13 @@ export default function CheckInOutPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-space-4 xl:grid-cols-2">
         <PermissionGate page="check_in_out" action="write">
-          <Card className="p-space-4">
+          <Card className="@container min-w-0 p-space-3 md:p-space-4">
             <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
               Quick actions
             </h3>
-            <div className="grid grid-cols-2 gap-space-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-space-3 @min-[500px]:grid-cols-4 md:grid-cols-4">
               <Button
                 variant={state === "not_in" ? "primary" : "secondary"}
                 disabled={busy || state !== "not_in"}
@@ -505,14 +509,14 @@ export default function CheckInOutPage() {
           </Card>
         </PermissionGate>
 
-        <Card className="p-space-4">
-          <div className="mb-space-3 flex items-center justify-between">
+        <Card className="@container min-w-0 p-space-3 md:p-space-4">
+          <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
             <h3 className="text-[15px] font-bold text-ink-900">
               Recent check-in history
             </h3>
             <a
               href="/portal/attendance"
-              className="flex items-center gap-0.5 text-[12.5px] font-semibold text-brand-600 hover:text-brand-700"
+              className="flex shrink-0 items-center gap-0.5 text-[12.5px] font-semibold text-brand-600 hover:text-brand-700"
             >
               View all <ChevronRight size={14} />
             </a>
@@ -522,39 +526,43 @@ export default function CheckInOutPage() {
               No check-ins yet.
             </p>
           ) : (
-            <table className="w-full text-left text-[12.5px]">
-              <thead>
-                <tr className="text-label border-b border-line text-ink-600">
-                  <th className="py-space-2 font-medium">Date</th>
-                  <th className="py-space-2 font-medium">Check-in</th>
-                  <th className="py-space-2 font-medium">Check-out</th>
-                  <th className="py-space-2 font-medium">Total hours</th>
-                  <th className="py-space-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentRows.map((r) => (
-                  <tr
-                    key={r.work_date}
-                    className="border-b border-line last:border-0"
-                  >
-                    <td className="py-space-2 font-semibold text-ink-900">
-                      {fmtDate(r.work_date)}
-                    </td>
-                    <td className="py-space-2">{r.check_in_local ?? "—"}</td>
-                    <td className="py-space-2">{r.check_out_local ?? "—"}</td>
-                    <td className="py-space-2">
-                      {r.working_minutes ? fmtMinutes(r.working_minutes) : "—"}
-                    </td>
-                    <td className="py-space-2">
-                      <Badge tone={r.check_out_local ? "success" : "brand"}>
-                        {r.check_out_local ? "Completed" : "In Progress"}
-                      </Badge>
-                    </td>
+            <div className="min-w-0 max-w-full overflow-x-auto">
+              <table className="w-full text-left text-[12.5px] max-md:min-w-[560px]">
+                <thead>
+                  <tr className="text-label border-b border-line text-ink-600">
+                    <th className="py-space-2 font-medium">Date</th>
+                    <th className="py-space-2 font-medium">Check-in</th>
+                    <th className="py-space-2 font-medium">Check-out</th>
+                    <th className="py-space-2 font-medium">Total hours</th>
+                    <th className="py-space-2 font-medium">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentRows.map((r) => (
+                    <tr
+                      key={r.work_date}
+                      className="border-b border-line last:border-0"
+                    >
+                      <td className="py-space-2 font-semibold text-ink-900">
+                        {fmtDate(r.work_date)}
+                      </td>
+                      <td className="py-space-2">{r.check_in_local ?? "—"}</td>
+                      <td className="py-space-2">{r.check_out_local ?? "—"}</td>
+                      <td className="py-space-2">
+                        {r.working_minutes
+                          ? fmtMinutes(r.working_minutes)
+                          : "—"}
+                      </td>
+                      <td className="py-space-2">
+                        <Badge tone={r.check_out_local ? "success" : "brand"}>
+                          {r.check_out_local ? "Completed" : "In Progress"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>

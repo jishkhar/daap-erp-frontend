@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
           </p>
           <Select
             value={String(days)}
-            onChange={(e) => setDays(Number(e.target.value))}
+            onValueChange={(value) => setDays(Number(value))}
             className="w-44"
             aria-label="Period"
           >

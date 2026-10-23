@@ -57,7 +57,7 @@ function itemColumns(
           ? i.quantity - i.dispatched_quantity - i.reserved_quantity
           : 0;
         return (
-          <div>
+          <div className="min-w-36 max-w-64 [overflow-wrap:anywhere]">
             <p className="font-medium text-ink-900">{i.name}</p>
             <p className="text-[12px] text-ink-400">
               {i.sku} · {SOURCE[i.price_source]}
@@ -169,7 +169,7 @@ export default function SalesOrderPage() {
       {so && (
         <>
           <div className="mb-space-4 flex flex-wrap items-start justify-between gap-space-3">
-            <div>
+            <div className="min-w-0 [overflow-wrap:anywhere]">
               <h1 className="flex flex-wrap items-center gap-space-2 text-[22px] font-bold text-ink-900">
                 {soNumber(so)}
                 <Badge tone={SO_STATUS_TONE[so.status]}>
@@ -192,7 +192,7 @@ export default function SalesOrderPage() {
                 {so.expected_date ? ` · expected ${so.expected_date}` : ""}
               </p>
             </div>
-            <div className="flex flex-wrap gap-space-2">
+            <div className="mobile-page-actions flex flex-wrap gap-space-2">
               <Button
                 variant="ghost"
                 href={`/portal/wholesale/orders/${so.id}/print`}
@@ -255,8 +255,8 @@ export default function SalesOrderPage() {
             </p>
           )}
 
-          <div className="grid gap-space-4 lg:grid-cols-3">
-            <Card className="p-space-4 lg:col-span-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-space-4 lg:grid-cols-3">
+            <Card className="min-w-0 p-space-4 lg:col-span-2">
               <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                 Items
               </h2>
@@ -267,31 +267,31 @@ export default function SalesOrderPage() {
                 paginate={false}
                 emptyMessage="No items."
               />
-              <dl className="mt-space-3 ml-auto max-w-xs space-y-1 text-[13.5px]">
-                <div className="flex justify-between">
+              <dl className="mt-space-3 ml-auto min-w-0 max-w-xs space-y-1 text-[13.5px] [&_dd]:min-w-0 [&_dd]:text-right [&_dd]:[overflow-wrap:anywhere]">
+                <div className="flex justify-between gap-space-2">
                   <dt className="text-ink-600">Before GST</dt>
                   <dd>
                     {formatMoney(so.subtotal_minor - so.discount_minor, cur)}
                   </dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-space-2">
                   <dt className="text-ink-600">GST</dt>
                   <dd>{formatMoney(so.tax_minor, cur)}</dd>
                 </div>
-                <div className="flex justify-between border-t border-line pt-1 font-semibold text-ink-900">
+                <div className="flex justify-between gap-space-2 border-t border-line pt-1 font-semibold text-ink-900">
                   <dt>Total</dt>
                   <dd>{formatMoney(so.total_minor, cur)}</dd>
                 </div>
               </dl>
               {so.notes && (
-                <p className="mt-space-3 text-[13px] text-ink-600">
+                <p className="mt-space-3 text-[13px] text-ink-600 [overflow-wrap:anywhere]">
                   Notes: {so.notes}
                 </p>
               )}
             </Card>
 
-            <div className="space-y-space-4">
-              <Card className="p-space-4">
+            <div className="min-w-0 space-y-space-4">
+              <Card className="min-w-0 p-space-4">
                 <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                   Customer credit
                 </h2>
@@ -300,7 +300,7 @@ export default function SalesOrderPage() {
                   currency={cur}
                 />
               </Card>
-              <Card className="p-space-4">
+              <Card className="min-w-0 p-space-4">
                 <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
                   Dispatches
                 </h2>
@@ -310,16 +310,18 @@ export default function SalesOrderPage() {
                   <ul className="divide-y divide-line">
                     {so.dispatches.map((d) => (
                       <li key={d.id} className="py-space-2 text-[13.5px]">
-                        <div className="flex justify-between gap-space-2">
+                        <div className="flex min-w-0 flex-wrap justify-between gap-space-2">
                           <Link
                             href={`/portal/orders/${d.id}`}
-                            className="font-semibold text-ink-900 hover:underline"
+                            className="min-w-0 font-semibold text-ink-900 hover:underline [overflow-wrap:anywhere]"
                           >
                             {d.invoice_number ?? d.order_number}
                           </Link>
-                          <span>{formatMoney(d.total_minor, cur)}</span>
+                          <span className="min-w-0 text-right [overflow-wrap:anywhere]">
+                            {formatMoney(d.total_minor, cur)}
+                          </span>
                         </div>
-                        <p className="text-[12px] text-ink-400">
+                        <p className="text-[12px] text-ink-400 [overflow-wrap:anywhere]">
                           {formatDateTime(d.created_at)} ·{" "}
                           {humanize(d.payment_status)}
                           {d.paid_minor < d.total_minor && d.due_date

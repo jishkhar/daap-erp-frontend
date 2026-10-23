@@ -38,7 +38,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-[420px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
+        className="max-h-[90dvh] min-w-0 w-full max-w-[420px] overflow-y-auto rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)] [overflow-wrap:anywhere]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2
@@ -48,7 +48,7 @@ export function ConfirmDialog({
           {title}
         </h2>
         <p className="mt-space-2 text-[13px] text-ink-600">{message}</p>
-        <div className="mt-space-5 flex justify-end gap-space-2">
+        <div className="mobile-page-actions mt-space-5 flex justify-end gap-space-2">
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </Button>

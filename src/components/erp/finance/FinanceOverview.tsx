@@ -200,12 +200,14 @@ export function FinanceOverview({ currency }: { currency: string }) {
                 className="w-48"
               />
             </Field>
-            <Button disabled={!lock} onClick={() => setPeriodLock(lock)}>
-              Close books
-            </Button>
-            <Button variant="ghost" onClick={() => setPeriodLock(null)}>
-              Reopen all periods
-            </Button>
+            <div className="mobile-page-actions contents">
+              <Button disabled={!lock} onClick={() => setPeriodLock(lock)}>
+                Close books
+              </Button>
+              <Button variant="ghost" onClick={() => setPeriodLock(null)}>
+                Reopen all periods
+              </Button>
+            </div>
           </div>
         </Card>
       )}

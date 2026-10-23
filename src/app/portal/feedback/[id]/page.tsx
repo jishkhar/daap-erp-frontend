@@ -61,6 +61,7 @@ export default function FeedbackDetailPage() {
       <PageHeader
         icon={<MessageSquareText size={20} />}
         title="Review details"
+        actionsClassName="w-full justify-end md:w-auto"
         actions={
           canDelete && !error ? (
             <Button

@@ -1,22 +1,66 @@
-import { forwardRef } from "react";
-import { cn } from "@/lib/cn";
+"use client";
 
-/** A native <select> styled like <Input>. */
-export const Select = forwardRef<
-  HTMLSelectElement,
-  React.SelectHTMLAttributes<HTMLSelectElement>
->(function Select({ className, children, ...props }, ref) {
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
+import { AnchoredSelect } from "@/components/ui/AnchoredSelect";
+
+type Option = { value: string; label: ReactNode; disabled?: boolean };
+
+/** Keep declarative option lists while all menus share viewport-aware positioning. */
+function collectOptions(children: ReactNode): Option[] {
+  const options: Option[] = [];
+  Children.forEach(children, (child) => {
+    if (
+      !isValidElement<{
+        value?: string | number;
+        children?: ReactNode;
+        disabled?: boolean;
+        label?: string;
+      }>(child)
+    )
+      return;
+    if (child.type === Fragment) {
+      options.push(...collectOptions(child.props.children));
+    } else if (child.type === "option") {
+      const { value, children: label, disabled } = child.props;
+      options.push({
+        value: String(value ?? label ?? ""),
+        label: child.props.label ?? label,
+        disabled,
+      });
+    }
+  });
+  return options;
+}
+
+type SelectProps = Omit<
+  ComponentProps<typeof AnchoredSelect<string>>,
+  "options" | "label" | "compact" | "value" | "defaultValue"
+> & {
+  children: ReactNode;
+  value?: string | number;
+  defaultValue?: string | number;
+};
+
+export function Select({
+  children,
+  value,
+  defaultValue,
+  ...props
+}: SelectProps) {
   return (
-    <select
-      ref={ref}
-      className={cn(
-        "h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)]",
-        "focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:cursor-not-allowed disabled:bg-paper disabled:text-ink-400",
-        className,
-      )}
+    <AnchoredSelect
       {...props}
-    >
-      {children}
-    </select>
+      value={value === undefined ? undefined : String(value)}
+      defaultValue={
+        defaultValue === undefined ? undefined : String(defaultValue)
+      }
+      options={collectOptions(children)}
+    />
   );
-});
+}

@@ -71,7 +71,7 @@ export function LoyaltyTab({
           away points from a customer&apos;s profile (for example to redeem a
           reward).
         </p>
-        <div className="flex max-w-sm items-end gap-space-3">
+        <div className="mobile-page-action-row flex max-w-sm items-end gap-space-3">
           <Field label="Points per ₹100 spent" htmlFor="ppr">
             <Input
               id="ppr"
@@ -82,7 +82,11 @@ export function LoyaltyTab({
             />
           </Field>
           {canConfigure && (
-            <Button disabled={busy || rate === null} onClick={save}>
+            <Button
+              className="mobile-page-action"
+              disabled={busy || rate === null}
+              onClick={save}
+            >
               Save
             </Button>
           )}

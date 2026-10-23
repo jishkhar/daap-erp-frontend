@@ -111,7 +111,7 @@ export function SegmentsTab({
               </p>
               <Button
                 variant="ghost"
-                className="mt-space-2"
+                className="mobile-page-action mt-space-2"
                 onClick={() => onOpenSegment(seg.key)}
               >
                 View customers
@@ -203,7 +203,7 @@ export function SegmentsTab({
           </div>
           {canConfigure && (
             <Button
-              className="mt-space-3"
+              className="mobile-page-action mt-space-3"
               disabled={
                 busy ||
                 (vip === null &&

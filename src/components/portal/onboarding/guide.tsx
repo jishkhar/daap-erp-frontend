@@ -116,7 +116,7 @@ export function SetupStatusRow({
             </p>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-space-3">
+        <div className="mobile-page-actions flex shrink-0 flex-wrap items-center justify-end gap-space-3">
           {onAction && step.confirmable && step.status === "todo" && (
             <Button
               variant="secondary"
@@ -153,7 +153,7 @@ export function SetupStatusRow({
             </Link>
           )}
           {step.status !== "skipped" && (
-            <Link href={step.href}>
+            <Link className="mobile-page-action" href={step.href}>
               <Button variant={open ? "secondary" : "ghost"}>
                 {open ? "Configure" : "Review"}
               </Button>
@@ -264,8 +264,11 @@ export function FirstRunChecklist() {
             Four things to get your store running.
           </p>
         </div>
-        <div className="flex items-center gap-space-2">
-          <Link href="/portal/help/getting-started">
+        <div className="mobile-page-actions flex items-center gap-space-2">
+          <Link
+            className="mobile-page-action"
+            href="/portal/help/getting-started"
+          >
             <Button variant="ghost">Read the guide</Button>
           </Link>
           <Button variant="ghost" onClick={hide}>
@@ -276,7 +279,10 @@ export function FirstRunChecklist() {
       <ProgressBar done={done} total={steps.length} />
       <ul className="mt-space-2 divide-y divide-line">
         {steps.map((s) => (
-          <li key={s.key} className="flex items-center gap-space-3 py-space-2">
+          <li
+            key={s.key}
+            className="mobile-page-action-row flex items-center gap-space-3 py-space-2"
+          >
             {s.status === "done" ? (
               <CheckCircle2 size={18} className="shrink-0 text-success" />
             ) : (
@@ -288,7 +294,7 @@ export function FirstRunChecklist() {
               {s.title}
             </span>
             {s.status !== "done" && (
-              <Link href={s.href}>
+              <Link className="mobile-page-action" href={s.href}>
                 <Button variant="secondary">
                   {s.status === "in_progress" ? "Continue" : "Start"}
                 </Button>
@@ -381,7 +387,7 @@ export function SetupCard() {
             </p>
           </div>
         </div>
-        <Link href="/portal/settings/setup">
+        <Link className="mobile-page-action" href="/portal/settings/setup">
           <Button>
             Complete setup <ArrowRight size={15} />
           </Button>

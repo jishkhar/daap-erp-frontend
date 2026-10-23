@@ -195,7 +195,7 @@ function Widget({
       onClick={() => onSelect(id)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelect(id)}
       className={cn(
-        "cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 text-slate-800 outline-none transition-shadow",
+        "min-w-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 text-slate-800 outline-none transition-shadow",
         selected === id && "ring-2 ring-[var(--pos-accent)]",
         className,
       )}
@@ -247,10 +247,10 @@ function Preview({
   return (
     <div
       style={{ "--pos-accent": accent } as React.CSSProperties}
-      className="overflow-hidden rounded-xl border border-slate-300 bg-slate-100 text-[10px] shadow-[var(--shadow-md)]"
+      className="@container overflow-hidden rounded-xl border border-slate-300 bg-slate-100 text-[10px] shadow-[var(--shadow-md)]"
     >
       <div className="flex">
-        <aside className="hidden w-[132px] shrink-0 bg-[#0b2447] p-2 text-white sm:block">
+        <aside className="hidden w-[132px] shrink-0 bg-[#0b2447] p-2 text-white @min-[400px]:block">
           <p className="mb-2 px-1.5 py-1 text-[13px] font-extrabold tracking-wide">
             {storeName}{" "}
             <span style={{ color: accent }} className="brightness-150">
@@ -287,7 +287,7 @@ function Preview({
           </div>
 
           {stats.length > 0 && (
-            <div className="mb-2.5 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+            <div className="mb-2.5 grid grid-cols-2 gap-2 @min-[480px]:grid-cols-3 @min-[900px]:grid-cols-6">
               {stats.map((s) => (
                 <Widget
                   key={s.id}
@@ -312,13 +312,13 @@ function Preview({
           )}
 
           {(on("trend") || on("payments")) && (
-            <div className="mb-2.5 flex flex-col gap-2 md:flex-row">
+            <div className="mb-2.5 flex flex-col gap-2 @min-[1000px]:flex-row">
               {on("trend") && (
                 <Widget
                   id="trend"
                   selected={sel}
                   onSelect={onSelect}
-                  className="md:flex-[2]"
+                  className="@min-[1000px]:flex-[2]"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -349,7 +349,7 @@ function Preview({
                   id="payments"
                   selected={sel}
                   onSelect={onSelect}
-                  className="md:flex-1"
+                  className="@min-[1000px]:flex-1"
                 >
                   <p className="flex items-center gap-1 text-[12px] font-bold">
                     <CheckCircle2 size={12} style={{ color: accent }} />{" "}
@@ -385,13 +385,13 @@ function Preview({
           )}
 
           {(on("bills") || on("top") || on("sync")) && (
-            <div className="flex flex-col gap-2 md:flex-row">
+            <div className="flex flex-col gap-2 @min-[1000px]:flex-row">
               {on("bills") && (
                 <Widget
                   id="bills"
                   selected={sel}
                   onSelect={onSelect}
-                  className="md:flex-[3]"
+                  className="@min-[1000px]:flex-[3]"
                 >
                   <p className="mb-1 flex items-center gap-1 text-[12px] font-bold">
                     <Receipt size={12} style={{ color: accent }} />{" "}
@@ -418,7 +418,7 @@ function Preview({
                   id="top"
                   selected={sel}
                   onSelect={onSelect}
-                  className="md:flex-[3]"
+                  className="@min-[1000px]:flex-[3]"
                 >
                   <p className="mb-1 text-[12px] font-bold">{t("top").label}</p>
                   {TOP.map((p, i) => (
@@ -439,7 +439,7 @@ function Preview({
                   id="sync"
                   selected={sel}
                   onSelect={onSelect}
-                  className="md:flex-[2]"
+                  className="@min-[1000px]:flex-[2]"
                 >
                   <p className="flex items-center justify-between text-[12px] font-bold">
                     <span className="flex items-center gap-1">
@@ -541,7 +541,7 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
     <>
       <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-3">
         <Badge tone="warning">Sample data: not connected yet</Badge>
-        <div className="flex gap-space-2">
+        <div className="mobile-page-actions flex gap-space-2">
           <Button
             variant="secondary"
             onClick={() => {
@@ -556,7 +556,7 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
         </div>
       </div>
 
-      <div className="grid gap-space-4 lg:grid-cols-[250px_minmax(0,1fr)_260px]">
+      <div className="grid gap-space-4 xl:grid-cols-[250px_minmax(0,1fr)_260px]">
         <aside className="rounded-lg border border-line bg-card p-space-3 shadow-[var(--shadow-sm)]">
           <p className="px-space-2 pb-space-2 text-[13px] font-semibold text-ink-900">
             Point of sale
@@ -613,7 +613,7 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
               <button
                 type="button"
                 onClick={addTile}
-                className="mt-1 flex items-center gap-space-2 px-space-2 py-1.5 text-[13px] font-semibold text-brand-600 hover:underline"
+                className="mobile-page-action mt-1 flex items-center gap-space-2 px-space-2 py-1.5 text-[13px] font-semibold text-brand-600 hover:underline"
               >
                 <Plus size={14} /> Add tile
               </button>
@@ -756,8 +756,8 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
                 <Select
                   id="lock-timeout"
                   value={lock.timeout}
-                  onChange={(e) =>
-                    setLock({ ...lock, timeout: e.target.value })
+                  onValueChange={(value) =>
+                    setLock({ ...lock, timeout: value })
                   }
                 >
                   <option value="1">1 minute idle</option>

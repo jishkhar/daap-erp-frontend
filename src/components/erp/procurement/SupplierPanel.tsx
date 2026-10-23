@@ -39,7 +39,7 @@ export function SupplierPanel({
       {!d && !statement.error && <SkeletonLines rows={5} />}
       {d && (
         <>
-          <div className="mb-space-4 grid grid-cols-3 gap-space-3 text-center">
+          <div className="mb-space-4 grid grid-cols-1 gap-space-3 @min-[420px]:grid-cols-3">
             {[
               ["Billed", d.balance.billed],
               ["Returned + paid", d.balance.returned + d.balance.paid],
@@ -47,25 +47,27 @@ export function SupplierPanel({
             ].map(([label, v]) => (
               <div
                 key={label as string}
-                className="rounded-md border border-line p-space-3"
+                className="flex min-w-0 items-center justify-between gap-space-2 rounded-md border border-line p-space-3 @min-[420px]:flex-col @min-[420px]:justify-center"
               >
-                <p className="text-[12px] text-ink-600">{label}</p>
-                <p className="text-[18px] font-bold text-ink-900">
+                <p className="min-w-0 text-[12px] text-ink-600 @min-[420px]:text-center">
+                  {label}
+                </p>
+                <p className="min-w-0 text-right text-[18px] font-bold text-ink-900 [overflow-wrap:anywhere] @min-[420px]:text-center">
                   {formatMoney(v as number, currency)}
                 </p>
               </div>
             ))}
           </div>
-          <ul className="max-h-56 divide-y divide-line overflow-y-auto text-[13.5px]">
+          <ul className="min-w-0 divide-y divide-line text-[13.5px]">
             {d.entries.length === 0 && (
               <li className="py-2 text-ink-400">No activity yet.</li>
             )}
             {d.entries.map((e) => (
               <li
                 key={`${e.kind}-${e.number}`}
-                className="flex items-center justify-between py-2"
+                className="flex min-w-0 flex-col items-start justify-between gap-1 py-space-2 @min-[420px]:flex-row @min-[420px]:items-center @min-[420px]:gap-space-3"
               >
-                <span>
+                <span className="min-w-0 [overflow-wrap:anywhere]">
                   <strong>{e.number}</strong>{" "}
                   <span className="text-ink-400">
                     {e.kind === "GRN"
@@ -77,9 +79,7 @@ export function SupplierPanel({
                   </span>
                 </span>
                 <span
-                  className={
-                    e.amount_minor < 0 ? "text-success" : "text-ink-900"
-                  }
+                  className={`min-w-0 max-w-full self-end text-right font-medium [overflow-wrap:anywhere] ${e.amount_minor < 0 ? "text-success" : "text-ink-900"}`}
                 >
                   {formatMoney(Math.abs(e.amount_minor), currency)}
                   {e.amount_minor < 0 ? " cr" : ""}

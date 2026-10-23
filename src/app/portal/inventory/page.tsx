@@ -440,7 +440,7 @@ export default function InventoryPage() {
         title="Inventory"
         description={`Stock ${branchId ? "at the selected branch" : "across all your branches"}.`}
         actions={
-          <div className="flex flex-wrap gap-space-2">
+          <div className="mobile-page-actions flex flex-wrap gap-space-2">
             {canWriteProducts && (
               <Button
                 variant="secondary"
@@ -487,7 +487,7 @@ export default function InventoryPage() {
               <Select
                 aria-label="Filter inventory by branch"
                 value={branchId ?? ""}
-                onChange={(e) => setBranch(e.target.value || null)}
+                onValueChange={(value) => setBranch(value || null)}
               >
                 <option value="">All branches</option>
                 {branches.map((b) => (
@@ -502,8 +502,8 @@ export default function InventoryPage() {
               <Select
                 aria-label="Filter inventory by availability"
                 value={availability}
-                onChange={(e) =>
-                  setAvailability(e.target.value as typeof availability)
+                onValueChange={(value) =>
+                  setAvailability(value as typeof availability)
                 }
               >
                 <option value="">All availability</option>
@@ -599,14 +599,14 @@ export default function InventoryPage() {
       >
         <Field label="Product" htmlFor="v_product" required>
           {variantOf ? (
-            <div className="flex items-center justify-between rounded-md border border-line p-space-3 text-[14px]">
+            <div className="mobile-page-action-row flex items-center justify-between rounded-md border border-line p-space-3 text-[14px]">
               <span>
                 <strong>{variantOf.name}</strong>{" "}
                 <span className="text-ink-400">{variantOf.sku}</span>
               </span>
               <button
                 type="button"
-                className="text-[13px] font-semibold text-brand-600"
+                className="mobile-page-action text-[13px] font-semibold text-brand-600"
                 onClick={() => setVariantOf(null)}
               >
                 Change
@@ -674,8 +674,8 @@ export default function InventoryPage() {
               <Select
                 id="rc_branch"
                 value={receive.branch_id}
-                onChange={(e) =>
-                  setReceive({ ...receive, branch_id: e.target.value })
+                onValueChange={(value) =>
+                  setReceive({ ...receive, branch_id: value })
                 }
               >
                 {branches.map((b) => (
@@ -687,14 +687,14 @@ export default function InventoryPage() {
             </Field>
             <Field label="Product" htmlFor="rc_product">
               {receive.product ? (
-                <div className="flex items-center justify-between rounded-md border border-line p-space-3 text-[14px]">
+                <div className="mobile-page-action-row flex items-center justify-between rounded-md border border-line p-space-3 text-[14px]">
                   <span>
                     <strong>{receive.product.name}</strong>{" "}
                     <span className="text-ink-400">{receive.product.sku}</span>
                   </span>
                   <button
                     type="button"
-                    className="text-[13px] font-semibold text-brand-600"
+                    className="mobile-page-action text-[13px] font-semibold text-brand-600"
                     onClick={() =>
                       setReceive({ ...receive, product: null, serials: "" })
                     }
