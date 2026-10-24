@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/Select";
 import {
   useChannelClients,
   useCreateChannelClient,
+  useDeleteChannelClient,
   useRevokeChannelClient,
 } from "@/hooks/useChannels";
 import { CHANNELS, formatDateTime, type Channel } from "@/lib/erp";
@@ -31,6 +32,7 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
   const clients = useChannelClients(allowed);
   const createKey = useCreateChannelClient();
   const revokeKey = useRevokeChannelClient();
+  const deleteKey = useDeleteChannelClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [branchId, setBranchId] = useState("");
@@ -60,6 +62,13 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
     revokeKey.mutate(id, {
       onSuccess: () => toast.success("Key revoked"),
       onError: (e) => toast.error("Couldn't revoke", e.message),
+    });
+  }
+
+  function deleteRevoked(id: string) {
+    deleteKey.mutate(id, {
+      onSuccess: () => toast.success("Key deleted"),
+      onError: (e) => toast.error("Couldn't delete the key", e.message),
     });
   }
 
@@ -117,6 +126,17 @@ export function ChannelConnections({ channel }: { channel: Channel }) {
                 {canManage && c.status === "active" && (
                   <Button variant="ghost" onClick={() => revoke(c.id)}>
                     Revoke
+                  </Button>
+                )}
+                {canManage && c.status === "revoked" && (
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    disabled={deleteKey.isPending}
+                    onClick={() => deleteRevoked(c.id)}
+                    aria-label={`Delete revoked key ${c.name}`}
+                  >
+                    Delete
                   </Button>
                 )}
               </span>

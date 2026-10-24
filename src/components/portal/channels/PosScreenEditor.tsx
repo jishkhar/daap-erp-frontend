@@ -391,7 +391,7 @@ function Preview({
                   id="bills"
                   selected={sel}
                   onSelect={onSelect}
-                  className="@min-[1000px]:flex-[3]"
+                  className="@container/bills @min-[1000px]:flex-[3]"
                 >
                   <p className="mb-1 flex items-center gap-1 text-[12px] font-bold">
                     <Receipt size={12} style={{ color: accent }} />{" "}
@@ -400,13 +400,21 @@ function Preview({
                   {BILLS.map((b) => (
                     <div
                       key={b[0]}
-                      className="flex items-center gap-2 border-t border-slate-100 py-1"
+                      className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 border-t border-slate-100 py-1.5 @min-[400px]/bills:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]"
                     >
-                      <span className="font-semibold">{b[0]}</span>
-                      <span className="text-slate-500">{b[1]}</span>
-                      <span className="truncate">{b[2]}</span>
-                      <span className="ml-auto font-semibold">{b[4]}</span>
-                      <span className="rounded-full bg-slate-100 px-1.5">
+                      <span className="whitespace-nowrap font-semibold">
+                        {b[0]}
+                      </span>
+                      <span className="col-start-1 row-start-2 whitespace-nowrap text-slate-500 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
+                        {b[1]}
+                      </span>
+                      <span className="col-span-2 col-start-2 row-start-2 min-w-0 truncate text-right @min-[400px]/bills:col-span-1 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto @min-[400px]/bills:text-left">
+                        {b[2]}
+                      </span>
+                      <span className="col-start-2 row-start-1 whitespace-nowrap font-semibold @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
+                        {b[4]}
+                      </span>
+                      <span className="col-start-3 row-start-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
                         {b[5]}
                       </span>
                     </div>
@@ -541,7 +549,7 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
     <>
       <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-3">
         <Badge tone="warning">Sample data: not connected yet</Badge>
-        <div className="mobile-page-actions flex gap-space-2">
+        <div className="mobile-page-actions mobile-page-actions-pair flex gap-space-2">
           <Button
             variant="secondary"
             onClick={() => {

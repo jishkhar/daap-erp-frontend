@@ -650,3 +650,183 @@ test(
     }
   },
 );
+
+test(
+  "Settings navigation and action menus stay within phone and desktop viewports",
+  { timeout: 60000 },
+  async () => {
+    for (const touch of [false, true]) {
+      const { page, context, writes } = await fixture(touch);
+      try {
+        await page.goto(`${baseURL}/portal/settings/channels/pos`);
+        for (const width of [320, 390, 768]) {
+          await page.setViewportSize({ width, height: 568 });
+          const settings = page.getByRole("combobox", {
+            name: "Settings section",
+          });
+          await openAndCheck(page, settings);
+          assert((await settings.innerText()).includes("Sales channels"));
+          await page.keyboard.press("End");
+          await page.keyboard.press("Escape");
+          await page.getByRole("listbox").waitFor({ state: "hidden" });
+          assert((await settings.innerText()).includes("Sales channels"));
+          await openAndCheck(page, settings);
+          await page
+            .getByRole("option", { name: "General", exact: true })
+            .click();
+          await page.waitForURL("**/portal/settings");
+          await page.goto(`${baseURL}/portal/settings/channels/pos`);
+        }
+        await page
+          .getByRole("textbox", { name: "Search settings" })
+          .fill("no-such-setting");
+        const settings = page.getByRole("combobox", {
+          name: "Settings section",
+        });
+        await settings.waitFor();
+        await page.waitForFunction(
+          () =>
+            document.querySelector('[aria-label="Settings section"]').disabled,
+        );
+        assert((await settings.innerText()).includes("No matching settings"));
+        for (const width of [320, 390, 768, 1440]) {
+          await page.setViewportSize({ width, height: 568 });
+          const user = page.getByRole("button", { name: /Account menu for/ });
+          await user.click();
+          const menu = page.getByRole("menu");
+          await menu.waitFor();
+          const box = await menu.boundingBox();
+          assert(box.x >= 0 && box.x + box.width <= width + 1);
+          assert(box.y >= 0 && box.y + box.height <= 569);
+          await page.keyboard.press("Escape");
+          await menu.waitFor({ state: "hidden" });
+        }
+        assert.equal(await page.locator("select").count(), 0);
+        assert.equal(writes.length, 0);
+      } finally {
+        await context.close();
+      }
+    }
+  },
+);
+
+test(
+  "Customer, product and business search dropdowns fit viewports and support keyboard selection",
+  { timeout: 90000 },
+  async () => {
+    const { page, context, writes } = await fixture(true);
+    const customer = {
+      id: "c1",
+      name: "A customer with a very long name",
+      phone: "1234567890",
+      email: "long-email-address@example.com",
+    };
+    const product = {
+      id: "p1",
+      name: "A product with a very long name",
+      sku: "LONG-SKU",
+      serialization_type: "NONE",
+      price_minor: 10000,
+      tax_rate_bps: 0,
+      status: "active",
+    };
+    const account = {
+      id: "a1",
+      legal_name: "A business with a very long registered name",
+      account_code: "ACC-001",
+      status: "active",
+    };
+    try {
+      await page.route("**/api/v1/customers?*", (r) =>
+        r.fulfill({ json: [customer] }),
+      );
+      await page.route("**/api/v1/products?*", (r) =>
+        r.fulfill({ json: [product] }),
+      );
+      await page.route("**/api/v1/customer-accounts?*", (r) =>
+        r.fulfill({ json: [account] }),
+      );
+      for (const width of [320, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 568 });
+        await page.goto(`${baseURL}/portal/orders/new`);
+        const search = page.getByRole("combobox", {
+          name: "Search customers",
+          exact: true,
+        });
+        await search.fill("customer");
+        await page.getByRole("option", { name: /A customer with/ }).waitFor();
+        const popup = page.getByRole("listbox").locator("..");
+        const box = await popup.boundingBox();
+        assert(
+          box.x >= 0 && box.x + box.width <= width + 1,
+          "Customer popup overflows",
+        );
+        assert(
+          box.y >= 0 && box.y + box.height <= 569,
+          "Customer popup overflows vertically",
+        );
+        await search.press("Escape");
+        await page.getByRole("listbox").waitFor({ state: "hidden" });
+        assert.equal(await search.inputValue(), "customer");
+        await search.press("ArrowDown");
+        await page.getByRole("option").waitFor();
+        await search.press("Enter");
+        await page.getByRole("button", { name: "Clear customer" }).waitFor();
+      }
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto(`${baseURL}/portal/transfers`);
+      await page
+        .getByRole("button", { name: "New transfer", exact: true })
+        .click();
+      const productSearch = page.getByRole("combobox", {
+        name: "Search products",
+        exact: true,
+      });
+      await productSearch.fill("product");
+      await page.getByRole("option", { name: /A product with/ }).waitFor();
+      let box = await page.getByRole("listbox").locator("..").boundingBox();
+      assert(
+        box.x >= 0 &&
+          box.x + box.width <= 321 &&
+          box.y >= 0 &&
+          box.y + box.height <= 569,
+      );
+      await page.keyboard.press("Escape");
+      assert(
+        await page.getByRole("dialog").isVisible(),
+        "Escape closed the transfer dialog",
+      );
+      await productSearch.press("ArrowDown");
+      await page.getByRole("option", { name: /A product with/ }).click();
+      assert.equal(await productSearch.inputValue(), "");
+      assert(
+        await page.getByRole("dialog").isVisible(),
+        "Selection closed the transfer dialog",
+      );
+      await page.goto(`${baseURL}/portal/wholesale`);
+      await page
+        .getByRole("button", { name: "New sales order", exact: true })
+        .click();
+      const businessSearch = page.getByRole("combobox", {
+        name: "Search business customers",
+        exact: true,
+      });
+      await businessSearch.fill("business");
+      await page.getByRole("option", { name: /A business with/ }).waitFor();
+      box = await page.getByRole("listbox").locator("..").boundingBox();
+      assert(
+        box.x >= 0 &&
+          box.x + box.width <= 321 &&
+          box.y >= 0 &&
+          box.y + box.height <= 569,
+      );
+      await page.getByRole("option", { name: /A business with/ }).click();
+      await page
+        .getByRole("button", { name: "Clear business customer" })
+        .waitFor();
+      assert.equal(writes.length, 0);
+    } finally {
+      await context.close();
+    }
+  },
+);

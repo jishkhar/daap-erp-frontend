@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/Input";
+import { SearchCombobox } from "@/components/ui/SearchCombobox";
 import { useProductSearch } from "@/hooks/useProducts";
 import type { Product } from "@/lib/erp";
 import { useDebounced } from "@/lib/useDebounced";
@@ -42,46 +42,33 @@ export function ProductPicker({
       (!categoryId || p.category_id === categoryId),
   );
   return (
-    <div className="relative">
-      <Input
-        id={id}
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={placeholder}
-        aria-label="Search products"
-        onFocus={() => setFocused(true)}
-      />
-      {(q.trim() || (categoryId && focused)) && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-card shadow-[var(--shadow-md)]">
-          {shown.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                className="block w-full px-space-3 py-space-2 text-left hover:bg-brand-50"
-                onClick={() => {
-                  onPick(p);
-                  setQ("");
-                }}
-              >
-                <span className="block text-[14px] font-medium text-ink-900">
-                  {p.name}
-                </span>
-                <span className="block text-[12px] text-ink-400">
-                  {p.sku}
-                  {p.serialization_type !== "NONE"
-                    ? ` · ${p.serialization_type}`
-                    : ""}
-                </span>
-              </button>
-            </li>
-          ))}
-          {results.data && shown.length === 0 && (
-            <li className="px-space-3 py-space-2 text-[13px] text-ink-400">
-              {results.isFetching ? "Searching…" : "No products match."}
-            </li>
-          )}
-        </ul>
+    <SearchCombobox
+      id={id}
+      label="Search products"
+      placeholder={placeholder}
+      query={q}
+      onQueryChange={setQ}
+      onFocus={() => setFocused(true)}
+      items={shown}
+      itemLabel={(product) => product.name}
+      onPick={onPick}
+      loading={results.isFetching || q.trim() !== query}
+      emptyLabel={
+        query || categoryId ? "No products match." : "Type to search products."
+      }
+      renderItem={(product) => (
+        <>
+          <span className="block text-[14px] font-medium text-ink-900">
+            {product.name}
+          </span>
+          <span className="block text-[12px] text-ink-400">
+            {product.sku}
+            {product.serialization_type !== "NONE"
+              ? ` · ${product.serialization_type}`
+              : ""}
+          </span>
+        </>
       )}
-    </div>
+    />
   );
 }

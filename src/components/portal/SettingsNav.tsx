@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Search } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { useStaffSession } from "@/lib/staffAuth";
 import { SETTINGS_NAV } from "@/components/portal/settingsNav";
 import { useDebounced } from "@/lib/useDebounced";
+import { Select } from "@/components/ui/Select";
 
 const initials = (s: string) =>
   s
@@ -20,6 +21,7 @@ const initials = (s: string) =>
 /** Second-level sidebar shown on every /portal/settings/* page (rendered by PortalShell). */
 export function SettingsNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const session = useStaffSession();
   const [q, setQ] = useState("");
   const query = useDebounced(q.trim().toLowerCase());
@@ -69,7 +71,31 @@ export function SettingsNav() {
             />
           </label>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-space-2 pb-space-2 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto">
+        <div className="px-space-2 pb-space-2 lg:hidden">
+          <Select
+            aria-label="Settings section"
+            value={
+              items.find(({ href, slug }) => isActive(href, slug))?.href ?? ""
+            }
+            onValueChange={(value) => router.push(value)}
+            disabled={items.length === 0}
+          >
+            <option value="" disabled>
+              {items.length === 0
+                ? "No matching settings"
+                : "Choose a settings section"}
+            </option>
+            {items.map(({ slug, label, href }) => (
+              <option key={slug} value={href}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <nav
+          aria-label="Settings"
+          className="hidden gap-1 px-space-2 pb-space-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto"
+        >
           {items.map(({ slug, label, icon: Icon, href }) => (
             <Link
               key={slug}

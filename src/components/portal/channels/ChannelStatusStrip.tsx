@@ -21,23 +21,27 @@ export function ChannelStatusStrip({ channel }: { channel: Channel }) {
   const st = readinessStatus(data);
   const label = data.ready ? READY_LABEL[channel] : st.label;
   return (
-    <div className="mb-space-4 flex flex-wrap items-center gap-space-3 rounded-md border border-line bg-card px-space-4 py-space-2 text-[13.5px]">
-      <Badge tone={data.ready ? "success" : st.tone}>{label}</Badge>
-      <span className="min-w-0 flex-1 text-ink-600">
-        {data.ready
-          ? `${CHANNELS[channel].label} is set up.`
-          : data.in_plan
-            ? `${CHANNELS[channel].label} isn't fully set up yet.`
-            : data.ended
-              ? `Your ${CHANNELS[channel].label} plan has ended.`
-              : `You haven't bought ${CHANNELS[channel].label} yet.`}
-      </span>
-      <Link
-        href={`/portal/settings/channels/${channel}`}
-        className="font-semibold text-brand-600 hover:underline"
-      >
-        Manage in Settings →
-      </Link>
+    <div className="mb-space-4 flex flex-col items-start gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-3 text-[13.5px] md:flex-row md:flex-wrap md:items-center md:gap-space-3 md:px-space-4 md:py-space-2">
+      <Badge className="shrink-0" tone={data.ready ? "success" : st.tone}>
+        {label}
+      </Badge>
+      <div className="flex w-full min-w-0 items-baseline justify-between gap-space-2 md:w-auto md:flex-1 md:gap-space-3">
+        <span className="min-w-0 text-ink-600">
+          {data.ready
+            ? `${CHANNELS[channel].label} is set up.`
+            : data.in_plan
+              ? `${CHANNELS[channel].label} isn't fully set up yet.`
+              : data.ended
+                ? `Your ${CHANNELS[channel].label} plan has ended.`
+                : `You haven't bought ${CHANNELS[channel].label} yet.`}
+        </span>
+        <Link
+          href={`/portal/settings/channels/${channel}`}
+          className="shrink-0 font-semibold text-brand-600 hover:underline"
+        >
+          Manage in Settings →
+        </Link>
+      </div>
     </div>
   );
 }
