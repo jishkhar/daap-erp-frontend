@@ -40,11 +40,12 @@ function DropdownMenuContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
+        collisionPadding={8}
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "z-50 min-w-40 origin-(--transform-origin) rounded-lg border border-line bg-card p-1 text-ink-900 shadow-[var(--shadow-md)] outline-none",
+            "z-50 max-h-[var(--available-height)] min-w-40 max-w-[min(var(--available-width),calc(100vw-16px))] origin-(--transform-origin) overflow-y-auto rounded-lg border border-line bg-card p-1 text-ink-900 shadow-[var(--shadow-md)] outline-none",
             "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className,
           )}
@@ -85,7 +86,7 @@ function DropdownMenuItem({
       data-slot="dropdown-menu-item"
       data-variant={variant}
       className={cn(
-        "flex cursor-default items-center gap-space-2 rounded-md px-space-2 py-space-1 text-[13px] font-medium outline-hidden select-none",
+        "flex min-w-0 cursor-default items-center gap-space-2 rounded-md px-space-2 py-space-1 text-[13px] font-medium break-words outline-hidden select-none",
         "focus:cursor-pointer focus:bg-brand-50 focus:text-brand-700",
         "data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive-tint data-[variant=destructive]:focus:text-destructive",
         "data-disabled:pointer-events-none data-disabled:opacity-50",

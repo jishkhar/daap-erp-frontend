@@ -130,3 +130,13 @@ export function useRevokeChannelClient() {
       ]),
   });
 }
+
+export function useDeleteChannelClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      erpSend(`/api/v1/channel-clients/${id}/revoked`, "DELETE"),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.channelClients }),
+  });
+}

@@ -108,9 +108,9 @@ function BotCard({
   }
 
   return (
-    <Card className="p-space-4">
+    <Card className="min-w-0 p-space-3 sm:p-space-4">
       <div className="mb-space-3 flex flex-wrap items-start justify-between gap-space-3">
-        <div className="max-w-[60ch]">
+        <div className="min-w-0 max-w-[60ch]">
           <h2 className="text-[15px] font-bold text-ink-900">Ordering bot</h2>
           <p className="text-[13px] text-ink-600">
             Customers who message your WhatsApp number can browse your products,
@@ -152,14 +152,14 @@ function BotCard({
         htmlFor="wa_bot_timeout"
         hint="A customer who goes quiet this long goes back to the main menu on their next message. Their cart is kept. 5–1440."
       >
-        <div className="flex gap-space-2">
+        <div className="flex flex-col gap-space-2 sm:flex-row">
           <Input
             id="wa_bot_timeout"
             inputMode="numeric"
             disabled={!canEdit}
             value={timeout}
             onChange={(e) => setTimeoutValue(e.target.value)}
-            className="max-w-[140px]"
+            className="sm:max-w-[140px]"
           />
           {canEdit && (
             <Button variant="secondary" disabled={busy} onClick={saveTimeout}>
@@ -187,7 +187,7 @@ function BotCard({
           <Field
             label="Template name"
             htmlFor="wa_tpl_name"
-            className="mb-0 min-w-[220px] flex-1"
+            className="mb-0 w-full min-w-0 sm:w-auto sm:min-w-[220px] sm:flex-1"
           >
             <Input
               id="wa_tpl_name"
@@ -200,7 +200,7 @@ function BotCard({
           <Field
             label="Language"
             htmlFor="wa_tpl_lang"
-            className="mb-0 w-[110px]"
+            className="mb-0 w-full min-w-0 sm:w-[110px]"
           >
             <Input
               id="wa_tpl_lang"
@@ -211,7 +211,12 @@ function BotCard({
             />
           </Field>
           {canEdit && (
-            <Button variant="secondary" disabled={busy} onClick={saveTemplate}>
+            <Button
+              className="w-full sm:w-auto"
+              variant="secondary"
+              disabled={busy}
+              onClick={saveTemplate}
+            >
               Save
             </Button>
           )}

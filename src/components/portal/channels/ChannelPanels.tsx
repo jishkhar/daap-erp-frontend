@@ -172,7 +172,7 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
   }
 
   return (
-    <Card className="mt-space-5 p-space-4">
+    <Card className="mt-space-5 min-w-0 p-space-3 md:p-space-4">
       <h2 className="text-[15px] font-bold text-ink-900">
         Branches on this channel
       </h2>
@@ -186,8 +186,8 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-[13.5px]">
-            <thead>
+          <table className="w-full text-[13.5px] max-md:block">
+            <thead className="max-md:hidden">
               <tr className="text-left text-[12px] text-ink-400">
                 <th className="py-1">Branch</th>
                 {columns.map((c) => (
@@ -198,11 +198,14 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
                 <th />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="max-md:block">
               {rows.map((b) => (
-                <tr key={b.id} className="border-t border-line">
-                  <td className="py-2">
-                    <span className="font-medium text-ink-900">
+                <tr
+                  key={b.id}
+                  className="border-t border-line max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-space-2 max-md:py-space-3"
+                >
+                  <td className="py-2 max-md:col-span-2 max-md:block max-md:py-0">
+                    <span className="font-medium break-words text-ink-900">
                       {b.branch_name}
                     </span>{" "}
                     <span className="text-[12px] text-ink-400">
@@ -210,7 +213,13 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
                     </span>
                   </td>
                   {columns.map((c) => (
-                    <td key={c.field} className="px-space-3">
+                    <td
+                      key={c.field}
+                      className="px-space-3 max-md:col-start-1 max-md:flex max-md:items-center max-md:justify-between max-md:gap-space-2 max-md:px-0"
+                    >
+                      <span className="text-[12px] text-ink-600 md:hidden">
+                        {c.label}
+                      </span>
                       <Switch
                         checked={Boolean(b[c.field])}
                         disabled={!canWrite || busy === `${b.id}:${c.field}`}
@@ -219,7 +228,7 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
                       />
                     </td>
                   ))}
-                  <td className="text-right">
+                  <td className="text-right max-md:col-start-2 max-md:row-start-2 max-md:self-center">
                     <Link
                       href={`/portal/settings/branches/${b.id}`}
                       className="font-semibold text-brand-600 hover:underline"
@@ -271,7 +280,7 @@ export function PosChannelPanel() {
         Each till is paired to one branch. Pick a branch to pair terminals and
         set cashier PINs for it.
       </p>
-      <Card className="mt-space-5 p-space-4">
+      <Card className="mt-space-5 min-w-0 p-space-3 md:p-space-4">
         <div className="mb-space-3">
           <h2 className="text-[15px] font-bold text-ink-900">
             Branches with a till
@@ -297,51 +306,55 @@ export function PosChannelPanel() {
               return (
                 <li
                   key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-space-2 py-space-2 text-[13.5px]"
+                  className="flex flex-col items-start gap-space-1 py-space-3 text-[13.5px]"
                 >
-                  <span>
-                    <span className="font-medium text-ink-900">
-                      {b.branch_name}
-                    </span>{" "}
-                    <span className="text-[12px] text-ink-400">
-                      {b.branch_code}
+                  <div className="flex w-full min-w-0 items-start justify-between gap-space-2">
+                    <span className="min-w-0 break-words">
+                      <span className="font-medium text-ink-900">
+                        {b.branch_name}
+                      </span>{" "}
+                      <span className="block text-[12px] text-ink-400 md:inline">
+                        {b.branch_code}
+                      </span>
                     </span>
-                  </span>
-                  <span className="mobile-page-actions flex flex-wrap items-center gap-space-3 text-[12.5px] text-ink-600">
                     {summary.data && (
-                      <>
-                        <Badge tone={paired ? "success" : "warning"}>
-                          {paired ? `${paired} paired` : "No terminal"}
-                        </Badge>
-                        {paired > 0 && (
-                          <span>
-                            {t?.online ?? 0} online · last seen{" "}
-                            {t?.last_seen_at
-                              ? formatDateTime(t.last_seen_at)
-                              : "never"}
-                          </span>
-                        )}
-                        {(t?.waiting_bills ?? 0) > 0 && (
-                          <Badge tone="warning">
-                            {t?.waiting_bills} bill
-                            {t?.waiting_bills === 1 ? "" : "s"} waiting on{" "}
-                            {t?.tills_holding} till
-                            {t?.tills_holding === 1 ? "" : "s"}
-                          </Badge>
-                        )}
-                      </>
+                      <Badge
+                        className="shrink-0"
+                        tone={paired ? "success" : "warning"}
+                      >
+                        {paired ? `${paired} paired` : "No terminal"}
+                      </Badge>
+                    )}
+                  </div>
+                  {summary.data && paired > 0 && (
+                    <p className="text-[12.5px] text-ink-600">
+                      {t?.online ?? 0} online · last seen{" "}
+                      {t?.last_seen_at
+                        ? formatDateTime(t.last_seen_at)
+                        : "never"}
+                    </p>
+                  )}
+                  <div className="flex w-full flex-wrap items-center gap-space-2">
+                    {(t?.waiting_bills ?? 0) > 0 && (
+                      <Badge tone="warning">
+                        {t?.waiting_bills} bill
+                        {t?.waiting_bills === 1 ? "" : "s"} waiting on{" "}
+                        {t?.tills_holding} till
+                        {t?.tills_holding === 1 ? "" : "s"}
+                      </Badge>
                     )}
                     {selected?.id === b.id ? (
                       <Badge tone="brand">Showing below</Badge>
                     ) : (
                       <Button
                         variant="secondary"
+                        className="h-11 px-space-3 text-[12.5px]"
                         onClick={() => setPicked(b.id)}
                       >
                         Manage
                       </Button>
                     )}
-                  </span>
+                  </div>
                 </li>
               );
             })}
@@ -352,7 +365,7 @@ export function PosChannelPanel() {
       {selected && (
         <>
           <div className="mt-space-5 flex flex-wrap items-center justify-between gap-space-3">
-            <h2 className="text-[16px] font-bold text-ink-900">
+            <h2 className="min-w-0 break-words text-[16px] font-bold text-ink-900">
               {selected.branch_name}{" "}
               <span className="text-[13px] font-normal text-ink-400">
                 {selected.branch_code}
@@ -362,7 +375,7 @@ export function PosChannelPanel() {
               <Select
                 value={selected.id}
                 onValueChange={(value) => setPicked(value)}
-                className="w-56"
+                className="w-full md:w-56"
                 aria-label="Branch"
               >
                 {posBranches.map((b) => (
@@ -373,13 +386,13 @@ export function PosChannelPanel() {
               </Select>
             )}
           </div>
-          <Card className="mt-space-3 p-space-4">
+          <Card className="mt-space-3 min-w-0 p-space-3 md:p-space-4">
             <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
               POS terminals
             </h3>
             <TerminalsPanel key={selected.id} branchId={selected.id} />
           </Card>
-          <Card className="mt-space-4 p-space-4">
+          <Card className="mt-space-4 min-w-0 p-space-3 md:p-space-4">
             <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
               Cashiers
             </h3>

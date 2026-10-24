@@ -30,6 +30,9 @@ import { SkeletonLines } from "@/components/ui/Skeleton";
 import { SyncHealthModal } from "@/components/portal/TerminalSyncHealth";
 import { HandoverBillsModal } from "@/components/portal/TerminalHandover";
 
+const rowActionClass =
+  "min-w-0 max-md:h-11 max-md:border max-md:border-line max-md:bg-card max-md:px-space-2 max-md:text-[12.5px]";
+
 /** Waiting more than a day is something to chase. */
 function isOld(iso: string | null): boolean {
   return !!iso && Date.now() - new Date(iso).getTime() > 24 * 3600 * 1000;
@@ -322,7 +325,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           <Field
             label="Name for the new terminal"
             htmlFor="t_name"
-            className="mb-0 min-w-56 flex-1"
+            className="mb-0 min-w-0 basis-full md:min-w-56 md:flex-1 md:basis-auto"
             hint="Optional, e.g. “Counter 1”. You can rename it later."
           >
             <Input
@@ -386,16 +389,23 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         {terminals.map((t) => (
           <li
             key={t.id}
-            className="flex flex-wrap items-center justify-between gap-space-3 py-space-3"
+            className="flex flex-col items-stretch gap-space-2 py-space-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-space-3"
           >
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-ink-900">
-                {t.name}{" "}
-                <span className="font-normal text-ink-400">{t.code}</span>{" "}
-                <Badge tone={t.status === "active" ? "success" : "neutral"}>
+            <div className="min-w-0 flex-1 break-words">
+              <div className="mb-1 flex items-start justify-between gap-space-2">
+                <p className="min-w-0 text-[14px] font-semibold text-ink-900">
+                  {t.name}{" "}
+                  <span className="block text-[12px] font-normal text-ink-400 md:inline">
+                    {t.code}
+                  </span>
+                </p>
+                <Badge
+                  className="shrink-0"
+                  tone={t.status === "active" ? "success" : "neutral"}
+                >
                   {t.status}
                 </Badge>
-              </p>
+              </div>
               <p className="text-[12.5px] text-ink-600">
                 {deviceLine(t)}
                 {t.app_version ? ` · app ${t.app_version}` : ""}
@@ -438,21 +448,34 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   </p>
                 )}
             </div>
-            <div className="mobile-page-actions flex gap-space-1">
-              <Button variant="ghost" onClick={() => setHealth(t)}>
+            <div className="grid w-full grid-cols-2 gap-space-2 md:flex md:w-auto md:flex-wrap md:justify-end md:gap-space-1">
+              <Button
+                className={rowActionClass}
+                variant="ghost"
+                onClick={() => setHealth(t)}
+              >
                 Sync health
               </Button>
+              <Button
+                className={rowActionClass}
+                variant="ghost"
+                onClick={() => setDetail(t.id)}
+              >
+                Details
+              </Button>
               {t.status === "revoked" && (
-                <Button variant="ghost" onClick={() => setHandover(t)}>
+                <Button
+                  className={`${rowActionClass} max-md:col-span-2`}
+                  variant="ghost"
+                  onClick={() => setHandover(t)}
+                >
                   Handed-over bills
                 </Button>
               )}
-              <Button variant="ghost" onClick={() => setDetail(t.id)}>
-                Details
-              </Button>
               {canManage && t.status === "active" && (
                 <Button
                   variant="ghost"
+                  className={rowActionClass}
                   onClick={() => setRenaming({ t, name: t.name })}
                 >
                   Rename
@@ -461,7 +484,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
               {canManage && t.status === "active" && (
                 <Button
                   variant="ghost"
-                  className="text-error"
+                  className={`${rowActionClass} text-error max-md:border-error/30`}
                   onClick={() => {
                     setRevoking(t);
                     setReason("");
@@ -654,18 +677,20 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
         {cashiers.map((c) => (
           <li
             key={c.id}
-            className="flex flex-wrap items-center justify-between gap-space-3 py-space-3 text-[14px]"
+            className="flex flex-col items-stretch gap-space-2 py-space-3 text-[14px] md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-space-3"
           >
-            <span>
-              <strong className="text-ink-900">{c.name}</strong>{" "}
-              <span className="text-ink-400">{c.email}</span>
-              <br />
-              <span className="text-[12.5px] text-ink-600">
-                {c.roles.map(humanize).join(", ")}
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-space-2">
+              <span className="min-w-0 break-words">
+                <strong className="text-ink-900">{c.name}</strong>{" "}
+                <span className="block text-[12.5px] text-ink-400">
+                  {c.email}
+                </span>
+                <span className="text-[12.5px] text-ink-600">
+                  {c.roles.map(humanize).join(", ")}
+                </span>
               </span>
-            </span>
-            <span className="mobile-page-actions flex items-center gap-space-2">
               <Badge
+                className="shrink-0"
                 tone={
                   c.status === "disabled"
                     ? "neutral"
@@ -680,9 +705,12 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
                     ? "PIN set"
                     : "No PIN"}
               </Badge>
+            </div>
+            <div className="grid w-full grid-cols-2 gap-space-2 md:flex md:w-auto md:items-center">
               {canSetPin && c.status === "active" && (
                 <Button
                   variant="ghost"
+                  className={rowActionClass}
                   onClick={() => {
                     setTarget(c);
                     setForm({ pin: "", again: "" });
@@ -695,13 +723,13 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
               {canSetPin && c.has_pin && (
                 <Button
                   variant="ghost"
-                  className="text-error"
+                  className={`${rowActionClass} text-error max-md:border-error/30`}
                   onClick={() => clear(c)}
                 >
                   Remove
                 </Button>
               )}
-            </span>
+            </div>
           </li>
         ))}
       </ul>

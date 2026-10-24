@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { useState } from "react";
-import { Input } from "@/components/ui/Input";
+import { SearchCombobox } from "@/components/ui/SearchCombobox";
 import { useCustomerSearch } from "@/hooks/useCustomers";
 import type { Customer } from "@/lib/erp";
 import { useDebounced } from "@/lib/useDebounced";
@@ -43,47 +43,27 @@ export function CustomerSelect({
       </div>
     );
   return (
-    <div className="relative">
-      <Input
-        id={id}
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={emptyLabel}
-        aria-label="Search customers"
-      />
-      {query && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-card shadow-[var(--shadow-md)]">
-          {(results.data ?? []).map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                className="block w-full px-space-3 py-space-2 text-left hover:bg-brand-50"
-                onClick={() => {
-                  onChange(c);
-                  setQ("");
-                }}
-              >
-                <span className="block text-[14px] font-medium text-ink-900">
-                  {c.name}
-                </span>
-                <span className="block text-[12px] text-ink-400">
-                  {[c.phone, c.email].filter(Boolean).join(" · ")}
-                </span>
-              </button>
-            </li>
-          ))}
-          {results.data?.length === 0 && (
-            <li className="px-space-3 py-space-2 text-[13px] text-ink-400">
-              No customers match.
-            </li>
-          )}
-          {!results.data && results.isFetching && (
-            <li className="px-space-3 py-space-2 text-[13px] text-ink-400">
-              Searching…
-            </li>
-          )}
-        </ul>
+    <SearchCombobox
+      id={id}
+      label="Search customers"
+      placeholder={emptyLabel}
+      query={q}
+      onQueryChange={setQ}
+      items={query ? (results.data ?? []) : []}
+      itemLabel={(customer) => customer.name}
+      onPick={onChange}
+      loading={results.isFetching || q.trim() !== query}
+      emptyLabel={query ? "No customers match." : "Type to search customers."}
+      renderItem={(customer) => (
+        <>
+          <span className="block text-[14px] font-medium text-ink-900">
+            {customer.name}
+          </span>
+          <span className="block text-[12px] text-ink-400">
+            {[customer.phone, customer.email].filter(Boolean).join(" · ")}
+          </span>
+        </>
       )}
-    </div>
+    />
   );
 }

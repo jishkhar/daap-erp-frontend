@@ -41,12 +41,26 @@ export default function ChannelSettingsPage({
   return (
     <PortalShell tenant={tenant} active="channels">
       <PageHeader
+        className={channel === "pos" ? "relative" : undefined}
         icon={<Icon size={20} />}
-        title={CHANNELS[channel].label}
+        title={
+          <span
+            className={channel === "pos" ? "block max-md:pr-28" : undefined}
+          >
+            {CHANNELS[channel].label}
+          </span>
+        }
         description={CHANNELS[channel].blurb}
         actions={
           <>
-            <LearnMore doc={channel === "online" ? "online-store" : channel} />
+            <LearnMore
+              doc={channel === "online" ? "online-store" : channel}
+              className={
+                channel === "pos"
+                  ? "inline-flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline max-md:absolute max-md:top-0 max-md:right-0 max-md:w-auto!"
+                  : undefined
+              }
+            />
             <Button variant="secondary" href={`/portal/channels/${channel}`}>
               Open {CHANNELS[channel].label}
             </Button>
