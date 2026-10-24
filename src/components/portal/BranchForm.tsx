@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { AddressFields } from "@/components/portal/AddressFields";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -11,7 +12,6 @@ import {
   type BranchDraft,
   type BranchErrors,
 } from "@/lib/branchSchema";
-import { INDIAN_STATES } from "@/lib/indianStates";
 
 export type GstOption = { id: string; label: string };
 export type ManagerOption = { id: string; name: string };
@@ -249,38 +249,26 @@ export function BranchForm({
             onChange={(ev) => set({ address_line2: ev.target.value })}
           />
         </Field>
-        <Field label="City" htmlFor="b_city" required error={e.city}>
-          <Input
-            id="b_city"
-            invalid={!!e.city}
-            value={draft.city}
-            maxLength={100}
-            onChange={(ev) => set({ city: ev.target.value })}
-          />
-        </Field>
-        <Field label="State" htmlFor="b_state" required error={e.state}>
-          <Select
-            id="b_state"
-            value={draft.state}
-            onValueChange={(value) => set({ state: value })}
-          >
-            <option value="">Choose a state…</option>
-            {INDIAN_STATES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Pincode" htmlFor="b_pin" required error={e.pincode}>
-          <Input
-            id="b_pin"
-            inputMode="numeric"
-            invalid={!!e.pincode}
-            value={draft.pincode}
-            onChange={(ev) => set({ pincode: digitsOnly(ev.target.value, 6) })}
-          />
-        </Field>
+        <AddressFields
+          idPrefix="b"
+          required
+          value={draft}
+          errors={e}
+          onChange={set}
+          onPlace={(place) => {
+            // nearest-branch delivery needs a position: the pincode's centre until someone enters the exact one
+            if (
+              !draft.latitude &&
+              !draft.longitude &&
+              place.latitude !== null &&
+              place.longitude !== null
+            )
+              set({
+                latitude: String(place.latitude),
+                longitude: String(place.longitude),
+              });
+          }}
+        />
         <div className="grid grid-cols-2 gap-x-space-3">
           <Field label="Latitude" htmlFor="b_lat" error={e.latitude}>
             <Input

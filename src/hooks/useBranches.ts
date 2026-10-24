@@ -97,21 +97,27 @@ export function useLinkBranchGst() {
   });
 }
 
-// ------------------------------------------------------------------ opening hours and delivery areas
+// ------------------------------------------------------------------ opening hours and delivery zones
 export type Hour = {
   weekday: number;
   opens_at: string;
   closes_at: string;
   channel: string | null;
 };
-export type Area = { pincode: string; delivery_fee_minor: number | null };
+/** A delivery zone this branch delivers (Settings > Shipping and delivery decides where each zone is and who serves it). */
+export type ServedZone = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  all_branches: boolean;
+};
 
-/** A branch's opening hours and serviceable pincodes. */
+/** A branch's opening hours and the delivery zones it serves. */
 export function useBranchSchedule(branchId: string) {
   return useQuery({
     queryKey: queryKeys.branchSchedule(branchId),
     queryFn: () =>
-      erpGet<{ hours: Hour[]; areas: Area[] }>(
+      erpGet<{ hours: Hour[]; zones: ServedZone[] }>(
         `/api/v1/branches/${branchId}/schedule`,
       ),
     enabled: Boolean(branchId),
@@ -124,19 +130,6 @@ export function useSaveHours(branchId: string) {
   return useMutation({
     mutationFn: (hours: Hour[]) =>
       erpSend<Hour[]>(`/api/v1/branches/${branchId}/hours`, "PUT", { hours }),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.branchSchedule(branchId) }),
-  });
-}
-
-/** Replace the branch's serviceable pincodes; returns the saved list. */
-export function useSaveAreas(branchId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (areas: Area[]) =>
-      erpSend<Area[]>(`/api/v1/branches/${branchId}/serviceable-areas`, "PUT", {
-        areas,
-      }),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: queryKeys.branchSchedule(branchId) }),
   });

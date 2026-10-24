@@ -141,6 +141,11 @@ export type Product = {
   description: string | null;
   tax_code: string | null;
   hsn_code?: string | null;
+  /** Packed size for shipments: grams and centimetres (the editor shows the weight in kg). */
+  ship_weight_g?: number | null;
+  ship_length_cm?: number | null;
+  ship_width_cm?: number | null;
+  ship_height_cm?: number | null;
   category_id?: string | null;
   category_name?: string | null;
   brand_id?: string | null;
@@ -297,6 +302,7 @@ export type ApiResult<T> = {
   data: T | null;
   error: string | null;
   unauthorized: boolean;
+  status?: number; // the HTTP status of a refused call (none for a network error)
 };
 
 /** One JSON call to the ERP API as the signed-in user. */
@@ -321,13 +327,18 @@ export async function erp<T = unknown>(
       : {}),
   });
   if (!result.ok) {
-    return {
-      data: null,
-      error: result.unauthorized
-        ? "Session expired — please sign in again."
-        : result.error,
-      unauthorized: result.unauthorized,
-    };
+    return result.unauthorized
+      ? {
+          data: null,
+          error: "Session expired — please sign in again.",
+          unauthorized: true,
+        }
+      : {
+          data: null,
+          error: result.error,
+          unauthorized: false,
+          status: result.status,
+        };
   }
   return { data: result.data as T, error: null, unauthorized: false };
 }
@@ -353,7 +364,14 @@ export async function erpUpload<T = unknown>(
 }
 
 /** A failed ERP call, for TanStack Query: queries and mutations fail by throwing. `message` is the server's message, ready to show. */
-export class ErpError extends Error {}
+export class ErpError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
 
 function orThrow<T>(res: ApiResult<T>): T {
   if (res.unauthorized) {
@@ -361,7 +379,7 @@ function orThrow<T>(res: ApiResult<T>): T {
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/portal/login";
   }
-  if (res.error !== null) throw new ErpError(res.error);
+  if (res.error !== null) throw new ErpError(res.error, res.status);
   return res.data as T;
 }
 

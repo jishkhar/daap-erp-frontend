@@ -1,5 +1,6 @@
-/** GST state codes (the first two digits of every GSTIN). Mirrors erp-ecommerce-backend/core/gst.py `STATE_CODES`; the server re-checks. */
-export const GST_STATES: { code: string; name: string }[] = [
+/** GST state codes (the first two digits of every GSTIN) and their names, the one list every address form picks from. Mirrors
+ * erp-ecommerce-backend/core/gst.py `STATE_CODES`; the server stores a state under exactly these names and refuses any other. */
+const GST_CODES: { code: string; name: string }[] = [
   ["01", "Jammu & Kashmir"],
   ["02", "Himachal Pradesh"],
   ["03", "Punjab"],
@@ -39,7 +40,16 @@ export const GST_STATES: { code: string; name: string }[] = [
   ["97", "Other Territory"],
 ].map(([code, name]) => ({ code, name }));
 
+/** The states and union territories an address can be in, A to Z ("Other Territory" is only ever a GSTIN's). */
+export const STATES = GST_CODES.filter((s) => s.code !== "97").sort((a, b) =>
+  a.name.localeCompare(b.name),
+);
+
+const STATE_NAMES = new Set(STATES.map((s) => s.name));
+
+export const isStateName = (name: string): boolean => STATE_NAMES.has(name);
+
 export const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 
 export const stateForGstin = (gstin: string): string | null =>
-  GST_STATES.find((s) => s.code === gstin.slice(0, 2))?.name ?? null;
+  GST_CODES.find((s) => s.code === gstin.slice(0, 2))?.name ?? null;

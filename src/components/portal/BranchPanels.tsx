@@ -1,31 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Field } from "@/components/ui/Field";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import type { BranchRow } from "@/lib/branchSchema";
 import {
   useBranchSchedule,
-  useSaveAreas,
   useSaveHours,
-  type Area,
   type Hour,
 } from "@/hooks/useBranches";
-import { fromMinor, humanize, toMinor } from "@/lib/erp";
+import { humanize } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
-const areasToText = (areas: Area[]) =>
-  areas
-    .map((a) =>
-      a.delivery_fee_minor === null
-        ? a.pincode
-        : `${a.pincode}, ${fromMinor(a.delivery_fee_minor)}`,
-    )
-    .join("\n");
 const DAYS = [
   "Sunday",
   "Monday",
@@ -39,29 +29,25 @@ const DAYS = [
 export function BranchPanels({
   branch,
   canWrite,
-  currency,
 }: {
   branch: BranchRow;
   canWrite: boolean;
-  currency: string;
+  /** Kept for callers; delivery fees now live on delivery zones. */
+  currency?: string;
 }) {
   const schedule = useBranchSchedule(branch.id);
   const saveHoursMutation = useSaveHours(branch.id);
-  const saveAreasMutation = useSaveAreas(branch.id);
   const [hours, setHours] = useState<Hour[] | null>(null); // null = not edited yet: show what the server has
-  const [pins, setPins] = useState<string | null>(null);
   const [slot, setSlot] = useState({
     weekday: "1",
     opens_at: "09:00",
     closes_at: "18:00",
   });
   const [dirtyHours, setDirtyHours] = useState(false);
-  const [dirtyPins, setDirtyPins] = useState(false);
-  const busy = saveHoursMutation.isPending || saveAreasMutation.isPending;
+  const busy = saveHoursMutation.isPending;
 
   const shownHours = hours ?? schedule.data?.hours ?? [];
-  const shownPins = pins ?? areasToText(schedule.data?.areas ?? []);
-  const loadingSchedule = schedule.isFetching && !schedule.data;
+  const zones = schedule.data?.zones;
 
   function addSlot() {
     if (slot.opens_at >= slot.closes_at)
@@ -90,31 +76,6 @@ export function BranchPanels({
         setDirtyHours(false);
       },
       onError: (e) => toast.error("Couldn't save the hours", e.message),
-    });
-  }
-
-  function savePins() {
-    const areas: Area[] = [];
-    for (const line of shownPins
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean)) {
-      const [pincode, fee] = line.split(",").map((x) => x.trim());
-      const minor = fee ? toMinor(fee) : null;
-      if (fee && minor === null)
-        return toast.error(
-          `Check the fee on “${line}”`,
-          "Use a plain amount like 49 or 49.50.",
-        );
-      areas.push({ pincode, delivery_fee_minor: minor });
-    }
-    saveAreasMutation.mutate(areas, {
-      onSuccess: (saved) => {
-        toast.success("Serviceable pincodes saved");
-        setPins(areasToText(saved ?? areas));
-        setDirtyPins(false);
-      },
-      onError: (e) => toast.error("Couldn't save the pincodes", e.message),
     });
   }
 
@@ -218,35 +179,45 @@ export function BranchPanels({
         )}
       </Card>
       <Card className="p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-          Delivery pincodes
+        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
+          Delivers to
         </h2>
-        <Field
-          label="Pincodes this branch delivers to"
-          htmlFor="b_pins"
-          hint={`One per line. Add a delivery fee after a comma if it differs, e.g. “560001, 49” (${currency}). Online orders to a listed pincode are fulfilled from this branch first when the ordering branch can't supply them.`}
-        >
-          <Textarea
-            id="b_pins"
-            rows={8}
-            disabled={!canWrite || loadingSchedule}
-            placeholder={loadingSchedule ? "Loading…" : "560001\n560002, 49"}
-            value={shownPins}
-            onChange={(e) => {
-              setDirtyPins(true);
-              setPins(e.target.value);
-            }}
-          />
-        </Field>
-        {canWrite && (
-          <Button
-            className="mobile-page-action"
-            disabled={busy || !dirtyPins}
-            onClick={savePins}
-          >
-            Save pincodes
-          </Button>
+        <p className="mb-space-3 text-[13px] text-ink-600">
+          Where the business delivers, and for how much, is set as delivery
+          zones; each zone says which branches deliver it. Online orders go to
+          the nearest branch serving the shopper&apos;s zone that has every
+          item.
+        </p>
+        {!zones ? (
+          <SkeletonLines rows={2} />
+        ) : zones.length === 0 ? (
+          <p className="mb-space-3 text-[13.5px] text-ink-400">
+            No delivery zone uses this branch, so it ships no online orders.
+          </p>
+        ) : (
+          <ul className="mb-space-3 flex flex-wrap gap-space-2">
+            {zones.map((z) => (
+              <li
+                key={z.id}
+                className="rounded-full border border-line px-space-3 py-1 text-[13px] text-ink-700"
+              >
+                {z.name}
+                {z.all_branches && (
+                  <span className="text-ink-400"> · every branch</span>
+                )}
+                {!z.is_active && (
+                  <span className="text-ink-400"> · switched off</span>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
+        <Link
+          href="/portal/settings/shipping"
+          className="text-[13px] font-semibold text-brand-700 hover:underline"
+        >
+          Edit delivery zones
+        </Link>
       </Card>
     </div>
   );

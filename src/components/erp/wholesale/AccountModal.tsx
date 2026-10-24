@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CustomerSelect } from "@/components/erp/CustomerSelect";
+import { StateSelect } from "@/components/portal/StateSelect";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -11,6 +12,7 @@ import { Switch } from "@/components/ui/Switch";
 import { Tabs } from "@/components/ui/Tabs";
 import { usePriceLists, useSaveAccount } from "@/hooks/useWholesale";
 import { fromMinor, toMinor, type Customer } from "@/lib/erp";
+import { stateForGstin } from "@/lib/states";
 import { toast } from "@/lib/toast";
 import { GSTIN_RE, type CustomerAccount } from "@/lib/wholesale";
 
@@ -106,7 +108,7 @@ export function AccountModal({
     const body = {
       legal_name: draft.legal_name.trim() || null,
       gstin: gstin || null,
-      billing_state: gstin ? null : draft.billing_state.trim() || null,
+      billing_state: gstin ? null : draft.billing_state || null,
       billing_address: draft.billing_address.trim() || null,
       price_list_id: draft.price_list_id || null,
       credit_limit_minor: draft.credit ? limit : null,
@@ -271,14 +273,11 @@ export function AccountModal({
               : "Decides IGST or CGST + SGST on counter sales."
           }
         >
-          <Input
+          <StateSelect
             id="a_state"
             disabled={!!gstin}
-            value={gstin ? "" : draft.billing_state}
-            placeholder={
-              gstin ? `State code ${gstin.slice(0, 2)}` : "e.g. Karnataka"
-            }
-            onChange={(e) => set({ billing_state: e.target.value })}
+            value={gstin ? (stateForGstin(gstin) ?? "") : draft.billing_state}
+            onChange={(billing_state) => set({ billing_state })}
           />
         </Field>
         <Field

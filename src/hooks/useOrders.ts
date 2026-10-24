@@ -46,7 +46,7 @@ export function useOrder(id: string) {
 
 /** What an order change can show elsewhere: the orders lists, the customer's history and store credit, stock (reserved, released,
  * sold) and the books (sales, payments and tax are posted to the journal). */
-function refreshAfterOrderChange(qc: QueryClient) {
+export function refreshAfterOrderChange(qc: QueryClient) {
   return Promise.all([
     qc.invalidateQueries({ queryKey: queryKeys.orders }),
     qc.invalidateQueries({ queryKey: queryKeys.customers }),

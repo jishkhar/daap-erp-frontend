@@ -18,6 +18,7 @@ import {
   PaymentStatusBadge,
 } from "@/components/erp/StatusBadges";
 import { RecordActivity } from "@/components/portal/RecordActivity";
+import { ShipmentPanel } from "@/components/portal/ShipmentPanel";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { ReturnStatusBadge } from "@/components/portal/returns/ReturnDetailPanel";
 import { ReturnModal } from "@/components/portal/returns/ReturnModal";
@@ -57,7 +58,10 @@ const NEXT_STEP: Record<string, { to: string; label: string }[]> = {
     { to: "shipped", label: "Mark shipped" },
     { to: "completed", label: "Mark delivered" },
   ],
-  shipped: [{ to: "completed", label: "Mark delivered" }],
+  shipped: [
+    { to: "out_for_delivery", label: "Out for delivery" },
+    { to: "completed", label: "Mark delivered" },
+  ],
   out_for_delivery: [{ to: "completed", label: "Mark delivered" }],
 };
 
@@ -417,6 +421,7 @@ export default function OrderDetailPage() {
                   />
                 )}
               </Card>
+              <ShipmentPanel order={o} canUpdate={canUpdate} currency={cur} />
               {(returns.data ?? []).length > 0 && (
                 <Card className="min-w-0 p-space-3 md:p-space-4">
                   <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">

@@ -10,7 +10,7 @@ import { Field } from "@/components/ui/Field";
 import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { GSTIN_PATTERN, GST_STATES, stateForGstin } from "@/lib/gstStates";
+import { GSTIN_PATTERN, STATES, stateForGstin } from "@/lib/states";
 import {
   clearPendingSignup,
   getPendingSignup,
@@ -202,7 +202,7 @@ export default function OnboardingPage() {
                 onValueChange={(value) => setPickedState(value)}
               >
                 <option value="">Select…</option>
-                {GST_STATES.map((st) => (
+                {STATES.map((st) => (
                   <option key={st.code} value={st.name}>
                     {st.name}
                   </option>
@@ -214,7 +214,10 @@ export default function OnboardingPage() {
                 id="pincode"
                 inputMode="numeric"
                 value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
+                maxLength={6}
+                onChange={(e) =>
+                  setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
               />
             </Field>
           </div>

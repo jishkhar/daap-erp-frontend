@@ -8,6 +8,7 @@ export const queryKeys = {
   orders: ["erp", "orders"] as const,
   orderList: (params: Params) => ["erp", "orders", "list", params] as const,
   order: (id: string) => ["erp", "orders", "detail", id] as const,
+  orderShipments: (id: string) => ["erp", "orders", "shipments", id] as const,
 
   customers: ["erp", "customers"] as const,
   customerList: (params: Params) =>
@@ -85,6 +86,16 @@ export const queryKeys = {
     ["erp", "returns", "returnable", orderId] as const,
   returnPolicy: ["erp", "returns", "policy"] as const,
   shippingSettings: ["erp", "shipping", "settings"] as const,
+  deliveryZones: ["erp", "shipping", "zones"] as const,
+  deliveryDistricts: (state: string) =>
+    ["erp", "shipping", "districts", state] as const,
+  deliveryCheck: (pincode: string) =>
+    ["erp", "shipping", "check", pincode] as const,
+  deliveryMap: ["erp", "shipping", "map"] as const,
+  pincodePlace: (pincode: string) => ["erp", "pincode", pincode] as const,
+  districtSearch: (q: string) =>
+    ["erp", "shipping", "district-search", q] as const,
+  zonePreview: (body: string) => ["erp", "shipping", "preview", body] as const,
   /** Settings > Policies (the shop's written policies). */
   storePolicies: ["erp", "store-policies"] as const,
   /** Settings > Domains (the shop's own domains). */

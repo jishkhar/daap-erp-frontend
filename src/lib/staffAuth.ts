@@ -425,7 +425,7 @@ export async function logoutStaff() {
 type FetchResult =
   | { ok: true; data: unknown }
   | { ok: false; unauthorized: true }
-  | { ok: false; unauthorized: false; error: string };
+  | { ok: false; unauthorized: false; error: string; status?: number };
 
 /** axios wrapper for authenticated ERP requests. Access tokens last ~15 minutes, so a 401 first tries ONE silent
  * refresh before giving up and clearing the session. */
@@ -461,6 +461,7 @@ export async function staffFetch(
         ok: false,
         unauthorized: false,
         error: errorMessage(err.response.data),
+        status: err.response.status,
       };
     }
     token = await tryRefresh();

@@ -12,6 +12,7 @@ import { NewPurchaseOrder } from "@/components/erp/procurement/NewPurchaseOrder"
 import { PayPurchaseOrder } from "@/components/erp/procurement/PayBillsModal";
 import { SupplierPanel } from "@/components/erp/procurement/SupplierPanel";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StateSelect } from "@/components/portal/StateSelect";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { useActiveBranch } from "@/lib/branch";
+import { GSTIN_PATTERN, stateForGstin } from "@/lib/states";
 import {
   useCreateSupplier,
   usePurchaseOrders,
@@ -70,6 +72,8 @@ export default function ProcurementPage() {
     state: "",
     terms: "30",
   });
+  const gstin = form.gstin.trim().toUpperCase();
+  const gstinState = GSTIN_PATTERN.test(gstin) ? stateForGstin(gstin) : null;
   const busy = createSupplierMutation.isPending;
   const cur = tenant?.currency ?? "INR";
   const canCreate = hasGrant(session, "procurement:create");
@@ -183,7 +187,7 @@ export default function ProcurementPage() {
         gstin: form.gstin.trim() || null,
         phone: form.phone.trim() || null,
         email: form.email.trim() || null,
-        state: form.state.trim() || null,
+        state: gstinState ?? (form.state || null),
         payment_terms_days: parseInt(form.terms, 10) || 30,
       },
       {
@@ -400,14 +404,26 @@ export default function ProcurementPage() {
             <Input
               id="s_gstin"
               value={form.gstin}
-              onChange={(e) => setForm({ ...form, gstin: e.target.value })}
+              maxLength={15}
+              onChange={(e) =>
+                setForm({ ...form, gstin: e.target.value.toUpperCase() })
+              }
             />
           </Field>
-          <Field label="State" htmlFor="s_state">
-            <Input
+          <Field
+            label="State"
+            htmlFor="s_state"
+            hint={
+              gstinState
+                ? "Taken from the GSTIN."
+                : "Decides IGST or CGST + SGST on this supplier's bills."
+            }
+          >
+            <StateSelect
               id="s_state"
-              value={form.state}
-              onChange={(e) => setForm({ ...form, state: e.target.value })}
+              value={gstinState ?? form.state}
+              disabled={!!gstinState}
+              onChange={(state) => setForm({ ...form, state })}
             />
           </Field>
           <Field label="Phone" htmlFor="s_phone">

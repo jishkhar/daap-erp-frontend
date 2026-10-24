@@ -2,6 +2,7 @@
 
 import { MapPin, Settings, Store } from "lucide-react";
 import { useState } from "react";
+import { AddressFields } from "@/components/portal/AddressFields";
 import { SetupCard } from "@/components/portal/onboarding/guide";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -266,28 +267,13 @@ function GeneralSections({
                 onChange={(e) => set("registered_address", e.target.value)}
               />
             </Field>
-            <Field label="City" htmlFor="c_city">
-              <Input
-                id="c_city"
-                value={draft.city}
-                onChange={(e) => set("city", e.target.value)}
-              />
-            </Field>
-            <Field label="State" htmlFor="c_state">
-              <Input
-                id="c_state"
-                value={draft.state}
-                onChange={(e) => set("state", e.target.value)}
-              />
-            </Field>
-            <Field label="Pincode" htmlFor="c_pin">
-              <Input
-                id="c_pin"
-                inputMode="numeric"
-                value={draft.pincode}
-                onChange={(e) => set("pincode", e.target.value)}
-              />
-            </Field>
+            <AddressFields
+              idPrefix="c"
+              value={draft}
+              onChange={(patch) =>
+                setDraft((d) => (d ? { ...d, ...patch } : d))
+              }
+            />
           </div>
         )}
       </Modal>

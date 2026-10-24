@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fromMinor, toMinor } from "@/lib/erp";
-import { INDIAN_STATES } from "@/lib/indianStates";
+import { isStateName } from "@/lib/states";
 
 /** What the branch form holds: every input as the string (or boolean) the person typed, so the form can show half-typed values. */
 export type BranchDraft = {
@@ -186,7 +186,6 @@ const pincode = (label: string) =>
     .string()
     .trim()
     .regex(/^\d{6}$/, `${label} must be 6 digits.`);
-const stateNames: readonly string[] = INDIAN_STATES;
 
 /** Rules shared by add and edit. `gstRequired` is true when the business has a GST registration the branch could trade under. */
 export function branchSchema({ gstRequired }: { gstRequired: boolean }) {
@@ -215,7 +214,7 @@ export function branchSchema({ gstRequired }: { gstRequired: boolean }) {
     state: z
       .string()
       .min(1, "State is required.")
-      .refine((v) => stateNames.includes(v), "Choose a state from the list."),
+      .refine(isStateName, "Choose a state from the list."),
     pincode: z
       .string()
       .trim()

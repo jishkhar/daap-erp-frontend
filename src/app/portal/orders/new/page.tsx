@@ -13,6 +13,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { AddressFields } from "@/components/portal/AddressFields";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -78,7 +79,12 @@ function NewOrder() {
   const [walkName, setWalkName] = useState("");
   const [walkPhone, setWalkPhone] = useState("");
   const [orderType, setOrderType] = useState("shipping");
-  const [address, setAddress] = useState({ line1: "", city: "", pincode: "" });
+  const [address, setAddress] = useState({
+    line1: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
   const [payNow, setPayNow] = useState(true);
   const [method, setMethod] = useState("cash");
   const [remoteMethod, setRemoteMethod] = useState("cod");
@@ -372,25 +378,13 @@ function NewOrder() {
                         }
                       />
                     </Field>
-                    <Field label="City" htmlFor="o_city">
-                      <Input
-                        id="o_city"
-                        value={address.city}
-                        onChange={(e) =>
-                          setAddress({ ...address, city: e.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field label="Pincode" htmlFor="o_pin">
-                      <Input
-                        id="o_pin"
-                        inputMode="numeric"
-                        value={address.pincode}
-                        onChange={(e) =>
-                          setAddress({ ...address, pincode: e.target.value })
-                        }
-                      />
-                    </Field>
+                    <AddressFields
+                      idPrefix="o"
+                      value={address}
+                      onChange={(patch) =>
+                        setAddress((a) => ({ ...a, ...patch }))
+                      }
+                    />
                   </>
                 )}
               </div>

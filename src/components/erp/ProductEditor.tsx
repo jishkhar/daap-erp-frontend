@@ -92,10 +92,13 @@ export function ProductEditor({ product }: { product?: Product }) {
       : "",
     tax_code: product?.tax_code ?? "",
     hsn_code: product?.hsn_code ?? "",
-    weight_kg: String(attrs.weight_kg ?? ""),
-    length_cm: String(attrs.length_cm ?? ""),
-    width_cm: String(attrs.width_cm ?? ""),
-    height_cm: String(attrs.height_cm ?? ""),
+    weight_kg:
+      product?.ship_weight_g != null
+        ? String(product.ship_weight_g / 1000)
+        : "",
+    length_cm: String(product?.ship_length_cm ?? ""),
+    width_cm: String(product?.ship_width_cm ?? ""),
+    height_cm: String(product?.ship_height_cm ?? ""),
     lifecycle_status: product?.lifecycle_status ?? "draft",
     serialization_type: product?.serialization_type ?? "NONE",
     color_hex: typeof attrs.color_hex === "string" ? attrs.color_hex : "",
@@ -194,22 +197,28 @@ export function ProductEditor({ product }: { product?: Product }) {
     ];
     if (tags.length) attributes.tags = tags;
     else delete attributes.tags;
-    for (const key of [
-      "weight_kg",
-      "length_cm",
-      "width_cm",
-      "height_cm",
+    // Packed size: its own fields (shipments use them), no longer kept in the attributes.
+    const packed: Record<string, number | null> = {};
+    for (const [key, field, scale] of [
+      ["weight_kg", "ship_weight_g", 1000],
+      ["length_cm", "ship_length_cm", 1],
+      ["width_cm", "ship_width_cm", 1],
+      ["height_cm", "ship_height_cm", 1],
     ] as const) {
+      delete attributes[key];
       if (!draft[key].trim()) {
-        delete attributes[key];
+        packed[field] = null;
         continue;
       }
       const amount = Number(draft[key]);
-      if (!Number.isFinite(amount) || amount < 0)
+      if (!Number.isFinite(amount) || amount <= 0)
         return setError(
-          "Shipping weight and dimensions must be non-negative numbers.",
+          "Shipping weight and dimensions must be numbers above zero.",
         );
-      attributes[key] = amount;
+      packed[field] =
+        scale === 1000
+          ? Math.max(1, Math.round(amount * 1000))
+          : Math.round(amount * 10) / 10;
     }
     for (const key of [
       "color_hex",
@@ -239,6 +248,7 @@ export function ProductEditor({ product }: { product?: Product }) {
       serialization_type: draft.serialization_type,
       lifecycle_status: draft.lifecycle_status,
       variant_attributes: attributes,
+      ...packed,
       ...(!product
         ? { sku: draft.sku.trim(), barcode: draft.barcode.trim() || null }
         : {}),

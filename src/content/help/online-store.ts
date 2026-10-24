@@ -66,11 +66,11 @@ export const onlineStore: Doc = {
             ],
             [
               "Delivery priority",
-              "When more than one branch could serve an order, the lower number is tried first.",
+              "When more than one branch could serve an order equally near the shopper, the lower number is tried first.",
             ],
             [
-              "Serviceable pincodes",
-              "A branch delivers only to the pincodes it lists. Until any branch lists one, delivery is not limited by pincode.",
+              "Delivery zones",
+              "Settings > Shipping and delivery: where you deliver (all of India, states, districts, pincodes, with places left out), the fee, free-above amount, minimum order, delivery days and cash on delivery, and which branches deliver each zone. A pincode belongs to the most specific zone covering it.",
             ],
             ["Minimum order", "Orders below this are refused for that branch."],
             [
@@ -85,7 +85,7 @@ export const onlineStore: Doc = {
         },
         {
           t: "p",
-          text: "A delivery order goes to **one** branch that delivers online, serves the pincode, is open, meets the minimum, and has **every item** in stock. The order is never split across branches. If no branch qualifies, the order is refused with the reason (not deliverable, below the minimum, or out of stock).",
+          text: "A delivery order goes to **one** branch that delivers online, serves the shopper's delivery zone, is open, meets the minimum, and has **every item** in stock; the nearest such branch to the shopper's pincode is chosen. The order is never split across branches. If no branch qualifies, the order is refused with the reason (not deliverable, below the minimum, or out of stock).",
         },
       ],
     },
