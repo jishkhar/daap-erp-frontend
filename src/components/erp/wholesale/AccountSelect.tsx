@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { useState } from "react";
-import { Input } from "@/components/ui/Input";
+import { SearchCombobox } from "@/components/ui/SearchCombobox";
 import { useAccountSearch } from "@/hooks/useWholesale";
 import { useDebounced } from "@/lib/useDebounced";
 import type { CustomerAccount } from "@/lib/wholesale";
@@ -44,54 +44,32 @@ export function AccountSelect({
       </div>
     );
   return (
-    <div className="relative">
-      <Input
-        id={id}
-        value={q}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search business customers by name, code, GSTIN or phone…"
-        aria-label="Search business customers"
-      />
-      {(focused || query) && (
-        <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-line bg-card shadow-[var(--shadow-md)]">
-          {(results.data ?? []).map((a) => (
-            <li key={a.id}>
-              <button
-                type="button"
-                className="block w-full px-space-3 py-space-2 text-left hover:bg-brand-50"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onChange(a);
-                  setQ("");
-                }}
-              >
-                <span className="block text-[14px] font-medium text-ink-900">
-                  {a.legal_name}
-                </span>
-                <span className="block text-[12px] text-ink-400">
-                  {[
-                    a.account_code,
-                    a.gstin ?? "Unregistered",
-                    a.price_list_name ?? "Normal prices",
-                  ].join(" · ")}
-                </span>
-              </button>
-            </li>
-          ))}
-          {results.data?.length === 0 && (
-            <li className="px-space-3 py-space-2 text-[13px] text-ink-400">
-              No business customer matches.
-            </li>
-          )}
-          {!results.data && results.isFetching && (
-            <li className="px-space-3 py-space-2 text-[13px] text-ink-400">
-              Searching…
-            </li>
-          )}
-        </ul>
+    <SearchCombobox
+      id={id}
+      label="Search business customers"
+      placeholder="Search business customers by name, code, GSTIN or phone…"
+      query={q}
+      onQueryChange={setQ}
+      onFocus={() => setFocused(true)}
+      items={results.data ?? []}
+      itemLabel={(account) => account.legal_name}
+      onPick={onChange}
+      loading={results.isFetching || q.trim() !== query}
+      emptyLabel="No business customer matches."
+      renderItem={(account) => (
+        <>
+          <span className="block text-[14px] font-medium text-ink-900">
+            {account.legal_name}
+          </span>
+          <span className="block text-[12px] text-ink-400">
+            {[
+              account.account_code,
+              account.gstin ?? "Unregistered",
+              account.price_list_name ?? "Normal prices",
+            ].join(" · ")}
+          </span>
+        </>
       )}
-    </div>
+    />
   );
 }

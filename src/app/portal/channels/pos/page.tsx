@@ -16,10 +16,12 @@ export default function PosChannelPage() {
   return (
     <PortalShell tenant={tenant} active="channel-pos">
       <PageHeader
+        className="relative"
         icon={<Store size={20} />}
-        title="POS"
+        title={<span className="block max-md:pr-28">POS</span>}
         description="Choose how the till screen looks and what it says."
         actions={<LearnMore doc="pos" />}
+        actionsClassName="max-md:absolute max-md:top-0 max-md:right-0 max-md:w-auto!"
       />
       <ServiceLock service="pos">
         <ChannelStatusStrip channel="pos" />
