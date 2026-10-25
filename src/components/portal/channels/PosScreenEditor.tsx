@@ -15,6 +15,7 @@ import {
   Home,
   LayoutGrid,
   Lock,
+  Palette,
   Package,
   Plus,
   Receipt,
@@ -33,6 +34,13 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
+import {
+  brandProblems,
+  type BrandDraft,
+  PosBrandPanel,
+} from "@/components/portal/channels/PosBrandPanel";
+import { usePosBranding, useSavePosBranding } from "@/hooks/usePosBranding";
+import { tillColors, type PosBranding } from "@/lib/posBranding";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 
@@ -40,14 +48,9 @@ import { toast } from "@/lib/toast";
  * POS screen editor: one page (the till dashboard), edited like Shopify's POS theme editor
  * (tree on the left, live preview in the middle, settings of the selected item on the right).
  *
- * SAMPLE DATA ONLY. Nothing is read from or saved to the backend yet.
+ * Brand (name, colours, logo, DAAP mark) is live: saved to the backend and shown on every till after its next sync.
+ * Dashboard tiles, Checkout and Lock screen are still SAMPLE ONLY: nothing about them is saved yet.
  */
-
-const notWired = () =>
-  toast.success(
-    "Preview only",
-    "The till screen isn't connected to these settings yet.",
-  );
 
 type TileId =
   | "sales"
@@ -62,7 +65,8 @@ type TileId =
   | "top"
   | "sync";
 type Tile = { id: TileId; label: string; visible: boolean };
-type Selection = "page" | TileId | "checkout" | "lock";
+type Selection = "brand" | "page" | TileId | "checkout" | "lock";
+const SAMPLE_ONLY = (s: Selection) => s !== "brand";
 
 const INITIAL: Tile[] = [
   { id: "sales", label: "Today's Sales", visible: true },
@@ -78,12 +82,18 @@ const INITIAL: Tile[] = [
   { id: "sync", label: "Sync Insight", visible: true },
 ];
 
-const ACCENTS = [
-  { key: "#1d63ed", name: "Blue" },
-  { key: "#0f9d58", name: "Green" },
-  { key: "#c2410c", name: "Orange" },
-  { key: "#7c3aed", name: "Violet" },
-];
+const toDraft = (b: PosBranding): BrandDraft => ({
+  app_name: b.app_name,
+  primary_color: b.primary_color,
+  sidebar_color: b.sidebar_color,
+  logo_url: b.logo_url,
+});
+const DAAP_DRAFT: BrandDraft = {
+  app_name: "DAAP POS",
+  primary_color: "#2F6FED",
+  sidebar_color: null,
+  logo_url: null,
+};
 
 const NAV = [
   { label: "Dashboard", icon: Home },
@@ -232,15 +242,20 @@ function Preview({
   tiles,
   sel,
   onSelect,
-  accent,
-  storeName,
+  brand,
 }: {
   tiles: Tile[];
   sel: Selection;
   onSelect: (s: Selection) => void;
-  accent: string;
-  storeName: string;
+  brand: BrandDraft;
 }) {
+  const {
+    primary: accent,
+    sidebar,
+    accent: sidebarAccent,
+  } = tillColors(brand.primary_color, brand.sidebar_color);
+  const name = brand.app_name.trim() || "DAAP POS";
+  const cut = name.lastIndexOf(" ");
   const t = (id: TileId) => tiles.find((x) => x.id === id)!;
   const on = (id: TileId) => t(id).visible;
   const stats = STATS.filter((s) => on(s.id));
@@ -250,13 +265,39 @@ function Preview({
       className="@container overflow-hidden rounded-xl border border-slate-300 bg-slate-100 text-[10px] shadow-[var(--shadow-md)]"
     >
       <div className="flex">
-        <aside className="hidden w-[132px] shrink-0 bg-[#0b2447] p-2 text-white @min-[400px]:block">
-          <p className="mb-2 px-1.5 py-1 text-[13px] font-extrabold tracking-wide">
-            {storeName}{" "}
-            <span style={{ color: accent }} className="brightness-150">
-              POS
-            </span>
-          </p>
+        <aside
+          className="hidden w-[132px] shrink-0 p-2 text-white @min-[400px]:block"
+          style={{ background: sidebar }}
+        >
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelect("brand")}
+            onKeyDown={(e) =>
+              (e.key === "Enter" || e.key === " ") && onSelect("brand")
+            }
+            className={cn(
+              "mb-2 flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 outline-none",
+              sel === "brand" && "ring-2 ring-white/70",
+            )}
+          >
+            {brand.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.logo_url}
+                alt=""
+                className="size-5 shrink-0 rounded bg-white object-contain"
+              />
+            )}
+            <p className="truncate text-[13px] font-extrabold tracking-wide">
+              {cut > 0 ? name.slice(0, cut + 1) : name}
+              {cut > 0 && (
+                <span style={{ color: sidebarAccent }}>
+                  {name.slice(cut + 1)}
+                </span>
+              )}
+            </p>
+          </div>
           {NAV.map((n, i) => (
             <div
               key={n.label}
@@ -519,11 +560,30 @@ function TreeRow({
   );
 }
 
-export function PosScreenEditor({ storeName }: { storeName: string }) {
+export function PosScreenEditor() {
   const [tiles, setTiles] = useState<Tile[]>(INITIAL);
-  const [sel, setSel] = useState<Selection>("page");
-  const [accent, setAccent] = useState(ACCENTS[0].key);
+  const [sel, setSel] = useState<Selection>("brand");
   const [open, setOpen] = useState(true);
+  const saved = usePosBranding();
+  const save = useSavePosBranding();
+  // The edits not saved yet; null means the draft is what is saved (also after Save and Reset).
+  const [edits, setEdits] = useState<BrandDraft | null>(null);
+  const savedDraft = saved.data ? toDraft(saved.data) : null;
+  const brand = edits ?? savedDraft ?? DAAP_DRAFT;
+  const dirty =
+    edits !== null && JSON.stringify(edits) !== JSON.stringify(savedDraft);
+  const invalid = Object.keys(brandProblems(brand)).length > 0;
+  const onSave = () =>
+    save.mutate(
+      { ...brand, app_name: brand.app_name.trim() },
+      {
+        onSuccess: () => {
+          setEdits(null);
+          toast.success("Saved", "Tills update on their next sync.");
+        },
+        onError: (e) => toast.error("Couldn't save the brand", e.message),
+      },
+    );
   const [checkout, setCheckout] = useState({
     label: "Checkout",
     showTax: true,
@@ -548,19 +608,25 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
   return (
     <>
       <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-3">
-        <Badge tone="warning">Sample data: not connected yet</Badge>
+        {SAMPLE_ONLY(sel) ? (
+          <Badge tone="warning">Preview only: not saved to the tills yet</Badge>
+        ) : (
+          <Badge tone="success">Saved to every till on its next sync</Badge>
+        )}
         <div className="mobile-page-actions mobile-page-actions-pair flex gap-space-2">
           <Button
             variant="secondary"
-            onClick={() => {
-              setTiles(INITIAL);
-              setAccent(ACCENTS[0].key);
-              setSel("page");
-            }}
+            disabled={!dirty}
+            onClick={() => setEdits(null)}
           >
             Reset
           </Button>
-          <Button onClick={notWired}>Save</Button>
+          <Button
+            onClick={onSave}
+            disabled={!dirty || invalid || save.isPending}
+          >
+            {save.isPending ? "Saving…" : "Save"}
+          </Button>
         </div>
       </div>
 
@@ -569,6 +635,13 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
           <p className="px-space-2 pb-space-2 text-[13px] font-semibold text-ink-900">
             Point of sale
           </p>
+          <TreeRow
+            active={sel === "brand"}
+            onClick={() => setSel("brand")}
+            icon={<Palette size={14} />}
+          >
+            Brand
+          </TreeRow>
           <TreeRow
             active={sel === "page"}
             onClick={() => setSel("page")}
@@ -646,13 +719,7 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
         </aside>
 
         <div className="min-w-0">
-          <Preview
-            tiles={tiles}
-            sel={sel}
-            onSelect={setSel}
-            accent={accent}
-            storeName={storeName}
-          />
+          <Preview tiles={tiles} sel={sel} onSelect={setSel} brand={brand} />
         </div>
 
         <aside className="rounded-lg border border-line bg-card p-space-4 shadow-[var(--shadow-sm)]">
@@ -661,34 +728,18 @@ export function PosScreenEditor({ storeName }: { storeName: string }) {
               <p className="mb-space-3 text-[14px] font-semibold text-ink-900">
                 Dashboard
               </p>
-              <Field
-                label="Accent colour"
-                hint="Used for highlights on the till."
-              >
-                <div className="flex gap-space-2">
-                  {ACCENTS.map((a) => (
-                    <button
-                      key={a.key}
-                      type="button"
-                      aria-label={a.name}
-                      title={a.name}
-                      onClick={() => setAccent(a.key)}
-                      className={cn(
-                        "size-8 rounded-full border-2",
-                        accent === a.key
-                          ? "border-ink-900"
-                          : "border-transparent",
-                      )}
-                      style={{ background: a.key }}
-                    />
-                  ))}
-                </div>
-              </Field>
               <p className="text-[12.5px] text-ink-600">
                 The till has a single page. Pick a tile on the left or in the
-                preview to change it.
+                preview to change it. Colours are set under Brand.
               </p>
             </>
+          )}
+          {sel === "brand" && (
+            <PosBrandPanel
+              draft={brand}
+              onChange={(p) => setEdits({ ...brand, ...p })}
+              poweredBy={saved.data?.show_powered_by ?? true}
+            />
           )}
           {tile && (
             <>

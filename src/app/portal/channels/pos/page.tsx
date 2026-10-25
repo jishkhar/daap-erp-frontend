@@ -25,7 +25,7 @@ export default function PosChannelPage() {
       />
       <ServiceLock service="pos">
         <ChannelStatusStrip channel="pos" />
-        <PosScreenEditor storeName={tenant?.name ?? "Your store"} />
+        <PosScreenEditor />
       </ServiceLock>
     </PortalShell>
   );
