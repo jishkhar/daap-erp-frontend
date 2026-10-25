@@ -6,18 +6,10 @@ import {
   Box,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Cloud,
-  Eye,
-  EyeOff,
   FileText,
   Home,
-  LayoutGrid,
-  Lock,
-  Palette,
   Package,
-  Plus,
   Receipt,
   RotateCcw,
   Settings,
@@ -31,7 +23,6 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import {
@@ -45,42 +36,15 @@ import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 
 /**
- * POS screen editor: one page (the till dashboard), edited like Shopify's POS theme editor
- * (tree on the left, live preview in the middle, settings of the selected item on the right).
+ * POS screen editor: what a business can change about its tills (tree on the left, live preview in the middle, settings of
+ * the selected item on the right). The till's dashboard is the same for every business, so it is only shown, not edited.
  *
  * Brand (name, colours, logo, DAAP mark) is live: saved to the backend and shown on every till after its next sync.
- * Dashboard tiles, Checkout and Lock screen are still SAMPLE ONLY: nothing about them is saved yet.
+ * Lock screen is still SAMPLE ONLY: nothing about it is saved yet.
  */
 
-type TileId =
-  | "sales"
-  | "orders"
-  | "customers"
-  | "inventory"
-  | "returns"
-  | "lowstock"
-  | "trend"
-  | "payments"
-  | "bills"
-  | "top"
-  | "sync";
-type Tile = { id: TileId; label: string; visible: boolean };
-type Selection = "brand" | "page" | TileId | "checkout" | "lock";
+type Selection = "brand" | "lock";
 const SAMPLE_ONLY = (s: Selection) => s !== "brand";
-
-const INITIAL: Tile[] = [
-  { id: "sales", label: "Today's Sales", visible: true },
-  { id: "orders", label: "Orders", visible: true },
-  { id: "customers", label: "Customers", visible: true },
-  { id: "inventory", label: "Inventory Value", visible: true },
-  { id: "returns", label: "Pending Returns", visible: true },
-  { id: "lowstock", label: "Low Stock Alerts", visible: true },
-  { id: "trend", label: "Sales Trend", visible: true },
-  { id: "payments", label: "Payment Method Breakdown", visible: true },
-  { id: "bills", label: "Recent Bills", visible: true },
-  { id: "top", label: "Top Selling Products", visible: true },
-  { id: "sync", label: "Sync Insight", visible: true },
-];
 
 const toDraft = (b: PosBranding): BrandDraft => ({
   app_name: b.app_name,
@@ -109,49 +73,49 @@ const NAV = [
 ];
 
 const STATS: {
-  id: TileId;
+  label: string;
   value: string;
   note: string;
   tone: string;
   icon: typeof Home;
 }[] = [
   {
-    id: "sales",
+    label: "Today's Sales",
     value: "₹1,771.00",
     note: "+12% vs yesterday",
     tone: "bg-blue-50",
     icon: ShoppingCart,
   },
   {
-    id: "orders",
+    label: "Orders",
     value: "12",
     note: "+3 vs yesterday",
     tone: "bg-sky-50",
     icon: FileText,
   },
   {
-    id: "customers",
+    label: "Customers",
     value: "9",
     note: "+2 vs yesterday",
     tone: "bg-violet-50",
     icon: Users,
   },
   {
-    id: "inventory",
+    label: "Inventory Value",
     value: "₹2,48,500.00",
     note: "+5% as on today",
     tone: "bg-orange-50",
     icon: Package,
   },
   {
-    id: "returns",
+    label: "Pending Returns",
     value: "2",
     note: "View returns",
     tone: "bg-red-50",
     icon: RotateCcw,
   },
   {
-    id: "lowstock",
+    label: "Low Stock Alerts",
     value: "7",
     note: "View products",
     tone: "bg-red-50",
@@ -184,29 +148,18 @@ const DONUT = `conic-gradient(${PAYMENTS.map((p, i) => {
 }).join(",")})`;
 const TREND = [6, 11, 10.5, 16, 23, 17.5, 23.5];
 
-/** Preview widgets. They carry a ring when selected so the tree and the preview point at the same thing. */
+/** A dashboard card in the preview (the till's dashboard is the same for every business: shown, not edited). */
 function Widget({
-  id,
-  selected,
-  onSelect,
   className,
   children,
 }: {
-  id: Selection;
-  selected: Selection;
-  onSelect: (s: Selection) => void;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect(id)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelect(id)}
       className={cn(
-        "min-w-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-2.5 text-slate-800 outline-none transition-shadow",
-        selected === id && "ring-2 ring-[var(--pos-accent)]",
+        "min-w-0 rounded-lg border border-slate-200 bg-white p-2.5 text-slate-800",
         className,
       )}
     >
@@ -239,12 +192,10 @@ function Trend({ accent }: { accent: string }) {
 }
 
 function Preview({
-  tiles,
   sel,
   onSelect,
   brand,
 }: {
-  tiles: Tile[];
   sel: Selection;
   onSelect: (s: Selection) => void;
   brand: BrandDraft;
@@ -256,9 +207,6 @@ function Preview({
   } = tillColors(brand.primary_color, brand.sidebar_color);
   const name = brand.app_name.trim() || "DAAP POS";
   const cut = name.lastIndexOf(" ");
-  const t = (id: TileId) => tiles.find((x) => x.id === id)!;
-  const on = (id: TileId) => t(id).visible;
-  const stats = STATS.filter((s) => on(s.id));
   return (
     <div
       style={{ "--pos-accent": accent } as React.CSSProperties}
@@ -327,243 +275,177 @@ function Preview({
             </span>
           </div>
 
-          {stats.length > 0 && (
-            <div className="mb-2.5 grid grid-cols-2 gap-2 @min-[480px]:grid-cols-3 @min-[900px]:grid-cols-6">
-              {stats.map((s) => (
-                <Widget
-                  key={s.id}
-                  id={s.id}
-                  selected={sel}
-                  onSelect={onSelect}
-                  className={s.tone}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <s.icon size={14} style={{ color: accent }} />
-                    <span className="truncate text-slate-600">
-                      {t(s.id).label}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-[13px] font-bold">
-                    {s.value}
-                  </p>
-                  <p className="truncate text-emerald-700">{s.note}</p>
-                </Widget>
-              ))}
-            </div>
-          )}
+          <div className="mb-2.5 grid grid-cols-2 gap-2 @min-[480px]:grid-cols-3 @min-[900px]:grid-cols-6">
+            {STATS.map((s) => (
+              <Widget key={s.label} className={s.tone}>
+                <div className="flex items-center gap-1.5">
+                  <s.icon size={14} style={{ color: accent }} />
+                  <span className="truncate text-slate-600">{s.label}</span>
+                </div>
+                <p className="mt-1 truncate text-[13px] font-bold">{s.value}</p>
+                <p className="truncate text-emerald-700">{s.note}</p>
+              </Widget>
+            ))}
+          </div>
 
-          {(on("trend") || on("payments")) && (
-            <div className="mb-2.5 flex flex-col gap-2 @min-[1000px]:flex-row">
-              {on("trend") && (
-                <Widget
-                  id="trend"
-                  selected={sel}
-                  onSelect={onSelect}
-                  className="@min-[1000px]:flex-[2]"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-[12px] font-bold">
-                        {t("trend").label}
-                      </p>
-                      <p className="text-slate-500">
-                        Daily sales for the last 7 days
-                      </p>
-                    </div>
-                    <span
-                      className="rounded px-1.5 py-0.5 text-white"
-                      style={{ background: accent }}
-                    >
-                      7 Days
-                    </span>
-                  </div>
-                  <Trend accent={accent} />
-                  <div className="flex justify-between text-slate-500">
-                    <span>8 Jan</span>
-                    <span>11 Jan</span>
-                    <span>14 Jan</span>
-                  </div>
-                </Widget>
-              )}
-              {on("payments") && (
-                <Widget
-                  id="payments"
-                  selected={sel}
-                  onSelect={onSelect}
-                  className="@min-[1000px]:flex-1"
-                >
-                  <p className="flex items-center gap-1 text-[12px] font-bold">
-                    <CheckCircle2 size={12} style={{ color: accent }} />{" "}
-                    {t("payments").label}
+          <div className="mb-2.5 flex flex-col gap-2 @min-[1000px]:flex-row">
+            <Widget className="@min-[1000px]:flex-[2]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[12px] font-bold">Sales Trend</p>
+                  <p className="text-slate-500">
+                    Daily sales for the last 7 days
                   </p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <div
-                      className="grid size-20 shrink-0 place-items-center rounded-full"
-                      style={{ background: DONUT }}
-                    >
-                      <div className="grid size-12 place-items-center rounded-full bg-white text-center font-bold">
-                        ₹1,771
-                      </div>
-                    </div>
-                    <ul className="min-w-0 flex-1 space-y-1">
-                      {PAYMENTS.map((p) => (
-                        <li key={p.label} className="flex items-center gap-1.5">
-                          <span
-                            className="size-2 rounded-full"
-                            style={{ background: p.color }}
-                          />{" "}
-                          {p.label}
-                          <span className="ml-auto text-slate-500">
-                            {p.pct}%
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </Widget>
-              )}
-            </div>
-          )}
-
-          {(on("bills") || on("top") || on("sync")) && (
-            <div className="flex flex-col gap-2 @min-[1000px]:flex-row">
-              {on("bills") && (
-                <Widget
-                  id="bills"
-                  selected={sel}
-                  onSelect={onSelect}
-                  className="@container/bills @min-[1000px]:flex-[3]"
+                </div>
+                <span
+                  className="rounded px-1.5 py-0.5 text-white"
+                  style={{ background: accent }}
                 >
-                  <p className="mb-1 flex items-center gap-1 text-[12px] font-bold">
-                    <Receipt size={12} style={{ color: accent }} />{" "}
-                    {t("bills").label}
-                  </p>
-                  {BILLS.map((b) => (
-                    <div
-                      key={b[0]}
-                      className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 border-t border-slate-100 py-1.5 @min-[400px]/bills:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]"
-                    >
-                      <span className="whitespace-nowrap font-semibold">
-                        {b[0]}
-                      </span>
-                      <span className="col-start-1 row-start-2 whitespace-nowrap text-slate-500 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
-                        {b[1]}
-                      </span>
-                      <span className="col-span-2 col-start-2 row-start-2 min-w-0 truncate text-right @min-[400px]/bills:col-span-1 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto @min-[400px]/bills:text-left">
-                        {b[2]}
-                      </span>
-                      <span className="col-start-2 row-start-1 whitespace-nowrap font-semibold @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
-                        {b[4]}
-                      </span>
-                      <span className="col-start-3 row-start-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
-                        {b[5]}
-                      </span>
-                    </div>
-                  ))}
-                </Widget>
-              )}
-              {on("top") && (
-                <Widget
-                  id="top"
-                  selected={sel}
-                  onSelect={onSelect}
-                  className="@min-[1000px]:flex-[3]"
-                >
-                  <p className="mb-1 text-[12px] font-bold">{t("top").label}</p>
-                  {TOP.map((p, i) => (
-                    <div
-                      key={p[0]}
-                      className="flex items-center gap-2 border-t border-slate-100 py-1"
-                    >
-                      <span className="text-slate-500">{i + 1}</span>
-                      <span className="truncate">{p[0]}</span>
-                      <span className="ml-auto text-slate-500">{p[1]}</span>
-                      <span className="font-semibold">{p[2]}</span>
-                    </div>
-                  ))}
-                </Widget>
-              )}
-              {on("sync") && (
-                <Widget
-                  id="sync"
-                  selected={sel}
-                  onSelect={onSelect}
-                  className="@min-[1000px]:flex-[2]"
-                >
-                  <p className="flex items-center justify-between text-[12px] font-bold">
-                    <span className="flex items-center gap-1">
-                      <Cloud size={12} style={{ color: accent }} />{" "}
-                      {t("sync").label}
-                    </span>
-                    <span className="rounded-full bg-emerald-50 px-2 text-emerald-700">
-                      Online
-                    </span>
-                  </p>
-                  <p className="mt-1 text-slate-600">
-                    Your website and POS share the same products, stock,
-                    customers and orders in real time.
-                  </p>
-                </Widget>
-              )}
-            </div>
-          )}
-          {stats.length === 0 &&
-            !on("trend") &&
-            !on("payments") &&
-            !on("bills") &&
-            !on("top") &&
-            !on("sync") && (
-              <p className="py-10 text-center text-slate-500">
-                Every tile is hidden. Turn some back on from the list on the
-                left.
+                  7 Days
+                </span>
+              </div>
+              <Trend accent={accent} />
+              <div className="flex justify-between text-slate-500">
+                <span>8 Jan</span>
+                <span>11 Jan</span>
+                <span>14 Jan</span>
+              </div>
+            </Widget>
+            <Widget className="@min-[1000px]:flex-1">
+              <p className="flex items-center gap-1 text-[12px] font-bold">
+                <CheckCircle2 size={12} style={{ color: accent }} /> Payment
+                Method Breakdown
               </p>
-            )}
+              <div className="mt-2 flex items-center gap-3">
+                <div
+                  className="grid size-20 shrink-0 place-items-center rounded-full"
+                  style={{ background: DONUT }}
+                >
+                  <div className="grid size-12 place-items-center rounded-full bg-white text-center font-bold">
+                    ₹1,771
+                  </div>
+                </div>
+                <ul className="min-w-0 flex-1 space-y-1">
+                  {PAYMENTS.map((p) => (
+                    <li key={p.label} className="flex items-center gap-1.5">
+                      <span
+                        className="size-2 rounded-full"
+                        style={{ background: p.color }}
+                      />{" "}
+                      {p.label}
+                      <span className="ml-auto text-slate-500">{p.pct}%</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Widget>
+          </div>
+
+          <div className="flex flex-col gap-2 @min-[1000px]:flex-row">
+            <Widget className="@container/bills @min-[1000px]:flex-[3]">
+              <p className="mb-1 flex items-center gap-1 text-[12px] font-bold">
+                <Receipt size={12} style={{ color: accent }} /> Recent Bills
+              </p>
+              {BILLS.map((b) => (
+                <div
+                  key={b[0]}
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 border-t border-slate-100 py-1.5 @min-[400px]/bills:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]"
+                >
+                  <span className="whitespace-nowrap font-semibold">
+                    {b[0]}
+                  </span>
+                  <span className="col-start-1 row-start-2 whitespace-nowrap text-slate-500 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
+                    {b[1]}
+                  </span>
+                  <span className="col-span-2 col-start-2 row-start-2 min-w-0 truncate text-right @min-[400px]/bills:col-span-1 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto @min-[400px]/bills:text-left">
+                    {b[2]}
+                  </span>
+                  <span className="col-start-2 row-start-1 whitespace-nowrap font-semibold @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
+                    {b[4]}
+                  </span>
+                  <span className="col-start-3 row-start-1 whitespace-nowrap rounded-full bg-slate-100 px-1.5 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
+                    {b[5]}
+                  </span>
+                </div>
+              ))}
+            </Widget>
+            <Widget className="@min-[1000px]:flex-[3]">
+              <p className="mb-1 text-[12px] font-bold">Top Selling Products</p>
+              {TOP.map((p, i) => (
+                <div
+                  key={p[0]}
+                  className="flex items-center gap-2 border-t border-slate-100 py-1"
+                >
+                  <span className="text-slate-500">{i + 1}</span>
+                  <span className="truncate">{p[0]}</span>
+                  <span className="ml-auto text-slate-500">{p[1]}</span>
+                  <span className="font-semibold">{p[2]}</span>
+                </div>
+              ))}
+            </Widget>
+            <Widget className="@min-[1000px]:flex-[2]">
+              <p className="flex items-center justify-between text-[12px] font-bold">
+                <span className="flex items-center gap-1">
+                  <Cloud size={12} style={{ color: accent }} /> Sync Insight
+                </span>
+                <span className="rounded-full bg-emerald-50 px-2 text-emerald-700">
+                  Online
+                </span>
+              </p>
+              <p className="mt-1 text-slate-600">
+                Your website and POS share the same products, stock, customers
+                and orders in real time.
+              </p>
+            </Widget>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function TreeRow({
-  active,
-  onClick,
-  icon,
-  children,
-  trailing,
-  dim,
+const SECTIONS: { key: Selection; label: string }[] = [
+  { key: "brand", label: "Brand" },
+  { key: "lock", label: "Lock screen" },
+];
+
+/** Brand / Lock screen as one row of pills; the panel below shows the chosen one's settings. */
+function SectionPills({
+  value,
+  onChange,
 }: {
-  active: boolean;
-  onClick: () => void;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  trailing?: React.ReactNode;
-  dim?: boolean;
+  value: Selection;
+  onChange: (s: Selection) => void;
 }) {
   return (
     <div
-      className={cn(
-        "flex items-center gap-space-2 rounded-md pr-1",
-        active ? "bg-brand-600 text-white" : "hover:bg-black/[0.04]",
-        dim && !active && "opacity-50",
-      )}
+      role="tablist"
+      aria-label="POS settings"
+      className="mb-space-4 flex gap-1 rounded-full bg-black/[0.05] p-1"
     >
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex min-w-0 flex-1 items-center gap-space-2 px-space-2 py-1.5 text-left text-[13px]"
-      >
-        {icon}
-        <span className="truncate">{children}</span>
-      </button>
-      {trailing}
+      {SECTIONS.map((x) => (
+        <button
+          key={x.key}
+          role="tab"
+          type="button"
+          aria-selected={value === x.key}
+          onClick={() => onChange(x.key)}
+          className={cn(
+            "flex-auto whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors",
+            value === x.key
+              ? "bg-card text-ink-900 shadow-[var(--shadow-sm)]"
+              : "text-ink-600 hover:text-ink-900",
+          )}
+        >
+          {x.label}
+        </button>
+      ))}
     </div>
   );
 }
 
 export function PosScreenEditor() {
-  const [tiles, setTiles] = useState<Tile[]>(INITIAL);
   const [sel, setSel] = useState<Selection>("brand");
-  const [open, setOpen] = useState(true);
   const saved = usePosBranding();
   const save = useSavePosBranding();
   // The edits not saved yet; null means the draft is what is saved (also after Save and Reset).
@@ -584,26 +466,7 @@ export function PosScreenEditor() {
         onError: (e) => toast.error("Couldn't save the brand", e.message),
       },
     );
-  const [checkout, setCheckout] = useState({
-    label: "Checkout",
-    showTax: true,
-    askCustomer: false,
-  });
   const [lock, setLock] = useState({ pin: true, timeout: "5" });
-
-  const patch = (id: TileId, p: Partial<Tile>) =>
-    setTiles((ts) => ts.map((t) => (t.id === id ? { ...t, ...p } : t)));
-  const addTile = () => {
-    const hidden = tiles.find((t) => !t.visible);
-    if (!hidden)
-      return toast.success(
-        "Nothing to add",
-        "Every tile is already on the dashboard.",
-      );
-    patch(hidden.id, { visible: true });
-    setSel(hidden.id);
-  };
-  const tile = tiles.find((t) => t.id === sel);
 
   return (
     <>
@@ -630,110 +493,13 @@ export function PosScreenEditor() {
         </div>
       </div>
 
-      <div className="grid gap-space-4 xl:grid-cols-[250px_minmax(0,1fr)_260px]">
-        <aside className="rounded-lg border border-line bg-card p-space-3 shadow-[var(--shadow-sm)]">
-          <p className="px-space-2 pb-space-2 text-[13px] font-semibold text-ink-900">
-            Point of sale
-          </p>
-          <TreeRow
-            active={sel === "brand"}
-            onClick={() => setSel("brand")}
-            icon={<Palette size={14} />}
-          >
-            Brand
-          </TreeRow>
-          <TreeRow
-            active={sel === "page"}
-            onClick={() => setSel("page")}
-            icon={<LayoutGrid size={14} />}
-            trailing={
-              <button
-                type="button"
-                aria-label={open ? "Collapse" : "Expand"}
-                onClick={() => setOpen((o) => !o)}
-                className={cn(
-                  "rounded p-1",
-                  sel === "page" ? "text-white" : "text-ink-600",
-                )}
-              >
-                {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
-            }
-          >
-            Dashboard
-          </TreeRow>
-          {open && (
-            <div className="ml-space-4 mt-1 border-l border-line pl-space-2">
-              {tiles.map((t) => (
-                <TreeRow
-                  key={t.id}
-                  active={sel === t.id}
-                  dim={!t.visible}
-                  onClick={() => setSel(t.id)}
-                  trailing={
-                    <button
-                      type="button"
-                      aria-label={
-                        t.visible ? `Hide ${t.label}` : `Show ${t.label}`
-                      }
-                      onClick={() => patch(t.id, { visible: !t.visible })}
-                      className={cn(
-                        "rounded p-1",
-                        sel === t.id
-                          ? "text-white"
-                          : "text-ink-400 hover:text-ink-900",
-                      )}
-                    >
-                      {t.visible ? <Eye size={13} /> : <EyeOff size={13} />}
-                    </button>
-                  }
-                >
-                  {t.label}
-                </TreeRow>
-              ))}
-              <button
-                type="button"
-                onClick={addTile}
-                className="mobile-page-action mt-1 flex items-center gap-space-2 px-space-2 py-1.5 text-[13px] font-semibold text-brand-600 hover:underline"
-              >
-                <Plus size={14} /> Add tile
-              </button>
-            </div>
-          )}
-          <div className="mt-space-3 border-t border-line pt-space-2">
-            <TreeRow
-              active={sel === "checkout"}
-              onClick={() => setSel("checkout")}
-              icon={<Receipt size={14} />}
-            >
-              Checkout
-            </TreeRow>
-            <TreeRow
-              active={sel === "lock"}
-              onClick={() => setSel("lock")}
-              icon={<Lock size={14} />}
-            >
-              Lock screen
-            </TreeRow>
-          </div>
-        </aside>
-
+      <div className="grid gap-space-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          <Preview tiles={tiles} sel={sel} onSelect={setSel} brand={brand} />
+          <Preview sel={sel} onSelect={setSel} brand={brand} />
         </div>
 
         <aside className="rounded-lg border border-line bg-card p-space-4 shadow-[var(--shadow-sm)]">
-          {sel === "page" && (
-            <>
-              <p className="mb-space-3 text-[14px] font-semibold text-ink-900">
-                Dashboard
-              </p>
-              <p className="text-[12.5px] text-ink-600">
-                The till has a single page. Pick a tile on the left or in the
-                preview to change it. Colours are set under Brand.
-              </p>
-            </>
-          )}
+          <SectionPills value={sel} onChange={setSel} />
           {sel === "brand" && (
             <PosBrandPanel
               draft={brand}
@@ -741,69 +507,8 @@ export function PosScreenEditor() {
               poweredBy={saved.data?.show_powered_by ?? true}
             />
           )}
-          {tile && (
-            <>
-              <p className="mb-space-3 text-[14px] font-semibold text-ink-900">
-                {INITIAL.find((i) => i.id === tile.id)!.label}
-              </p>
-              <Field label="Heading" htmlFor="tile-label">
-                <Input
-                  id="tile-label"
-                  value={tile.label}
-                  onChange={(e) => patch(tile.id, { label: e.target.value })}
-                />
-              </Field>
-              <label className="flex items-center justify-between gap-space-3 text-[13.5px] text-ink-900">
-                Show on dashboard
-                <Switch
-                  checked={tile.visible}
-                  onChange={() => patch(tile.id, { visible: !tile.visible })}
-                />
-              </label>
-            </>
-          )}
-          {sel === "checkout" && (
-            <>
-              <p className="mb-space-3 text-[14px] font-semibold text-ink-900">
-                Checkout
-              </p>
-              <Field label="Button label" htmlFor="co-label">
-                <Input
-                  id="co-label"
-                  value={checkout.label}
-                  onChange={(e) =>
-                    setCheckout({ ...checkout, label: e.target.value })
-                  }
-                />
-              </Field>
-              <label className="mb-space-3 flex items-center justify-between gap-space-3 text-[13.5px] text-ink-900">
-                Show tax line
-                <Switch
-                  checked={checkout.showTax}
-                  onChange={() =>
-                    setCheckout({ ...checkout, showTax: !checkout.showTax })
-                  }
-                />
-              </label>
-              <label className="flex items-center justify-between gap-space-3 text-[13.5px] text-ink-900">
-                Ask for a customer
-                <Switch
-                  checked={checkout.askCustomer}
-                  onChange={() =>
-                    setCheckout({
-                      ...checkout,
-                      askCustomer: !checkout.askCustomer,
-                    })
-                  }
-                />
-              </label>
-            </>
-          )}
           {sel === "lock" && (
             <>
-              <p className="mb-space-3 text-[14px] font-semibold text-ink-900">
-                Lock screen
-              </p>
               <label className="mb-space-4 flex items-center justify-between gap-space-3 text-[13.5px] text-ink-900">
                 Require staff PIN
                 <Switch

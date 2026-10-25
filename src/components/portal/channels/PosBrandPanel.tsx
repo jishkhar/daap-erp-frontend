@@ -62,7 +62,6 @@ export function PosBrandPanel({
 
   return (
     <>
-      <p className="mb-space-3 text-[14px] font-semibold text-ink-900">Brand</p>
       <Field
         label="Name on the till"
         htmlFor="pos-app-name"

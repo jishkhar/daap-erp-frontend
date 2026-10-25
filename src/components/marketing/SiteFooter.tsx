@@ -39,6 +39,14 @@ export function SiteFooter() {
                   Plan and pricing
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/download"
+                  className="hover:text-brand-600 hover:underline"
+                >
+                  Download the POS app
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -158,6 +158,7 @@ export const queryKeys = {
   wholesaleSettings: ["erp", "wholesale", "settings"] as const,
   labelSettings: ["erp", "labels", "settings"] as const,
   posBranding: ["erp", "channels", "pos", "branding"] as const,
+  posLatestRelease: ["pos", "latest-release"] as const,
   priceLists: ["erp", "wholesale", "price-lists"] as const,
   priceList: (id: string, q: string) =>
     ["erp", "wholesale", "price-list", id, q] as const,

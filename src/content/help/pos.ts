@@ -34,7 +34,7 @@ export const pos: Doc = {
           items: [
             "Open [Settings → Sales channels → POS](/portal/settings/channels/pos).",
             "In **Branches on this channel**, turn on **Takes POS sales** for the branch that has a till. A branch with this off (for example a warehouse) refuses POS sales.",
-            "Install the DAAP POS app on the device.",
+            "Install the POS app on the device: [download it here](/download) (Android, Windows or Linux).",
           ],
         },
       ],

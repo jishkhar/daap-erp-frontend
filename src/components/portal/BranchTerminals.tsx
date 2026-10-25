@@ -22,7 +22,9 @@ import {
   type Issued,
   type Terminal,
 } from "@/hooks/useBranches";
+import { usePosLatestRelease } from "@/hooks/usePosLatestRelease";
 import { formatDateTime, humanize } from "@/lib/erp";
+import { compareVersions } from "@/lib/posReleases";
 import { hasGrantAt, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
@@ -248,6 +250,11 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const session = useStaffSession();
   const canManage = hasGrantAt(session, "terminals:manage", branchId);
   const list = useBranchTerminals(branchId);
+  const latest = usePosLatestRelease().data;
+  const outdated = (t: Terminal) =>
+    !!latest &&
+    !!t.app_version &&
+    compareVersions(t.app_version, latest.version) < 0;
   const [nextName, setNextName] = useState("");
   const [issued, setIssued] = useState<Issued | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
@@ -342,6 +349,18 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           >
             Generate pairing code
           </Button>
+          <p className="basis-full text-[12.5px] text-ink-600">
+            Not installed yet?{" "}
+            <a
+              href="/download"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-brand-600 hover:underline"
+            >
+              Download the POS app
+            </a>{" "}
+            on the tablet or computer first.
+          </p>
         </div>
       )}
       {(list.data?.pairing_codes ?? []).length > 0 && (
@@ -410,6 +429,13 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                 {deviceLine(t)}
                 {t.app_version ? ` · app ${t.app_version}` : ""}
               </p>
+              {t.status === "active" && outdated(t) && (
+                <p className="mt-space-1">
+                  <Badge tone="warning">
+                    Update available: {latest!.version}
+                  </Badge>
+                </p>
+              )}
               <p className="text-[12.5px] text-ink-400">
                 {t.status === "active"
                   ? `Last seen ${ago(t.last_seen_at)} · synced ${ago(t.last_sync_at)}`
