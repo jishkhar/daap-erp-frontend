@@ -4,6 +4,7 @@ import {
   BarChart3,
   LifeBuoy,
   CalendarDays,
+  CalendarHeart,
   CalendarOff,
   Clock,
   Globe,
@@ -267,6 +268,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: CalendarOff,
     href: "/portal/leave",
     pageKey: "my_leave",
+    group: "Workforce",
+  },
+  {
+    key: "holidays",
+    label: "Holidays",
+    icon: CalendarHeart,
+    href: "/portal/holidays",
+    pageKey: "holidays",
     group: "Workforce",
   },
   {

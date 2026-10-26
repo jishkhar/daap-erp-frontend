@@ -150,6 +150,14 @@ function errorMessage(data: unknown): string {
   return "Something went wrong.";
 }
 
+/** The ERP's error object ({ code, message, ...details such as `reason` }), for callers that branch on more than the message. */
+function errorDetails(data: unknown): Record<string, unknown> | undefined {
+  const err = (data as { error?: unknown } | undefined)?.error;
+  return err && typeof err === "object"
+    ? (err as Record<string, unknown>)
+    : undefined;
+}
+
 async function loadSession(accessToken: string): Promise<StaffSession> {
   const me = (
     await axios.get<MeResponse>(`${API_BASE_URL}/api/v1/auth/me`, {
@@ -425,7 +433,13 @@ export async function logoutStaff() {
 type FetchResult =
   | { ok: true; data: unknown }
   | { ok: false; unauthorized: true }
-  | { ok: false; unauthorized: false; error: string; status?: number };
+  | {
+      ok: false;
+      unauthorized: false;
+      error: string;
+      status?: number;
+      details?: Record<string, unknown>;
+    };
 
 /** axios wrapper for authenticated ERP requests. Access tokens last ~15 minutes, so a 401 first tries ONE silent
  * refresh before giving up and clearing the session. */
@@ -462,6 +476,7 @@ export async function staffFetch(
         unauthorized: false,
         error: errorMessage(err.response.data),
         status: err.response.status,
+        details: errorDetails(err.response.data),
       };
     }
     token = await tryRefresh();
@@ -488,6 +503,8 @@ export async function staffFetch(
         ok: false,
         unauthorized: false,
         error: errorMessage(retryErr.response.data),
+        status: retryErr.response.status,
+        details: errorDetails(retryErr.response.data),
       };
     }
   }
@@ -537,16 +554,18 @@ const PAGE_MODULE: Record<string, string> = {
   activity: "audit",
   billing: "billing",
   support: "support",
+  attendance: "attendance", // Team attendance: view = attendance:view, write = attendance:manage
+  attendance_settings: "attendance",
+  leave_requests: "leave",
 };
 
-// Pages with no ERP module of their own (the dashboard, and the Workforce section, which is not an ERP
-// backend module yet) are visible to every signed-in person.
+// Pages about the person themselves (their own clock-in, attendance, leave and holiday calendar) are visible to every signed-in person;
+// the dashboard's view is decided separately in hasPermission.
 const ALWAYS_VISIBLE = new Set([
-  "dashboard", // (view is decided separately in hasPermission)
+  "dashboard",
   "check_in_out",
   "my_leave",
-  "attendance",
-  "leave_requests",
+  "holidays",
 ]);
 
 const ACTION_VERBS: Record<"view" | "write" | "delete", string[]> = {
@@ -567,6 +586,9 @@ export function hasPermission(
       Boolean(session.permissions[p]),
     );
   if (ALWAYS_VISIBLE.has(pageKey)) return true;
+  // Deciding leave is its own action, not one of the generic write verbs.
+  if (pageKey === "leave_requests" && action !== "view")
+    return Boolean(session.permissions["leave:approve"]);
   // Wholesale is one page for three permission sets: its orders, its business customers and its price lists.
   if (pageKey === "wholesale" && action === "view")
     return [

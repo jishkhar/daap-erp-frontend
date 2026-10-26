@@ -45,6 +45,7 @@ const STATUS_FILTERS = [
   "on_time",
   "late",
   "on_leave",
+  "holiday",
   "absent",
   "missing_clock_out",
 ];
@@ -53,8 +54,9 @@ const STATUS_FILTERS = [
 const SUCCESS = "#1e9e5a";
 const SUCCESS_TINT = "#a9ddc4";
 
+/** This month in the browser's own zone (YYYY-MM) -- only the starting choice; every date shown comes from the server. */
 function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+  return new Date().toLocaleDateString("en-CA").slice(0, 7);
 }
 
 function TrendTooltip({
@@ -78,10 +80,8 @@ export default function MyAttendancePage() {
   const canView = usePermission("check_in_out", "view");
   const [month, setMonth] = useState(currentMonth());
   const [status, setStatus] = useState("");
-  const { records, stats, weeklyTrend, error } = useMyMonthlyAttendance(
-    canView,
-    month,
-  );
+  const { records, stats, weeklyTrend, firstMonth, error } =
+    useMyMonthlyAttendance(canView, month);
 
   const filtered = useMemo(
     () => (records ?? []).filter((r) => !status || r.status === status),
@@ -277,6 +277,8 @@ export default function MyAttendancePage() {
               type="month"
               className={SELECT_CLASS}
               value={month}
+              min={firstMonth ?? undefined}
+              max={currentMonth()}
               onChange={(e) => e.target.value && setMonth(e.target.value)}
             />
             <Select
@@ -344,6 +346,14 @@ export default function MyAttendancePage() {
                       <Badge tone={DAY_STATE[r.status]?.tone ?? "neutral"}>
                         {DAY_STATE[r.status]?.label ?? r.status}
                       </Badge>
+                      {(r.holiday_name || r.leave_type || r.corrected) && (
+                        <span className="ml-space-2 text-hint">
+                          {r.holiday_name ??
+                            (r.leave_type
+                              ? `${r.leave_type}${r.half_day_leave ? " (half day)" : ""}`
+                              : "corrected by a manager")}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

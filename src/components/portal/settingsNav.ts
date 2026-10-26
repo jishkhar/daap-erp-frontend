@@ -16,6 +16,7 @@ import {
   Wallet,
   Percent,
   Building2,
+  CalendarClock,
   Tag,
   type LucideIcon,
 } from "lucide-react";
@@ -92,6 +93,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: "Locations",
     icon: MapPin,
     href: "/portal/settings/branches",
+  },
+  {
+    slug: "attendance",
+    label: "Attendance and holidays",
+    icon: CalendarClock,
+    href: "/portal/settings/attendance",
   },
   // soon("apps", "Apps", AppWindow),
   {

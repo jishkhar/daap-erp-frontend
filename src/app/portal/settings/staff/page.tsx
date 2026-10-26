@@ -12,6 +12,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { WorkPatternSection } from "@/components/portal/WorkPatternSection";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import {
@@ -403,6 +404,16 @@ export default function TeamAccessPage() {
                 </div>
               )}
             </div>
+            <WorkPatternSection
+              userId={selected.id}
+              branches={
+                selected.roles.some((r) => r.branch_id === null)
+                  ? openBranches
+                  : openBranches.filter((b) =>
+                      selected.roles.some((r) => r.branch_id === b.id),
+                    )
+              }
+            />
             {canManage && (
               <div className="flex flex-wrap items-end justify-between gap-space-3 border-t border-line pt-space-3">
                 <div className="mobile-page-action-row flex items-end gap-space-2">

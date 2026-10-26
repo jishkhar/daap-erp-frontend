@@ -33,8 +33,9 @@ Sign in at `/portal/login` with **company code + email + password** (a tenant is
 | Settings, Team & Access, Roles & Permissions, Activity log, Online Storefront | `/portal/settings/*` | tenant, users, roles, audit-logs, channel keys |
 
 **Not built yet (shown in the sidebar, but say so on the page):** WhatsApp Inbox, WhatsApp Automation, Discounts — they depend on later backend phases.
-Growth is listed but disabled. **Workforce** (Attendance, Check-in/out, My Leave, Team Attendance, Leave Requests) is kept in the navigation as designed, but the ERP
-backend has no attendance/leave module yet, so those pages show "Something went wrong" until it exists.
+Growth is listed but disabled. **Workforce** (Attendance, Check-in/out, My Leave, Holidays, Team Attendance, Leave Requests) runs on the ERP's
+`/api/v1/attendance` and `/api/v1/leave`; rules live in Settings > Attendance and holidays. Plan: `../docs/attendance_leave.md`. Portal only --
+the till has no attendance.
 
 ## Conventions
 

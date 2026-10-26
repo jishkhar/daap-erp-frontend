@@ -48,7 +48,7 @@ function RequestCard({
     if (problem) setError(problem);
   }
 
-  const crowded = r.conflicts && r.conflicts.role_off > 0;
+  const crowded = r.conflicts && r.conflicts.branch_off > 0;
   return (
     <Card
       className="min-w-0 p-space-3 [overflow-wrap:anywhere] md:p-space-4"
@@ -60,7 +60,9 @@ function RequestCard({
             {r.staff_name}
           </p>
           <p className="text-[12px] text-ink-600">
-            {roleLabel(r.staff_role ?? "receptionist")}
+            {[r.staff_role ? roleLabel(r.staff_role) : null, r.branch_name]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
         <Badge tone={LEAVE_STATUS_TONE[r.status]}>{r.status}</Badge>
@@ -80,8 +82,8 @@ function RequestCard({
             )}
           >
             {crowded
-              ? `${r.conflicts!.role_off} of ${r.conflicts!.role_total} other ${roleLabel(r.staff_role ?? "receptionist")} team member${r.conflicts!.role_total === 1 ? "" : "s"} already off then.`
-              : "No one else in their role is off then."}
+              ? `${r.conflicts!.branch_off} of the ${r.conflicts!.branch_total} people at ${r.branch_name ?? "their branch"} already off then.`
+              : `No one else at ${r.branch_name ?? "their branch"} is off then.`}
             {r.balance &&
               ` ${r.balance.remaining} day${r.balance.remaining === 1 ? "" : "s"} of allowance left.`}
           </p>

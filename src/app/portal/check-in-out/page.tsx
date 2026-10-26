@@ -12,10 +12,14 @@ import {
   LogOut,
   MapPin,
   Play,
+  Send,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Field } from "@/components/ui/Field";
+import { Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -23,7 +27,12 @@ import { StatTile } from "@/components/portal/StatTile";
 import { cn } from "@/lib/cn";
 import { fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import { useClock, useMyMonthlyAttendance } from "@/hooks/useHr";
+import {
+  useClock,
+  useMyMonthlyAttendance,
+  type ClockProblem,
+  type ClockToday,
+} from "@/hooks/useHr";
 
 const STATE_TEXT: Record<string, string> = {
   not_in: "Not checked in",
@@ -64,8 +73,162 @@ function shiftMinutes(start: string | null, end: string | null): number {
   return mins > 0 ? mins : mins + 24 * 60;
 }
 
-function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+/** "2026-10-26T03:00:00+00:00" -> "08:30" in the shop's own timezone (never the browser's). */
+function shopTime(iso: string, timeZone: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  });
+}
+
+/** Why the clock-in didn't go through, and the way forward: try again, or ask a manager to approve. */
+function ProblemPanel({
+  problem,
+  busy,
+  onRetry,
+  onAsk,
+  onDismiss,
+}: {
+  problem: ClockProblem;
+  busy: boolean;
+  onRetry: () => void;
+  onAsk: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="mb-space-4 rounded-md border border-error/30 bg-error/5 p-space-3 text-[13px] [overflow-wrap:anywhere]"
+    >
+      <p className="font-medium text-error">{problem.message}</p>
+      <div className="mt-space-2 flex flex-wrap gap-space-2">
+        {problem.canRequest && (
+          <Button onClick={onAsk} disabled={busy}>
+            <Send size={14} /> Ask my manager to approve
+          </Button>
+        )}
+        <Button variant="secondary" onClick={onRetry} disabled={busy}>
+          Try again
+        </Button>
+        <Button variant="ghost" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AskDialog({
+  open,
+  onClose,
+  onSend,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSend: (reason: string) => Promise<string | null>;
+}) {
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  async function send() {
+    setSending(true);
+    const problem = await onSend(reason.trim());
+    setSending(false);
+    if (problem) setError(problem);
+    else {
+      setReason("");
+      onClose();
+    }
+  }
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Ask your manager to approve"
+      description="Your clock-in will be dated to now once they approve it."
+      width="sm"
+      footer={
+        <div className="flex justify-end gap-space-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={send} disabled={sending || reason.trim().length < 5}>
+            Send request
+          </Button>
+        </div>
+      }
+    >
+      <Field
+        label="Why couldn't you clock in?"
+        htmlFor="ask-reason"
+        error={error ?? undefined}
+        hint="For example: inside the shop but the phone shows the wrong place."
+      >
+        <Textarea
+          id="ask-reason"
+          rows={3}
+          maxLength={500}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </Field>
+    </Modal>
+  );
+}
+
+/** Today's situation the person should know before tapping: a holiday, leave, waiting for approval, too early. */
+function DayNotices({ today }: { today: ClockToday }) {
+  const notes: { text: string; tone: "info" | "warn" | "error" }[] = [];
+  if (today.holiday)
+    notes.push({
+      text: `Today is a holiday: ${today.holiday.name}.`,
+      tone: "info",
+    });
+  if (today.on_leave)
+    notes.push({ text: "You're on approved leave today.", tone: "info" });
+  else if (today.half_day_leave)
+    notes.push({ text: "You have a half day of leave today.", tone: "info" });
+  else if (!today.shift.working_day && !today.holiday)
+    notes.push({ text: "Today is your weekly off.", tone: "info" });
+  const req = today.pending_request;
+  if (req?.status === "pending" && today.state === "not_in")
+    notes.push({
+      text: `Waiting for your manager to approve your clock-in (asked at ${req.requested_local}).`,
+      tone: "warn",
+    });
+  if (req?.status === "rejected" && today.state === "not_in")
+    notes.push({
+      text: `Your manager declined your clock-in request${req.review_note ? `: ${req.review_note}` : "."}`,
+      tone: "error",
+    });
+  if (
+    today.state === "not_in" &&
+    today.earliest_clock_in &&
+    new Date(today.now) < new Date(today.earliest_clock_in)
+  )
+    notes.push({
+      text: `Your shift starts at ${today.shift.start}. You can clock in from ${shopTime(today.earliest_clock_in, today.timezone)}.`,
+      tone: "info",
+    });
+  if (notes.length === 0) return null;
+  return (
+    <div className="mb-space-4 space-y-space-2">
+      {notes.map((n) => (
+        <p
+          key={n.text}
+          className={cn(
+            "rounded-md px-space-3 py-space-2 text-[13px] font-medium",
+            n.tone === "info" && "bg-brand-50 text-brand-700",
+            n.tone === "warn" && "bg-warning-tint text-warning",
+            n.tone === "error" && "bg-error/10 text-error",
+          )}
+        >
+          {n.text}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 function WorkTimer({
@@ -170,14 +333,23 @@ export default function CheckInOutPage() {
   const {
     today,
     error: clockError,
+    problem,
+    dismissProblem,
     busy,
+    locating,
     checkIn,
     checkOut,
     breakStart,
     breakEnd,
+    requestApproval,
   } = useClock(canView);
-  const { records } = useMyMonthlyAttendance(canView, currentMonth());
+  // the shop's month, from the server's work date (the browser's clock and zone may differ)
+  const { records } = useMyMonthlyAttendance(
+    canView,
+    today ? today.work_date.slice(0, 7) : null,
+  );
   const [nowMs, setNowMs] = useState(0);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -267,8 +439,9 @@ export default function CheckInOutPage() {
         : state === "on_break"
           ? breakEnd
           : undefined;
-  const primaryLabel =
-    state === "not_in"
+  const primaryLabel = locating
+    ? "Finding your location…"
+    : state === "not_in"
       ? "Check In"
       : state === "in"
         ? "Check Out"
@@ -314,9 +487,24 @@ export default function CheckInOutPage() {
           role="alert"
           className="mb-space-4 rounded-md bg-error/10 px-space-3 py-space-2 text-[13px] font-medium text-error"
         >
-          {clockError}
+          Couldn&apos;t load today&apos;s attendance: {clockError}
         </p>
       )}
+      {problem && (
+        <ProblemPanel
+          problem={problem}
+          busy={busy}
+          onRetry={checkIn}
+          onAsk={() => setAsking(true)}
+          onDismiss={dismissProblem}
+        />
+      )}
+      <AskDialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        onSend={requestApproval}
+      />
+      {today && <DayNotices today={today} />}
       {today?.location_required && state === "not_in" && (
         <p className="mb-space-4 flex items-center gap-space-2 text-[12.5px] text-ink-600">
           <MapPin size={14} /> Your company checks your location when you clock

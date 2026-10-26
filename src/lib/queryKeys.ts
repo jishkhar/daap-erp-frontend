@@ -111,18 +111,27 @@ export const queryKeys = {
     ["erp", "orders", "recent", params] as const,
   lowStock: (params: Params) => ["erp", "inventory", "low", params] as const,
 
-  // HR (leave and attendance) uses the portal API (/api/portal/...), so it has its own prefix.
+  // HR (leave, attendance, holidays). Everything attendance-related shares the ["hr", "attendance"] prefix, so one invalidation after
+  // a punch, a correction or a rule change refreshes every screen that could show it.
   hrLeave: ["hr", "leave"] as const,
   hrLeaveMine: ["hr", "leave", "mine"] as const,
   hrLeaveRequests: (status: string) =>
     ["hr", "leave", "requests", status] as const,
+  hrCalendar: (year: number) => ["hr", "leave", "calendar", year] as const,
   hrAttendance: ["hr", "attendance"] as const,
   hrClockToday: ["hr", "attendance", "today"] as const,
-  hrMyMonth: (month: string, refreshKey: string) =>
-    ["hr", "attendance", "my-month", month, refreshKey] as const,
-  hrTeamDay: (date: string) => ["hr", "attendance", "team-day", date] as const,
-  hrTeamMonth: (month: string) =>
-    ["hr", "attendance", "team-month", month] as const,
+  hrMyMonth: (month: string) =>
+    ["hr", "attendance", "my-month", month] as const,
+  hrStaffMonth: (userId: string, month: string) =>
+    ["hr", "attendance", "staff", userId, month] as const,
+  hrTeamDay: (date: string, branchId: string) =>
+    ["hr", "attendance", "team-day", date, branchId] as const,
+  hrTeamMonth: (month: string, branchId: string) =>
+    ["hr", "attendance", "team-month", month, branchId] as const,
+  hrCheckinRequests: ["hr", "attendance", "requests"] as const,
+  hrHolidays: (year: number) => ["hr", "attendance", "holidays", year] as const,
+  hrPattern: (userId: string) =>
+    ["hr", "attendance", "pattern", userId] as const,
   hrAttendanceSettings: ["hr", "attendance", "settings"] as const,
 
   billing: ["erp", "billing"] as const,

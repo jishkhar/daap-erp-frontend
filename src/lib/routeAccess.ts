@@ -24,12 +24,15 @@ const ROUTES: [prefix: string, pageKey: string][] = [
   ["/portal/inventory", "inventory"],
   ["/portal/transfers", "transfers"],
   ["/portal/finance", "finance"],
+  ["/portal/attendance-overview", "attendance"],
+  ["/portal/leave-requests", "leave_requests"],
   ["/portal/settings/staff", "staff"],
   ["/portal/settings/roles", "roles"],
   ["/portal/settings/billing", "billing"],
   ["/portal/settings/activity", "activity"],
   ["/portal/settings/branches", "branches"],
   ["/portal/settings/channels", "channels"],
+  ["/portal/settings/attendance", "attendance_settings"],
   ["/portal/settings", "settings"],
 ];
 
