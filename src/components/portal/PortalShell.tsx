@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { canOpenPath, landingPath, pageKeyForPath } from "@/lib/routeAccess";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { HelpButton } from "@/components/portal/help/HelpButton";
-import { SettingsNav } from "@/components/portal/SettingsNav";
+import { SettingsMenu, SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalTenant } from "@/lib/portalAuth";
@@ -128,14 +128,18 @@ export function PortalShell({ tenant, active, children }: Props) {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
-            className={`-ml-space-2 h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden ${inSettings ? "hidden" : "flex"}`}
-          >
-            <Menu size={20} strokeWidth={2} />
-          </button>
+          {inSettings ? (
+            <SettingsMenu />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+              className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden"
+            >
+              <Menu size={20} strokeWidth={2} />
+            </button>
+          )}
           <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">
             {tenant?.name || "ERP"}
           </span>
@@ -161,7 +165,7 @@ export function PortalShell({ tenant, active, children }: Props) {
         <BranchSwitcher mobile />
 
         {/* Settings on a wide screen: the settings menu is a fixed full-height column and only the page beside it scrolls, so the
-            menu never moves with the page. Below `lg` it is a row above the page and the whole thing scrolls as usual. */}
+            menu never moves with the page. Below `lg` the header hamburger opens the same menu in a drawer. */}
         <main
           ref={main}
           className={
@@ -172,7 +176,9 @@ export function PortalShell({ tenant, active, children }: Props) {
         >
           {inSettings ? (
             <div className="flex flex-col gap-space-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
-              <SettingsNav />
+              <div className="hidden lg:flex lg:shrink-0">
+                <SettingsNav />
+              </div>
               <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:p-space-6">
                 <div className="mx-auto max-w-[880px]">{body}</div>
               </div>

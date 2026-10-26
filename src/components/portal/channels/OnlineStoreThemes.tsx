@@ -1,6 +1,14 @@
 "use client";
 
-import { ExternalLink, Eye, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ExternalLink,
+  Eye,
+  MoreHorizontal,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
@@ -189,13 +197,15 @@ export function OnlineStoreThemes() {
 
   const live = list.data.installed.find((t) => t.is_active);
   const drafts = list.data.installed.filter((t) => !t.is_active);
-  // Before anything is published the website shows the default theme as shipped; it is "the live theme" here, not one to discover.
+  // Before the first publish, the storefront uses the default theme as shipped.
   const shownKey = live?.theme_key ?? DEFAULT_THEME.theme_key;
+  const liveRevision = `${shownKey}:${live?.published_version ?? 0}:${live?.published_at ?? "default"}`;
   const defaultInstalled = list.data.installed.some(
     (t) => t.theme_key === DEFAULT_THEME.theme_key,
   );
-  const discover = list.data.available.filter(
-    (t) => live || t.theme_key !== shownKey,
+  const installedKeys = new Set(list.data.installed.map((t) => t.theme_key));
+  const discover = [...list.data.installed, ...list.data.available].sort(
+    (a, b) => a.name.localeCompare(b.name),
   );
 
   async function openEditor(key: string, installed: boolean) {
@@ -247,9 +257,10 @@ export function OnlineStoreThemes() {
         aria-label="Live theme"
         className="relative overflow-hidden rounded-xl border border-line bg-card shadow-sm"
       >
-        {/* exit=1: always the live site, even if this browser was just previewing a draft in the editor */}
+        {/* Reload on a publish or switch, showing fresh published settings rather than a saved draft. */}
         <SitePreview
-          src={`${site}/preview?exit=1&path=/`}
+          key={liveRevision}
+          src={`${site}/preview?live=1&revision=${encodeURIComponent(liveRevision)}&path=/`}
           title="Your live website"
           className="h-[420px] sm:h-[540px]"
         />
@@ -356,47 +367,112 @@ export function OnlineStoreThemes() {
         )}
       </section>
 
-      {/* Themes not installed yet */}
-      <section>
-        <h2 className="mb-space-3 text-[17px] font-semibold text-ink-900">
-          Discover themes
-        </h2>
-        <div className="grid gap-space-5 sm:grid-cols-2 lg:grid-cols-3">
-          {discover.map((t) => (
-            <div key={t.theme_key}>
-              <ThemeImage
-                themeKey={t.theme_key}
-                className="aspect-square rounded-xl border border-line shadow-sm"
-              />
-              <div className="mobile-page-action-row mt-space-3 flex items-start justify-between gap-space-3">
-                <div>
-                  <p className="text-[14px] font-semibold text-ink-900">
-                    {t.name}
-                  </p>
-                  <p className="text-[12.5px] text-ink-600">by DAAP</p>
-                </div>
-                {canEdit && (
-                  <Button
-                    className="mobile-page-action"
-                    variant="secondary"
-                    disabled={install.isPending}
-                    onClick={() => add(t.theme_key)}
-                  >
-                    Add
-                  </Button>
+      {/* The complete theme catalog, including installed and current themes. */}
+      <section aria-label="Discover themes" className="space-y-space-4">
+        <div className="flex flex-wrap items-start justify-between gap-space-2">
+          <div>
+            <h2 className="text-[17px] font-semibold text-ink-900">
+              Discover themes
+            </h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
+              Find your store&apos;s next look. Customize a theme before making
+              it live.
+            </p>
+          </div>
+          <span className="rounded-full border border-line bg-card px-space-3 py-1 text-[12px] text-ink-600">
+            {discover.length} {discover.length === 1 ? "theme" : "themes"}
+          </span>
+        </div>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-space-3">
+          {discover.map((t) => {
+            const current = t.theme_key === shownKey;
+            const installed = installedKeys.has(t.theme_key);
+            return (
+              <article
+                key={t.theme_key}
+                aria-label={`${t.name}${current ? " — current theme" : ""}`}
+                className={cn(
+                  "@container flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-[border-color,box-shadow] duration-150",
+                  current
+                    ? "border-brand-400 ring-1 ring-brand-400"
+                    : "border-line hover:border-brand-200 hover:shadow-md",
                 )}
-              </div>
-            </div>
-          ))}
-          <Card className="flex aspect-square flex-col justify-center rounded-xl p-space-6">
-            <p className="text-[15px] font-semibold text-ink-900">
-              More themes coming soon
+              >
+                <div className="border-b border-line bg-paper p-space-2">
+                  <ThemeImage
+                    themeKey={t.theme_key}
+                    className="aspect-[2/1] rounded-lg border border-line bg-card"
+                  />
+                </div>
+                <div className="flex flex-col gap-space-2 px-space-2 py-space-1 @sm:flex-row @sm:items-center @sm:justify-between">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-space-2 gap-y-1">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-[16px] font-semibold text-ink-900">
+                        {t.name}
+                      </h3>
+                    </div>
+                    {current ? (
+                      <Badge
+                        tone="brand"
+                        className="shrink-0 px-space-2 py-0.5 text-[10px] normal-case tracking-normal"
+                      >
+                        <Check size={12} aria-hidden="true" /> Current theme
+                      </Badge>
+                    ) : installed ? (
+                      <Badge
+                        tone="neutral"
+                        className="shrink-0 px-space-2 py-0.5 text-[10px] normal-case tracking-normal"
+                      >
+                        Installed
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <div className="w-full shrink-0 @sm:w-auto">
+                    {installed ? (
+                      <Button
+                        className="min-h-11 w-full @sm:w-auto"
+                        variant={current ? "primary" : "secondary"}
+                        href={editorHref(t.theme_key)}
+                        aria-label={`${canEdit ? "Edit" : "View"} ${t.name} theme`}
+                      >
+                        {canEdit ? "Customize" : "View theme"}
+                        <ArrowRight size={15} aria-hidden="true" />
+                      </Button>
+                    ) : canEdit ? (
+                      <Button
+                        className="min-h-11 w-full @sm:w-auto"
+                        variant={current ? "primary" : "secondary"}
+                        disabled={install.isPending}
+                        onClick={() =>
+                          current
+                            ? openEditor(t.theme_key, false)
+                            : add(t.theme_key)
+                        }
+                        aria-label={`${current ? "Customize" : "Add"} ${t.name} theme`}
+                      >
+                        {current ? "Customize" : "Add theme"}
+                        <ArrowRight size={15} aria-hidden="true" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="flex items-start gap-space-3 rounded-lg border border-dashed border-line bg-card/50 p-space-4">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+            <Sparkles size={17} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-ink-900">
+              More looks are on the way
             </p>
-            <p className="mt-1 text-[13px] text-ink-600">
-              New DAAP themes appear here as they are released. Each one works
-              with your products, collections and settings.
+            <p className="mt-0.5 text-[12px] leading-relaxed text-ink-600">
+              New themes will appear here. Your products, collections and
+              settings work with every theme.
             </p>
-          </Card>
+          </div>
         </div>
       </section>
 
