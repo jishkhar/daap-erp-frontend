@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Search } from "lucide-react";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { ArrowLeft, Menu, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useStaffSession } from "@/lib/staffAuth";
 import { SETTINGS_NAV } from "@/components/portal/settingsNav";
 import { useDebounced } from "@/lib/useDebounced";
-import { Select } from "@/components/ui/Select";
+import { Dialog } from "@base-ui/react/dialog";
 
 const initials = (s: string) =>
   s
@@ -19,9 +19,8 @@ const initials = (s: string) =>
     .join("") || "?";
 
 /** Second-level sidebar shown on every /portal/settings/* page (rendered by PortalShell). */
-export function SettingsNav() {
+export function SettingsNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
   const session = useStaffSession();
   const [q, setQ] = useState("");
   const query = useDebounced(q.trim().toLowerCase());
@@ -35,14 +34,15 @@ export function SettingsNav() {
   const name = session?.tenant.name ?? "Settings";
 
   return (
-    <aside className="w-full shrink-0 lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-line lg:bg-card lg:p-space-3">
+    <aside className="flex min-h-0 w-full shrink-0 flex-1 flex-col bg-card p-space-3 lg:w-72 lg:flex-none lg:border-r lg:border-line">
       <Link
         href="/portal/dashboard"
+        onClick={onNavigate}
         className="mb-space-2 inline-flex shrink-0 items-center gap-space-2 text-[13px] font-medium text-ink-600 hover:text-ink-900"
       >
         <ArrowLeft size={14} /> Back to portal
       </Link>
-      <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-line bg-card shadow-[var(--shadow-sm)] lg:flex-1 lg:rounded-none lg:border-0 lg:bg-transparent lg:shadow-none">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex shrink-0 items-center gap-space-3 border-b border-line bg-paper px-space-3 py-space-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-600 text-[12px] font-bold text-white">
             {initials(name)}
@@ -71,38 +71,18 @@ export function SettingsNav() {
             />
           </label>
         </div>
-        <div className="px-space-2 pb-space-2 lg:hidden">
-          <Select
-            aria-label="Settings section"
-            value={
-              items.find(({ href, slug }) => isActive(href, slug))?.href ?? ""
-            }
-            onValueChange={(value) => router.push(value)}
-            disabled={items.length === 0}
-          >
-            <option value="" disabled>
-              {items.length === 0
-                ? "No matching settings"
-                : "Choose a settings section"}
-            </option>
-            {items.map(({ slug, label, href }) => (
-              <option key={slug} value={href}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </div>
         <nav
           aria-label="Settings"
-          className="hidden gap-1 px-space-2 pb-space-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto"
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto overscroll-contain px-space-2 pb-space-2"
         >
           {items.map(({ slug, label, icon: Icon, href }) => (
             <Link
               key={slug}
               href={href}
+              onClick={onNavigate}
               aria-current={isActive(href, slug) ? "page" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-space-3 whitespace-nowrap rounded-md px-space-3 py-2 text-[13px] font-medium text-ink-700 hover:bg-paper lg:whitespace-normal",
+                "flex shrink-0 items-center gap-space-3 rounded-md px-space-3 py-2 text-[13px] font-medium text-ink-700 hover:bg-paper",
                 isActive(href, slug) &&
                   "bg-brand-50 font-semibold text-brand-700",
               )}
@@ -116,7 +96,7 @@ export function SettingsNav() {
           )}
         </nav>
         {session && (
-          <div className="hidden shrink-0 items-center gap-space-3 border-t border-line px-space-3 py-space-3 lg:flex">
+          <div className="flex shrink-0 items-center gap-space-3 border-t border-line px-space-3 py-space-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
               {initials(session.name)}
             </span>
@@ -137,5 +117,55 @@ export function SettingsNav() {
         )}
       </div>
     </aside>
+  );
+}
+
+/** The full settings sidebar in a modal drawer below the desktop breakpoint. */
+export function SettingsMenu() {
+  const pathname = usePathname();
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === pathname;
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setOpenOn(null);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => setOpenOn(next ? pathname : null)}
+    >
+      <Dialog.Trigger
+        aria-label="Open settings menu"
+        className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden"
+      >
+        <Menu size={20} strokeWidth={2} />
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/40" />
+        <Dialog.Popup
+          className="fixed inset-y-0 left-0 z-50 flex h-dvh w-80 max-w-[90vw] flex-col bg-card shadow-xl"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex shrink-0 items-center justify-between border-b border-line px-space-3 py-space-2">
+            <Dialog.Title className="text-[14px] font-bold text-ink-900">
+              Settings
+            </Dialog.Title>
+            <Dialog.Close
+              aria-label="Close settings menu"
+              className="flex h-9 w-9 items-center justify-center rounded-md text-ink-600 hover:bg-paper"
+            >
+              <X size={20} />
+            </Dialog.Close>
+          </div>
+          <SettingsNav onNavigate={() => setOpenOn(null)} />
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

@@ -104,7 +104,12 @@ function ImageInput({
   );
 }
 
-const KIND = { category: "Category", craft: "Craft", occasion: "Occasion" };
+const KIND = {
+  category: "Category",
+  craft: "Craft",
+  occasion: "Occasion",
+  collection: "Collection",
+};
 /** "Sarees · Category · 12 products", so same-named collections and empty ones are easy to tell apart. */
 const optionLabel = (c: ThemeCollection) =>
   `${c.name} · ${KIND[c.kind]} · ${c.product_count} ${c.product_count === 1 ? "product" : "products"}`;

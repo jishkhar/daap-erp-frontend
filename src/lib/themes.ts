@@ -71,7 +71,7 @@ export type ThemeDefinition = {
 export type ThemeCollection = {
   slug: string;
   name: string;
-  kind: "category" | "craft" | "occasion";
+  kind: "category" | "craft" | "occasion" | "collection";
   product_count: number;
 };
 
