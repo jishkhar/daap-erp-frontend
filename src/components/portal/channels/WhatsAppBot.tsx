@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import {
   type TenantView,
@@ -53,6 +53,9 @@ function BotCard({
   const [timeout, setTimeoutValue] = useState(
     String(settings.whatsapp_bot_timeout_minutes ?? DEFAULT_TIMEOUT),
   );
+  const [welcome, setWelcome] = useState(
+    settings.whatsapp_welcome_message ?? "",
+  );
   const [template, setTemplate] = useState(
     settings.whatsapp_order_update_template ?? "",
   );
@@ -61,6 +64,16 @@ function BotCard({
   );
   const save = useSaveSettings();
   const busy = save.isPending;
+
+  function saveWelcome() {
+    save.mutate(
+      { whatsapp_welcome_message: welcome.trim() },
+      {
+        onSuccess: () => toast.success("Welcome message saved"),
+        onError: (e) => toast.error("Couldn't save", e.message),
+      },
+    );
+  }
 
   function saveTemplate() {
     save.mutate(
@@ -146,6 +159,34 @@ function BotCard({
           .
         </p>
       )}
+
+      <Field
+        label="Welcome message"
+        htmlFor="wa_bot_welcome"
+        hint="Shown when a customer starts a chat, after “Hi <name>! 👋”. Leave it empty for “Welcome to <your shop>.” Up to 800 characters."
+      >
+        <div className="flex flex-col gap-space-2">
+          <Textarea
+            id="wa_bot_welcome"
+            rows={3}
+            maxLength={800}
+            disabled={!canEdit}
+            placeholder="e.g. Namaste! 🌸 Welcome to Rosaya. New festive collection is live!"
+            value={welcome}
+            onChange={(e) => setWelcome(e.target.value)}
+          />
+          {canEdit && (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={saveWelcome}
+              className="self-start"
+            >
+              Save
+            </Button>
+          )}
+        </div>
+      </Field>
 
       <Field
         label="Start over after (minutes)"
