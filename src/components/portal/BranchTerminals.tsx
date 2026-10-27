@@ -14,6 +14,7 @@ import {
   useBranchTerminals,
   useCancelPairingCode,
   useClearCashierPin,
+  useDeleteTerminal,
   useIssuePairingCode,
   useRenameTerminal,
   useRevokeTerminal,
@@ -262,6 +263,8 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const [handover, setHandover] = useState<Terminal | null>(null);
   const [revoking, setRevoking] = useState<Terminal | null>(null);
   const [reason, setReason] = useState("");
+  const [deleting, setDeleting] = useState<Terminal | null>(null);
+  const [confirmName, setConfirmName] = useState("");
   const [renaming, setRenaming] = useState<{
     t: Terminal;
     name: string;
@@ -271,8 +274,12 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const cancelPairing = useCancelPairingCode();
   const revokeTerminal = useRevokeTerminal();
   const renameTerminal = useRenameTerminal();
+  const deleteTerminal = useDeleteTerminal();
   const busy =
-    issueCode.isPending || revokeTerminal.isPending || renameTerminal.isPending;
+    issueCode.isPending ||
+    revokeTerminal.isPending ||
+    renameTerminal.isPending ||
+    deleteTerminal.isPending;
 
   function generate() {
     const checked = nextName.trim() ? nameSchema.safeParse(nextName) : null;
@@ -304,6 +311,20 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           setReason("");
         },
         onError: (e) => toast.error("Couldn't revoke the terminal", e.message),
+      },
+    );
+  }
+  function remove() {
+    if (!deleting || confirmName.trim() !== deleting.name) return;
+    deleteTerminal.mutate(
+      { id: deleting.id, confirmName: confirmName.trim() },
+      {
+        onSuccess: () => {
+          toast.success(`${deleting.name} deleted.`);
+          setDeleting(null);
+          setConfirmName("");
+        },
+        onError: (e) => toast.error("Couldn't delete the terminal", e.message),
       },
     );
   }
@@ -519,6 +540,24 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   Revoke
                 </Button>
               )}
+              {canManage && t.status === "revoked" && (
+                <Button
+                  variant="ghost"
+                  className={`${rowActionClass} text-error max-md:col-span-2 max-md:border-error/30`}
+                  disabled={(t.handover_held ?? 0) > 0}
+                  title={
+                    (t.handover_held ?? 0) > 0
+                      ? "Approve or reject its handed-over bills first"
+                      : undefined
+                  }
+                  onClick={() => {
+                    setDeleting(t);
+                    setConfirmName("");
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           </li>
         ))}
@@ -577,6 +616,46 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
             onChange={(e) => setReason(e.target.value)}
           />
         </Field>
+      </Modal>
+      <Modal
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        width="sm"
+        title={`Delete ${deleting?.name ?? "terminal"}?`}
+        description="This can't be undone. The terminal is removed from this branch for good and nothing about it can be recovered here. The bills it took and its day closes stay in your sales and reports."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={busy || confirmName.trim() !== deleting?.name}
+              onClick={remove}
+            >
+              Delete terminal
+            </Button>
+          </>
+        }
+      >
+        {deleting && (
+          <Field
+            label={`Type “${deleting.name}” to confirm`}
+            htmlFor="t_delete"
+            required
+          >
+            <Input
+              id="t_delete"
+              autoComplete="off"
+              value={confirmName}
+              maxLength={80}
+              onChange={(e) => setConfirmName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") remove();
+              }}
+            />
+          </Field>
+        )}
       </Modal>
       <Modal
         open={renaming !== null}

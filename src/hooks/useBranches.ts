@@ -265,6 +265,18 @@ export function useRevokeTerminal() {
   });
 }
 
+/** A revoked terminal leaves the portal for good; the server checks the typed name again. Its bills and day closes are kept. */
+export function useDeleteTerminal() {
+  const refresh = useRefreshTerminals();
+  return useMutation({
+    mutationFn: (input: { id: string; confirmName: string }) =>
+      erpSend(`/api/v1/terminals/${input.id}/delete`, "POST", {
+        confirm_name: input.confirmName,
+      }),
+    onSuccess: refresh,
+  });
+}
+
 export function useRenameTerminal() {
   const refresh = useRefreshTerminals();
   return useMutation({
