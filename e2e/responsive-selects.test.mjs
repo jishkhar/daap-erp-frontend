@@ -661,34 +661,68 @@ test(
         await page.goto(`${baseURL}/portal/settings/channels/pos`);
         for (const width of [320, 390, 768]) {
           await page.setViewportSize({ width, height: 568 });
-          const settings = page.getByRole("combobox", {
-            name: "Settings section",
+          const trigger = page.getByRole("button", {
+            name: "Open settings menu",
           });
-          await openAndCheck(page, settings);
-          assert((await settings.innerText()).includes("Sales channels"));
-          await page.keyboard.press("End");
+          await trigger.click();
+          const drawer = page.getByRole("dialog", {
+            name: "Settings",
+            exact: true,
+          });
+          await drawer.waitFor();
+          const box = await drawer.boundingBox();
+          assert(box.x >= 0 && box.x + box.width <= width + 1);
+          const nav = drawer.getByRole("navigation", {
+            name: "Settings",
+            exact: true,
+          });
+          assert(
+            await nav
+              .getByRole("link", { name: "General", exact: true })
+              .isVisible(),
+          );
+          assert.equal(
+            await nav
+              .getByRole("link", { name: "Sales channels", exact: true })
+              .getAttribute("aria-current"),
+            "page",
+          );
+          await drawer
+            .getByRole("textbox", { name: "Search settings" })
+            .fill("no-such-setting");
+          await drawer.getByText("No match", { exact: true }).waitFor();
+          await drawer
+            .getByRole("textbox", { name: "Search settings" })
+            .fill("");
+          await nav
+            .getByRole("link", { name: "General", exact: true })
+            .waitFor();
           await page.keyboard.press("Escape");
-          await page.getByRole("listbox").waitFor({ state: "hidden" });
-          assert((await settings.innerText()).includes("Sales channels"));
-          await openAndCheck(page, settings);
-          await page
-            .getByRole("option", { name: "General", exact: true })
+          await drawer.waitFor({ state: "hidden" });
+          assert(await trigger.evaluate((el) => el === document.activeElement));
+          await trigger.click();
+          await drawer
+            .getByRole("link", { name: "General", exact: true })
             .click();
           await page.waitForURL("**/portal/settings");
+          await drawer.waitFor({ state: "hidden" });
+          await trigger.click();
+          await page
+            .getByRole("button", { name: "Close settings menu" })
+            .click();
+          await drawer.waitFor({ state: "hidden" });
+          await trigger.click();
+          await page.mouse.click(width - 1, 280);
+          await drawer.waitFor({ state: "hidden" });
+          await trigger.click();
+          await page.setViewportSize({ width: 1440, height: 568 });
+          await drawer.waitFor({ state: "hidden" });
+          await page
+            .getByRole("navigation", { name: "Settings", exact: true })
+            .waitFor();
+          assert.equal(await trigger.isVisible(), false);
           await page.goto(`${baseURL}/portal/settings/channels/pos`);
         }
-        await page
-          .getByRole("textbox", { name: "Search settings" })
-          .fill("no-such-setting");
-        const settings = page.getByRole("combobox", {
-          name: "Settings section",
-        });
-        await settings.waitFor();
-        await page.waitForFunction(
-          () =>
-            document.querySelector('[aria-label="Settings section"]').disabled,
-        );
-        assert((await settings.innerText()).includes("No matching settings"));
         for (const width of [320, 390, 768, 1440]) {
           await page.setViewportSize({ width, height: 568 });
           const user = page.getByRole("button", { name: /Account menu for/ });
