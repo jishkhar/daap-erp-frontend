@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { erpGet, qs } from "@/lib/erp";
+import type { ServerPeriod, useGlobalFilter } from "@/lib/globalFilter";
 import { queryKeys } from "@/lib/queryKeys";
 
 export type BranchSales = {
@@ -20,9 +21,22 @@ export type BranchSales = {
 export type SalesOverview = {
   date_from: string;
   date_to: string;
+  period: ServerPeriod;
+  granularity: "hour" | "day" | "week" | "month";
+  /** the period before, for the change arrows */
+  prev: {
+    orders: number;
+    revenue_minor: number;
+    returns_minor: number;
+    net_revenue_minor: number;
+    expenses_minor: number;
+    avg_order_minor: number;
+  };
   totals: {
     orders: number;
     revenue_minor: number;
+    returns_minor: number;
+    net_revenue_minor: number;
     avg_order_minor: number;
     expenses_minor: number;
     stock_units: number;
@@ -31,6 +45,7 @@ export type SalesOverview = {
   };
   by_channel: { channel: string; orders: number; revenue_minor: number }[];
   by_branch: BranchSales[];
+  /** one point per bucket: `date` is a day, a week's or month's first day, or "yyyy-mm-ddThh:00"; revenue per channel and returns_minor */
   daily: ({ date: string } & Record<string, number | string>)[];
 };
 
@@ -51,12 +66,13 @@ export function useTodaySummary(branchId: string | null) {
   });
 }
 
-/** Sales over a period (cancelled orders excluded): revenue by day, channel and branch, plus each branch's expenses and stock. */
+/** Sales over the global filter's period and channel (cancelled orders excluded): revenue by day, channel and branch, plus each
+ * branch's expenses and stock. */
 export function useSalesOverview(
-  range: { date_from: string; date_to: string },
+  filter: ReturnType<typeof useGlobalFilter>["params"],
   branchId: string | null,
 ) {
-  const params = { ...range, branch_id: branchId };
+  const params = { ...filter, branch_id: branchId };
   return useQuery({
     queryKey: queryKeys.salesOverview(params),
     queryFn: () =>

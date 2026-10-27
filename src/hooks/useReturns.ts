@@ -26,6 +26,8 @@ export type ReturnFilters = {
   status?: string | null;
   channel?: string | null;
   branch_id?: string | null;
+  /** the global filter's period; with "custom", from/to are its dates */
+  period?: string | null;
   from?: string | null;
   to?: string | null;
   q?: string | null;

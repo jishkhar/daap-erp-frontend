@@ -1,20 +1,18 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { SkeletonLines } from "@/components/ui/Skeleton";
-import type { Dashboard, DashboardRange } from "@/hooks/useDashboard";
+import type { Dashboard } from "@/hooks/useDashboard";
 import { formatMoney } from "@/lib/erp";
-import { RANGE_LABEL } from "./format";
+import { periodText } from "@/lib/globalFilter";
 import { Refreshing } from "./Refreshing";
 
-/** The five products that sold the most units in the chosen range. */
+/** The five products that sold the most units in the chosen period. */
 export function TopProducts({
   data,
-  range,
   currency,
   refreshing,
 }: {
   data: Dashboard | undefined;
-  range: DashboardRange;
   currency: string;
   refreshing: boolean;
 }) {
@@ -26,7 +24,7 @@ export function TopProducts({
           <h2 className="text-[15px] font-bold text-ink-900">
             Top selling products
           </h2>
-          <p className="text-hint">{RANGE_LABEL[range]}</p>
+          <p className="text-hint">{periodText(data?.period)}</p>
         </div>
         <Link
           href="/portal/products"

@@ -165,6 +165,7 @@ export const queryKeys = {
 
   wholesale: ["erp", "wholesale"] as const,
   wholesaleSettings: ["erp", "wholesale", "settings"] as const,
+  modules: ["erp", "tenant", "modules"] as const,
   labelSettings: ["erp", "labels", "settings"] as const,
   posBranding: ["erp", "channels", "pos", "branding"] as const,
   posLatestRelease: ["pos", "latest-release"] as const,

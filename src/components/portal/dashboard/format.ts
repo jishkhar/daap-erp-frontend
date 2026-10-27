@@ -22,10 +22,3 @@ export const PAYMENT_LABEL: Record<string, string> = {
   cod: "Cash on delivery",
   other: "Other",
 };
-
-export const RANGE_LABEL = {
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  "3m": "Last 3 months",
-  "1y": "Last year",
-} as const;

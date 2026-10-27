@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -16,10 +16,16 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Select";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useActiveBranch } from "@/lib/branch";
 import { useSalesOverview } from "@/hooks/useAnalytics";
+import { pctChange } from "@/components/portal/dashboard/format";
+import {
+  periodText,
+  prevText,
+  todayIso,
+  useGlobalFilter,
+} from "@/lib/globalFilter";
 import { CHANNELS, CHANNEL_ORDER, formatMoney } from "@/lib/erp";
 import { Skeleton, SkeletonLines } from "@/components/ui/Skeleton";
 import { PosDailyCloses } from "@/components/portal/PosDailyCloses";
@@ -29,35 +35,46 @@ const COLORS: Record<string, string> = {
   pos: "#4a5d45",
   whatsapp: "#25d366",
 };
-const RANGES = [
-  { days: 7, label: "Last 7 days" },
-  { days: 14, label: "Last 14 days" },
-  { days: 30, label: "Last 30 days" },
-  { days: 90, label: "Last 90 days" },
-];
+const dayFmt = new Intl.DateTimeFormat("en-IN", {
+  day: "numeric",
+  month: "short",
+});
+const monthFmt = new Intl.DateTimeFormat("en-IN", {
+  month: "short",
+  year: "2-digit",
+});
 
-const isoDay = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** A bar's label: an hour ("14:00"), a day ("8 Jan"), the week starting that day, or a month ("Jan 26"). */
+function bucketLabel(iso: string, granularity: string) {
+  if (granularity === "hour") return iso.slice(11);
+  const d = new Date(`${iso}T00:00:00`);
+  if (granularity === "month") return monthFmt.format(d);
+  return granularity === "week"
+    ? `Week of ${dayFmt.format(d)}`
+    : dayFmt.format(d);
+}
 
-/** Sales analytics, computed by the server over the chosen period (cancelled orders excluded): revenue by day, channel and
- * branch, plus each branch's expenses and current stock. */
+/** Sales analytics, computed by the server over the header's global filter (period and channel; cancelled orders excluded): revenue
+ * over time, by channel and branch, plus each branch's expenses and current stock. */
 export default function AnalyticsPage() {
   const { tenant, ready } = usePortalGuard();
-  const [days, setDays] = useState(14);
   const { branchId } = useActiveBranch();
-  const range = useMemo(() => {
-    const to = new Date();
-    const from = new Date();
-    from.setDate(to.getDate() - (days - 1));
-    return { date_from: isoDay(from), date_to: isoDay(to) };
-  }, [days]);
-  const data = useSalesOverview(range, branchId);
+  const { params } = useGlobalFilter();
+  const data = useSalesOverview(params, branchId);
   const cur = tenant?.currency ?? "INR";
   const t = data.data?.totals;
+  const prev = data.data?.prev;
+  const vs = prevText(data.data?.period);
+  const delta = (key: keyof NonNullable<typeof prev>) =>
+    t && prev ? pctChange(t[key], prev[key]) : null;
+  // POS day closes follow the period too, by the dates the server worked out
+  const closesRange = data.data
+    ? { date_from: data.data.date_from, date_to: data.data.date_to }
+    : { date_from: todayIso(), date_to: todayIso() };
   const daily = useMemo(
     () =>
       (data.data?.daily ?? []).map((d) => ({
-        date: String(d.date).slice(5),
+        date: bucketLabel(String(d.date), data.data!.granularity),
         ...Object.fromEntries(
           CHANNEL_ORDER.map((c) => [c, Number(d[c] ?? 0) / 100]),
         ),
@@ -80,26 +97,10 @@ export default function AnalyticsPage() {
         description="Live sales analytics: revenue by day, channel and branch."
       />
       <>
-        <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
-          <p className="text-[13.5px] text-ink-600">
-            {branchId ? "This branch" : "All your branches"} ·{" "}
-            {data.data
-              ? `${data.data.date_from} to ${data.data.date_to}`
-              : `${range.date_from} to ${range.date_to}`}
-          </p>
-          <Select
-            value={String(days)}
-            onValueChange={(value) => setDays(Number(value))}
-            className="w-44"
-            aria-label="Period"
-          >
-            {RANGES.map((r) => (
-              <option key={r.days} value={r.days}>
-                {r.label}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <p className="mb-space-4 text-[13.5px] text-ink-600">
+          {branchId ? "This branch" : "All your branches"} ·{" "}
+          {periodText(data.data?.period)}
+        </p>
         {data.error && (
           <p className="mb-space-3 text-[13px] font-medium text-error">
             {data.error.message}
@@ -110,8 +111,12 @@ export default function AnalyticsPage() {
             loading={data.isFetching && !data.data}
             label="Revenue"
             value={formatMoney(t?.revenue_minor ?? 0, cur)}
-            deltaPct={null}
-            hint="excluding cancelled"
+            deltaPct={delta("revenue_minor")}
+            hint={
+              t && t.returns_minor > 0
+                ? `${formatMoney(t.net_revenue_minor, cur)} after returns · ${vs}`
+                : `excluding cancelled · ${vs}`
+            }
             tone="success"
             icon={<BarChart3 size={22} />}
           />
@@ -119,16 +124,16 @@ export default function AnalyticsPage() {
             loading={data.isFetching && !data.data}
             label="Orders"
             value={t?.orders ?? 0}
-            deltaPct={null}
-            hint="excluding cancelled"
+            deltaPct={delta("orders")}
+            hint={`excluding cancelled · ${vs}`}
             icon={<BarChart3 size={22} />}
           />
           <StatTile
             loading={data.isFetching && !data.data}
             label="Average order"
             value={formatMoney(t?.avg_order_minor ?? 0, cur)}
-            deltaPct={null}
-            hint="per order"
+            deltaPct={delta("avg_order_minor")}
+            hint={`per order · ${vs}`}
             tone="violet"
             icon={<BarChart3 size={22} />}
           />
@@ -136,8 +141,13 @@ export default function AnalyticsPage() {
             loading={data.isFetching && !data.data}
             label="Expenses"
             value={formatMoney(t?.expenses_minor ?? 0, cur)}
-            deltaPct={null}
-            hint="approved and paid"
+            deltaPct={delta("expenses_minor")}
+            upIsGood={false}
+            hint={
+              params.channel
+                ? "approved and paid · every channel"
+                : `approved and paid · ${vs}`
+            }
             tone="clay"
             icon={<BarChart3 size={22} />}
           />
@@ -162,7 +172,7 @@ export default function AnalyticsPage() {
         </div>
         <Card className="mb-space-5 p-space-4">
           <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-            Revenue by day and channel
+            Revenue over time, by channel
           </h2>
           <div className="h-72 w-full">
             {data.isFetching && !data.data ? (
@@ -210,7 +220,9 @@ export default function AnalyticsPage() {
               <SkeletonLines rows={3} />
             ) : (
               <ul className="divide-y divide-line">
-                {CHANNEL_ORDER.map((c) => {
+                {CHANNEL_ORDER.filter(
+                  (c) => !params.channel || c === params.channel,
+                ).map((c) => {
                   const row = data.data?.by_channel.find(
                     (x) => x.channel === c,
                   );
@@ -321,7 +333,11 @@ export default function AnalyticsPage() {
             </tbody>
           </table>
         </Card>
-        <PosDailyCloses range={range} branchId={branchId} currency={cur} />
+        <PosDailyCloses
+          range={closesRange}
+          branchId={branchId}
+          currency={cur}
+        />
       </>
     </PortalShell>
   );

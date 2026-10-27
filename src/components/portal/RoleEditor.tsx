@@ -66,6 +66,22 @@ export function RoleEditor({ role }: { role?: Role }) {
     return new Set([...all].filter((x) => !hasTenantWide(session, x)));
   }, [catalogue.data, session]);
 
+  // Pages of an optional module that is off for the business aren't offered (a role keeps what it already holds, unchanged).
+  const pages = useMemo(() => {
+    const off = (m: string) => session?.modules?.[m] === false;
+    const MODULE_PAGES: Record<string, string> = {
+      wholesale: "wholesale",
+      customer_accounts: "wholesale",
+      price_lists: "wholesale",
+      transfers: "transfers",
+    };
+    return (catalogue.data?.pages ?? []).filter(
+      (p) =>
+        !(p.group === "Workforce" && off("workforce")) &&
+        !(MODULE_PAGES[p.key] && off(MODULE_PAGES[p.key])),
+    );
+  }, [catalogue.data, session]);
+
   const busy = create.isPending || update.isPending || remove.isPending;
   const shown =
     category || (role?.category === "organization" ? "organization" : "");
@@ -183,7 +199,7 @@ export function RoleEditor({ role }: { role?: Role }) {
         )}
         {catalogue.data && shown === "store" && (
           <PermissionGrid
-            pages={catalogue.data.pages}
+            pages={pages}
             selected={selected}
             onChange={setSelected}
             locked={locked}

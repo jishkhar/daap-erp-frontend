@@ -5,11 +5,18 @@ import { Card } from "@/components/ui/Card";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { useRecentOrders } from "@/hooks/useOrders";
 import { formatDateTime, formatMoney, humanize } from "@/lib/erp";
+import type { useGlobalFilter } from "@/lib/globalFilter";
 
-/** The latest orders across the active branch scope. */
-export function RecentOrdersCard({ branchId }: { branchId: string | null }) {
+/** The latest orders across the active branch scope, in the global filter's period and channel. */
+export function RecentOrdersCard({
+  branchId,
+  filter,
+}: {
+  branchId: string | null;
+  filter: ReturnType<typeof useGlobalFilter>["params"];
+}) {
   const router = useRouter();
-  const orders = useRecentOrders(branchId);
+  const orders = useRecentOrders(branchId, 8, filter);
   const recent = orders.data ?? [];
   return (
     <Card className="p-space-4">
@@ -26,7 +33,9 @@ export function RecentOrdersCard({ branchId }: { branchId: string | null }) {
         (orders.isFetching ? (
           <SkeletonLines rows={2} />
         ) : (
-          <p className="text-[13.5px] text-ink-400">{"No orders yet."}</p>
+          <p className="text-[13.5px] text-ink-400">
+            {"No orders in this period."}
+          </p>
         ))}
       {recent.length > 0 && (
         <div className="overflow-x-auto">

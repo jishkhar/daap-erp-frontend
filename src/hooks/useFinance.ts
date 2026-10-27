@@ -11,6 +11,7 @@ import {
   type JournalEntry,
   type TaxDocument,
 } from "@/lib/erp";
+import type { ServerPeriod, useGlobalFilter } from "@/lib/globalFilter";
 import { queryKeys } from "@/lib/queryKeys";
 
 type Params = Record<string, string | number | boolean | null | undefined>;
@@ -23,7 +24,16 @@ function useRefreshFinance() {
 
 // ------------------------------------------------------------------ overview and reports
 export type FinanceSummary = {
+  /** first day of the period (kept for older callers) */
   month: string;
+  period: ServerPeriod;
+  /** the P&L figures for the period before */
+  prev: {
+    net_revenue_minor: number;
+    gross_profit_minor: number;
+    gross_margin_pct: number | null;
+    net_profit_minor: number;
+  };
   net_revenue_minor: number;
   gross_profit_minor: number;
   gross_margin_pct: number | null;
@@ -36,9 +46,12 @@ export type FinanceSummary = {
   gst_payable_minor: number;
 };
 
-/** This month's headline figures, for one branch or the whole business. */
-export function useFinanceSummary(branchId: string | null) {
-  const params = { branch_id: branchId };
+/** The headline figures for the global filter's period and channel (balances as of today), for one branch or the whole business. */
+export function useFinanceSummary(
+  branchId: string | null,
+  filter: ReturnType<typeof useGlobalFilter>["params"],
+) {
+  const params = { branch_id: branchId, ...filter };
   return useQuery({
     queryKey: queryKeys.financeSummary(params),
     queryFn: () =>

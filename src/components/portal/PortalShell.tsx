@@ -7,11 +7,13 @@ import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { canOpenPath, landingPath, pageKeyForPath } from "@/lib/routeAccess";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { GlobalFilter } from "@/components/portal/GlobalFilter";
 import { HelpButton } from "@/components/portal/help/HelpButton";
 import { SettingsMenu, SettingsNav } from "@/components/portal/SettingsNav";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalTenant } from "@/lib/portalAuth";
+import { FILTER_PAGES, useGlobalFilterRequested } from "@/lib/globalFilter";
 import { useStaffSession } from "@/lib/staffAuth";
 
 const SharedShell = createContext(false);
@@ -78,6 +80,7 @@ export function PortalShell({ tenant, active, children }: Props) {
   // without an effect.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const inSettings = pathname.startsWith("/portal/settings");
+  const filterRequested = useGlobalFilterRequested();
   const sidebarOpen = openOn === pathname;
   const setSidebarOpen = (open: boolean) => setOpenOn(open ? pathname : null);
 
@@ -144,19 +147,23 @@ export function PortalShell({ tenant, active, children }: Props) {
             {tenant?.name || "ERP"}
           </span>
           <div className="ml-auto flex items-center gap-space-2">
-            <span
-              // the server and the browser can be on different days/timezones for a moment; the browser's wins
-              suppressHydrationWarning
-              className="mr-space-2 hidden items-center gap-space-2 rounded-md border border-line px-space-3 py-1.5 text-[13px] font-medium text-ink-600 md:flex"
-            >
-              <CalendarDays size={15} className="text-ink-400" />
-              {new Date().toLocaleDateString("en-IN", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
+            {FILTER_PAGES.includes(pathname) || filterRequested ? (
+              <GlobalFilter />
+            ) : (
+              <span
+                // the server and the browser can be on different days/timezones for a moment; the browser's wins
+                suppressHydrationWarning
+                className="mr-space-2 hidden items-center gap-space-2 rounded-md border border-line px-space-3 py-1.5 text-[13px] font-medium text-ink-600 md:flex"
+              >
+                <CalendarDays size={15} className="text-ink-400" />
+                {new Date().toLocaleDateString("en-IN", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            )}
             <BranchSwitcher />
             <HelpButton />
             <UserMenu />

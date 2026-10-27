@@ -161,22 +161,31 @@ export default function OrderDetailPage() {
                 <ChannelBadge channel={o.channel} />
                 <OrderStatusBadge status={o.status} />
                 <PaymentStatusBadge status={o.payment_status} />
-                {o.sale_type === "wholesale" && (
-                  <Link
-                    href={
-                      o.sales_order_id
-                        ? `/portal/wholesale/orders/${o.sales_order_id}`
-                        : "/portal/wholesale?tab=invoices"
-                    }
-                  >
-                    <Badge tone="indigo">
-                      Wholesale
-                      {o.due_date && o.payment_status !== "paid"
-                        ? ` · due ${o.due_date}`
-                        : ""}
-                    </Badge>
-                  </Link>
-                )}
+                {o.sale_type === "wholesale" &&
+                  (() => {
+                    const badge = (
+                      <Badge tone="indigo">
+                        Wholesale
+                        {o.due_date && o.payment_status !== "paid"
+                          ? ` · due ${o.due_date}`
+                          : ""}
+                      </Badge>
+                    );
+                    // a plain badge while Wholesale is switched off: its pages don't open then
+                    return session?.modules?.wholesale === false ? (
+                      badge
+                    ) : (
+                      <Link
+                        href={
+                          o.sales_order_id
+                            ? `/portal/wholesale/orders/${o.sales_order_id}`
+                            : "/portal/wholesale?tab=invoices"
+                        }
+                      >
+                        {badge}
+                      </Link>
+                    );
+                  })()}
               </div>
               <p className="mt-space-2 text-[13px] text-ink-600 [overflow-wrap:anywhere]">
                 Placed {formatDateTime(o.placed_at)} · {humanize(o.order_type)}

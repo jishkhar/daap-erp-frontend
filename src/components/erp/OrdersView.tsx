@@ -24,9 +24,9 @@ import { Input } from "@/components/ui/Input";
 import { AnchoredSelect } from "@/components/ui/AnchoredSelect";
 import { useOrderList } from "@/hooks/useOrders";
 import { useActiveBranch } from "@/lib/branch";
+import { Switch } from "@/components/ui/Switch";
+import { useGlobalFilter } from "@/lib/globalFilter";
 import {
-  CHANNELS,
-  CHANNEL_ORDER,
   formatDateTime,
   formatMoney,
   humanize,
@@ -57,26 +57,28 @@ const PAYMENT_STATUSES: Order["payment_status"][] = [
 ];
 
 type Props = {
-  /** Channel the filter starts on (from the page's ?channel= link); omitted = all channels. */
-  initialChannel?: string;
+  /** Start on every date instead of the global filter's period (the page's ?all=1 link). */
+  initialAllDates?: boolean;
 };
 
-/** The orders list: filters + table. Orders from every channel live here; the channel is a filter. Wholesale sales are not: they have
+/** The orders list: filters + table. Orders from every channel live here; the period and channel come from the header's global
+ * filter ("All dates" ignores the period, so nothing older that still needs work can hide). Wholesale sales are not here: they have
  * their own list (Wholesale > Invoices). */
-export function OrdersView({ initialChannel = "" }: Props) {
+export function OrdersView({ initialAllDates = false }: Props) {
   const router = useRouter();
   const session = useStaffSession();
   const canUpdate = hasPermission(session, "orders", "write");
   const { branchId, branches } = useActiveBranch();
   const [status, setStatus] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("");
-  const [channelFilter, setChannelFilter] = useState(initialChannel);
+  const { params } = useGlobalFilter();
+  const [allDates, setAllDates] = useState(initialAllDates);
   const [search, setSearch] = useState("");
 
   const q = useDebounced(search.trim());
   // paged on the server (newest first); each row carries its customer's name
   const orders = useOrderList({
-    channel: channelFilter,
+    ...(allDates ? { channel: params.channel } : params),
     status,
     payment_status: paymentStatus,
     branch_id: branchId,
@@ -210,19 +212,6 @@ export function OrdersView({ initialChannel = "" }: Props) {
           aria-label="Search orders"
         />
         <AnchoredSelect
-          value={channelFilter}
-          onValueChange={setChannelFilter}
-          className="w-44"
-          label="Channel"
-          options={[
-            { value: "", label: "All channels" },
-            ...CHANNEL_ORDER.map((channel) => ({
-              value: channel,
-              label: CHANNELS[channel].label,
-            })),
-          ]}
-        />
-        <AnchoredSelect
           value={status}
           onValueChange={setStatus}
           className="w-44"
@@ -248,6 +237,14 @@ export function OrdersView({ initialChannel = "" }: Props) {
             })),
           ]}
         />
+        <span className="flex items-center gap-space-2 text-[13px] font-medium text-ink-600">
+          <Switch
+            checked={allDates}
+            onChange={() => setAllDates((v) => !v)}
+            aria-label="Show orders from every date"
+          />
+          All dates
+        </span>
       </Card>
 
       {orders.error && (

@@ -111,11 +111,18 @@ export function clearStaffSession() {
 /** A service whose plan ended is refused by the server (403, reason service_ended / access_ended). Re-read who-am-I so its lock shows at once. */
 let refreshingForEnded = false;
 function noteServiceEnded(status: number, data: unknown) {
-  const reason = (data as { error?: { reason?: string } } | undefined)?.error
-    ?.reason;
+  const err = (
+    data as { error?: { reason?: string; feature?: string } } | undefined
+  )?.error;
+  const reason = err?.reason;
+  // a service that ended, or an optional module switched off (by the business or the platform): re-read the session so the menu follows
+  const moduleOff =
+    err?.feature === "wholesale" ||
+    err?.feature === "transfers" ||
+    err?.feature === "workforce";
   if (
     status === 403 &&
-    (reason === "service_ended" || reason === "access_ended") &&
+    (reason === "service_ended" || reason === "access_ended" || moduleOff) &&
     !refreshingForEnded
   ) {
     refreshingForEnded = true;

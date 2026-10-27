@@ -24,8 +24,10 @@ export function SettingsNav({ onNavigate }: { onNavigate?: () => void }) {
   const session = useStaffSession();
   const [q, setQ] = useState("");
   const query = useDebounced(q.trim().toLowerCase());
-  const items = SETTINGS_NAV.filter((i) =>
-    i.label.toLowerCase().includes(query),
+  const items = SETTINGS_NAV.filter(
+    (i) =>
+      i.label.toLowerCase().includes(query) &&
+      (!i.module || session?.modules?.[i.module] !== false),
   );
   const isActive = (href: string, slug: string) =>
     slug === "general"

@@ -12,8 +12,8 @@ export default function OrdersPage() {
   const { tenant, ready } = usePortalGuard();
   if (!ready) return null;
   // Rendered only after sign-in resolves (client side), so reading the address bar here cannot mismatch the server render.
-  const channel =
-    new URLSearchParams(window.location.search).get("channel") ?? "";
+  // ?all=1 (the dashboard's "awaiting payment" link) starts on every date instead of the global period.
+  const allDates = new URLSearchParams(window.location.search).has("all");
   return (
     <PortalShell tenant={tenant} active="orders">
       <PageHeader
@@ -25,7 +25,7 @@ export default function OrdersPage() {
         actions={<Button href="/portal/orders/new">New order</Button>}
       />
       <GstNotice />
-      <OrdersView initialChannel={channel} />
+      <OrdersView initialAllDates={allDates} />
     </PortalShell>
   );
 }

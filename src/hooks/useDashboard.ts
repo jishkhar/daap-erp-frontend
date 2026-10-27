@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { erpGet, qs } from "@/lib/erp";
 import { queryKeys } from "@/lib/queryKeys";
 
-export type DashboardRange = "7d" | "30d" | "3m" | "1y";
+import type { ServerPeriod, useGlobalFilter } from "@/lib/globalFilter";
 
 export type Attention = {
   key: string;
@@ -18,31 +18,26 @@ export type Attention = {
 /** What the server returns for the dashboard. A section is missing when the signed-in person may not see it. */
 export type Dashboard = {
   date: string;
-  range: DashboardRange;
-  granularity: "day" | "week" | "month";
+  /** the global filter's period as the server worked it out (business time zone), and the one it is compared with */
+  period: ServerPeriod;
+  granularity: "hour" | "day" | "week" | "month";
   sales: {
     revenue_minor: number;
     revenue_prev_minor: number;
-    /** before returns; revenue_minor is net of what came back today */
+    /** before returns; revenue_minor is net of what came back in the period */
     gross_minor: number;
     returns_minor: number;
     orders: number;
     orders_prev: number;
     open_orders: number;
   };
-  /** net of returns, by the day each return completed */
+  /** net of returns, by the day each return completed; `date` is a day, a week's or month's first day, or "yyyy-mm-ddThh:00" by hour */
   trend: {
     date: string;
     revenue_minor: number;
     returns_minor: number;
     orders: number;
   }[];
-  range_totals: {
-    revenue_minor: number;
-    gross_minor: number;
-    returns_minor: number;
-    orders: number;
-  };
   returns: {
     count: number;
     amount_minor: number;
@@ -57,8 +52,14 @@ export type Dashboard = {
     units: number;
     amount_minor: number;
   }[];
-  refunds?: { count: number; amount_minor: number };
-  customers?: { total: number; new_today: number; new_yesterday: number };
+  refunds?: {
+    count: number;
+    amount_minor: number;
+    count_prev: number;
+    amount_prev_minor: number;
+  };
+  /** `new` joined in the period, `new_prev` in the one before */
+  customers?: { total: number; new: number; new_prev: number };
   stock?: { value_minor: number; low_items: number };
   attention: Attention[];
   channels: {
@@ -72,9 +73,12 @@ export type Dashboard = {
   };
 };
 
-/** Everything on the dashboard in one request. The previous result stays on screen while another range loads. */
-export function useDashboard(branchId: string | null, range: DashboardRange) {
-  const params = { branch_id: branchId, range };
+/** Everything on the dashboard in one request, for the global filter. The previous result stays on screen while another period loads. */
+export function useDashboard(
+  branchId: string | null,
+  filter: ReturnType<typeof useGlobalFilter>["params"],
+) {
+  const params = { branch_id: branchId, ...filter };
   return useQuery({
     queryKey: queryKeys.dashboard(params),
     queryFn: () =>

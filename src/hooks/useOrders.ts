@@ -8,10 +8,11 @@ import {
 } from "@tanstack/react-query";
 import { usePagedQuery } from "@/hooks/usePagedQuery";
 import { erpGet, erpSend, qs, type OrderDetail, type Order } from "@/lib/erp";
+import type { useGlobalFilter } from "@/lib/globalFilter";
 import { queryKeys } from "@/lib/queryKeys";
 
 export type OrderFilters = {
-  channel?: string;
+  channel?: string | null;
   status?: string;
   payment_status?: string;
   branch_id?: string | null;
@@ -19,6 +20,10 @@ export type OrderFilters = {
   q?: string;
   /** "retail" leaves out wholesale sales (listed under Wholesale > Invoices). */
   sale_type?: "retail" | "wholesale";
+  /** the global filter's period (date_from/date_to for a custom one); left out = every date */
+  period?: string | null;
+  date_from?: string | null;
+  date_to?: string | null;
 };
 
 /** The orders list, newest first, paged and filtered on the server. Each row carries its customer's name. */
@@ -27,8 +32,12 @@ export function useOrderList(filters: OrderFilters) {
 }
 
 /** The latest orders, newest first, for the dashboard. */
-export function useRecentOrders(branchId: string | null, limit = 8) {
-  const params = { branch_id: branchId, limit };
+export function useRecentOrders(
+  branchId: string | null,
+  limit = 8,
+  filter: Partial<ReturnType<typeof useGlobalFilter>["params"]> = {},
+) {
+  const params = { branch_id: branchId, limit, ...filter };
   return useQuery({
     queryKey: queryKeys.recentOrders(params),
     queryFn: () => erpGet<Order[]>(`/api/v1/orders${qs(params)}`),

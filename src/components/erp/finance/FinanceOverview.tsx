@@ -18,18 +18,32 @@ import { Input } from "@/components/ui/Input";
 import { useActiveBranch } from "@/lib/branch";
 import { useFinanceSummary, useSetPeriodLock } from "@/hooks/useFinance";
 import { formatMoney } from "@/lib/erp";
+import {
+  periodText,
+  prevText,
+  useGlobalFilter,
+  useGlobalFilterHere,
+} from "@/lib/globalFilter";
+import { pctChange } from "@/components/portal/dashboard/format";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { Help } from "@/components/erp/finance/Help";
 
 export function FinanceOverview({ currency }: { currency: string }) {
   const { branchId } = useActiveBranch();
-  const s = useFinanceSummary(branchId);
+  // the profit figures follow the header's global filter; it shows only while this tab is open
+  useGlobalFilterHere();
+  const { params } = useGlobalFilter();
+  const s = useFinanceSummary(branchId, params);
   const periodLock = useSetPeriodLock();
   const session = useStaffSession();
   const [lock, setLock] = useState("");
   const d = s.data;
   const m = (v: number) => formatMoney(v, currency);
+  const vs = prevText(d?.period);
+  const delta = (
+    key: "net_revenue_minor" | "gross_profit_minor" | "net_profit_minor",
+  ) => (d ? pctChange(d[key], d.prev[key]) : null);
 
   function setPeriodLock(value: string | null) {
     periodLock.mutate(value, {
@@ -76,15 +90,16 @@ export function FinanceOverview({ currency }: { currency: string }) {
       {d && (
         <>
           <p className="mb-space-3 text-[13px] text-ink-600">
-            Month to date, from {d.month}.
+            Revenue and profit: {periodText(d.period)}. Cash, what is owed,
+            stock and GST are as of today.
           </p>
           <div className="mb-space-5 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
               info={<Help term="Net revenue" />}
               label="Net revenue"
               value={m(d.net_revenue_minor)}
-              deltaPct={null}
-              hint="after returns"
+              deltaPct={delta("net_revenue_minor")}
+              hint={`after returns · ${vs}`}
               tone="success"
               icon={<TrendingUp size={22} />}
             />
@@ -92,11 +107,11 @@ export function FinanceOverview({ currency }: { currency: string }) {
               info={<Help term="Gross profit" />}
               label="Gross profit"
               value={m(d.gross_profit_minor)}
-              deltaPct={null}
+              deltaPct={delta("gross_profit_minor")}
               hint={
                 d.gross_margin_pct !== null
-                  ? `${d.gross_margin_pct}% margin`
-                  : "no sales yet"
+                  ? `${d.gross_margin_pct}% margin · ${vs}`
+                  : "no sales in this period"
               }
               icon={<Percent size={22} />}
             />
@@ -104,8 +119,12 @@ export function FinanceOverview({ currency }: { currency: string }) {
               info={<Help term="Net profit" />}
               label="Net profit"
               value={m(d.net_profit_minor)}
-              deltaPct={null}
-              hint="after expenses"
+              deltaPct={delta("net_profit_minor")}
+              hint={
+                d.period.channel
+                  ? "this channel's sales, before shared expenses"
+                  : `after expenses · ${vs}`
+              }
               tone={d.net_profit_minor >= 0 ? "success" : "warning"}
               icon={<Banknote size={22} />}
             />

@@ -15,9 +15,9 @@ import {
   Users,
   Wallet,
   Percent,
-  Building2,
   CalendarClock,
   Tag,
+  ToggleRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +27,8 @@ export type SettingsNavItem = {
   icon: LucideIcon;
   href: string;
   soon?: boolean;
+  /** an optional module's settings: listed only while the module is on (session.modules) */
+  module?: "transfers" | "workforce";
 };
 
 const soon = (
@@ -50,6 +52,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     href: "/portal/settings/billing",
   },
   {
+    slug: "modules",
+    label: "Modules",
+    icon: ToggleRight,
+    href: "/portal/settings/modules",
+  },
+  {
     slug: "staff",
     label: "Users",
     icon: Users,
@@ -69,12 +77,6 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: "Shipping and delivery",
     icon: Truck,
     href: "/portal/settings/shipping",
-  },
-  {
-    slug: "wholesale",
-    label: "Wholesale",
-    icon: Building2,
-    href: "/portal/settings/wholesale",
   },
   {
     slug: "labels",
@@ -99,6 +101,7 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: "Attendance and holidays",
     icon: CalendarClock,
     href: "/portal/settings/attendance",
+    module: "workforce",
   },
   // soon("apps", "Apps", AppWindow),
   {

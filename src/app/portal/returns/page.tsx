@@ -11,34 +11,16 @@ import {
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Select } from "@/components/ui/Select";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { useReturnList } from "@/hooks/useReturns";
 import { useActiveBranch } from "@/lib/branch";
 import { cn } from "@/lib/cn";
 import { formatMoney, humanize } from "@/lib/erp";
+import { useGlobalFilter } from "@/lib/globalFilter";
 import { REASON_LABEL, REFUND_LABEL } from "@/lib/returns";
 import { useDebounced } from "@/lib/useDebounced";
 
 type Tab = "return" | "exchange" | "requests";
-const PERIODS = { today: 0, "7d": 6, "30d": 29, "90d": 89, all: null } as const;
-type Period = keyof typeof PERIODS;
-const PERIOD_LABEL: Record<Period, string> = {
-  today: "Today",
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  all: "All time",
-};
-
-function since(period: Period): string | null {
-  const back = PERIODS[period];
-  if (back === null) return null;
-  const d = new Date();
-  d.setDate(d.getDate() - back);
-  return d.toLocaleDateString("en-CA"); // yyyy-mm-dd in local time
-}
-
 function ReturnsView() {
   const { tenant, ready } = usePortalGuard();
   const params = useSearchParams();
@@ -47,20 +29,27 @@ function ReturnsView() {
     params.get("status") === "open" ? "requests" : "return",
   );
   const [query, setQuery] = useState("");
-  const [channel, setChannel] = useState("");
-  const [period, setPeriod] = useState<Period>("30d");
+  // the period and channel come from the header's global filter
+  const { params: global } = useGlobalFilter();
   const [selected, setSelected] = useState<string | null>(params.get("id"));
   const q = useDebounced(query.trim(), 300);
   const filters = useMemo(
     () => ({
       kind: tab === "requests" ? null : tab,
       status: tab === "requests" ? "open" : null,
-      channel: channel || null,
+      channel: global.channel,
       branch_id: branchId,
-      from: tab === "requests" ? null : since(period),
+      // website requests still to handle are listed whatever the period, so none hides behind it
+      ...(tab === "requests"
+        ? {}
+        : {
+            period: global.period,
+            from: global.date_from,
+            to: global.date_to,
+          }),
       q: q || null,
     }),
-    [tab, channel, branchId, period, q],
+    [tab, global, branchId, q],
   );
   const list = useReturnList(filters);
   const rows = list.data?.items ?? [];
@@ -156,31 +145,6 @@ function ReturnsView() {
                 className="min-w-0 w-full bg-transparent text-[14px] text-ink-900 outline-none placeholder:text-ink-400"
               />
             </label>
-            <Select
-              aria-label="Channel"
-              value={channel}
-              onValueChange={(value) => setChannel(value)}
-              className="w-full min-[430px]:flex-1 md:w-36 md:flex-none"
-            >
-              <option value="">All channels</option>
-              <option value="pos">POS</option>
-              <option value="online">Online</option>
-              <option value="whatsapp">WhatsApp</option>
-            </Select>
-            {tab !== "requests" && (
-              <Select
-                aria-label="Period"
-                value={period}
-                onValueChange={(value) => setPeriod(value as Period)}
-                className="w-full min-[430px]:flex-1 md:w-40 md:flex-none"
-              >
-                {(Object.keys(PERIODS) as Period[]).map((p) => (
-                  <option key={p} value={p}>
-                    {PERIOD_LABEL[p]}
-                  </option>
-                ))}
-              </Select>
-            )}
           </div>
           {list.error && (
             <p className="mb-space-2 text-[13px] text-error">

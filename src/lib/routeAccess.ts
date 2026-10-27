@@ -19,7 +19,7 @@ const ROUTES: [prefix: string, pageKey: string][] = [
   ["/portal/channels", "channels"],
   ["/portal/procurement", "procurement"],
   ["/portal/wholesale", "wholesale"],
-  ["/portal/settings/wholesale", "settings"],
+  ["/portal/settings/modules", "settings"],
   ["/portal/settings/labels", "settings"],
   ["/portal/inventory", "inventory"],
   ["/portal/transfers", "transfers"],
@@ -39,11 +39,31 @@ const ROUTES: [prefix: string, pageKey: string][] = [
 const under = (path: string, prefix: string) =>
   path === prefix || path.startsWith(`${prefix}/`);
 
+// Optional modules (Settings > Modules): their pages don't open while the module is off for the business, whatever the role allows.
+const MODULE_ROUTES: [prefix: string, module: string][] = [
+  ["/portal/wholesale", "wholesale"],
+  ["/portal/transfers", "transfers"],
+  ["/portal/attendance", "workforce"],
+  ["/portal/attendance-overview", "workforce"],
+  ["/portal/check-in-out", "workforce"],
+  ["/portal/leave", "workforce"],
+  ["/portal/leave-requests", "workforce"],
+  ["/portal/holidays", "workforce"],
+  ["/portal/settings/attendance", "workforce"],
+];
+
+/** The optional module a page belongs to, if any. */
+export function moduleForPath(path: string): string | null {
+  return MODULE_ROUTES.find(([prefix]) => under(path, prefix))?.[1] ?? null;
+}
+
 export function pageKeyForPath(path: string): string | null {
   return ROUTES.find(([prefix]) => under(path, prefix))?.[1] ?? null;
 }
 
 export function canOpenPath(session: StaffSession, path: string): boolean {
+  const mod = moduleForPath(path);
+  if (mod && session.modules?.[mod] === false) return false;
   const key = pageKeyForPath(path);
   return key === null || hasPermission(session, key, "view");
 }
@@ -55,7 +75,10 @@ export function landingPath(session: StaffSession): string {
       prefix !== "/portal/growth" && // a placeholder that redirects to the dashboard
       prefix !== "/portal/settings" &&
       !prefix.startsWith("/portal/settings/") &&
-      hasPermission(session, pageKeyForPath(prefix)!, "view"),
+      canOpenPath(session, prefix),
   );
-  return first ? first[0] : "/portal/attendance";
+  if (first) return first[0];
+  return session.modules?.workforce === false
+    ? "/portal/profile"
+    : "/portal/attendance";
 }

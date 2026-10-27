@@ -324,12 +324,15 @@ type Props = {
   onClose?: () => void;
 };
 
-/** A sidebar item whose key names an access module ("whatsapp-inbox" -> whatsapp_inbox) is hidden when that module is off; the rest are unaffected. */
+/** A sidebar item whose key names an access module ("whatsapp-inbox" -> whatsapp_inbox) is hidden when that module is off; the whole
+ * Workforce group is the one optional module "workforce"; the rest are unaffected. */
 function moduleOn(
   modules: Record<string, boolean> | undefined,
-  itemKey: string,
+  item: NavItem,
 ): boolean {
-  return modules?.[itemKey.replace(/-/g, "_")] !== false;
+  const key =
+    item.group === "Workforce" ? "workforce" : item.key.replace(/-/g, "_");
+  return modules?.[key] !== false;
 }
 
 export function PortalSidebar({
@@ -344,7 +347,7 @@ export function PortalSidebar({
   const allowed = (item: NavItem) =>
     !!session &&
     hasPermission(session, item.pageKey, "view") &&
-    moduleOn(session.modules, item.key);
+    moduleOn(session.modules, item);
   const visible = NAV_ITEMS.filter(allowed);
   const showSettings = allowed(SETTINGS_ITEM);
   const showSupport = allowed(SUPPORT_ITEM);

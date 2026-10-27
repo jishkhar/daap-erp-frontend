@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { Dashboard, DashboardRange } from "@/hooks/useDashboard";
+import type { Dashboard } from "@/hooks/useDashboard";
 import { cn } from "@/lib/cn";
 import { CHANNELS, formatMoney, type Channel } from "@/lib/erp";
-import { compactMoney, PAYMENT_LABEL, RANGE_LABEL } from "./format";
+import { compactMoney, PAYMENT_LABEL } from "./format";
+import { periodText } from "@/lib/globalFilter";
 import { Refreshing } from "./Refreshing";
 
 // Fixed order, never cycled: every legend row also names its slice and its share, so colour is never the only cue.
@@ -21,15 +22,13 @@ const COLORS = [
 
 type View = "channel" | "payment";
 
-/** Sales for the chosen range split by sales channel, or by how customers paid (when the person may see payments). */
+/** Sales for the chosen period split by sales channel, or by how customers paid (when the person may see payments). */
 export function BreakdownCard({
   data,
-  range,
   currency,
   refreshing,
 }: {
   data: Dashboard | undefined;
-  range: DashboardRange;
   currency: string;
   refreshing: boolean;
 }) {
@@ -57,7 +56,7 @@ export function BreakdownCard({
           <h2 className="text-[15px] font-bold text-ink-900">
             {active === "channel" ? "Sales by channel" : "Payment methods"}
           </h2>
-          <p className="text-hint">{RANGE_LABEL[range]}</p>
+          <p className="text-hint">{periodText(data?.period)}</p>
         </div>
         {hasPayments && (
           <div className="flex overflow-hidden rounded-md border border-line text-[12px] font-semibold">

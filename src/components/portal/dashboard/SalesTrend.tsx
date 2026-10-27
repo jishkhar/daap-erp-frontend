@@ -9,18 +9,11 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import type { Dashboard, DashboardRange } from "@/hooks/useDashboard";
-import { cn } from "@/lib/cn";
+import type { Dashboard } from "@/hooks/useDashboard";
 import { formatMoney } from "@/lib/erp";
-import { compactMoney, RANGE_LABEL } from "./format";
+import { compactMoney } from "./format";
+import { periodText } from "@/lib/globalFilter";
 import { Refreshing } from "./Refreshing";
-
-const RANGES: { key: DashboardRange; label: string }[] = [
-  { key: "7d", label: "7 Days" },
-  { key: "30d", label: "30 Days" },
-  { key: "3m", label: "3 Months" },
-  { key: "1y", label: "1 Year" },
-];
 
 const dayFmt = new Intl.DateTimeFormat("en-IN", {
   day: "numeric",
@@ -31,8 +24,9 @@ const monthFmt = new Intl.DateTimeFormat("en-IN", {
   year: "2-digit",
 });
 
-/** A bucket's label: a day ("8 Jan"), the week starting that day, or a month ("Jan 26"). */
+/** A bucket's label: an hour ("14:00"), a day ("8 Jan"), the week starting that day, or a month ("Jan 26"). */
 function label(iso: string, granularity: Dashboard["granularity"]) {
+  if (granularity === "hour") return iso.slice(11);
   const d = new Date(`${iso}T00:00:00`);
   if (granularity === "month") return monthFmt.format(d);
   return granularity === "week"
@@ -42,23 +36,20 @@ function label(iso: string, granularity: Dashboard["granularity"]) {
 
 export function SalesTrend({
   data,
-  range,
-  onRange,
   currency,
   refreshing,
 }: {
   data: Dashboard | undefined;
-  range: DashboardRange;
-  onRange: (r: DashboardRange) => void;
   currency: string;
-  /** Another range is loading: the old chart fades and a spinner shows. */
+  /** Another period is loading: the old chart fades and a spinner shows. */
   refreshing: boolean;
 }) {
   const points = (data?.trend ?? []).map((t) => ({
     ...t,
     name: label(t.date, data!.granularity),
   }));
-  const none = data && data.range_totals.orders === 0;
+  const none =
+    data && data.sales.orders === 0 && data.sales.returns_minor === 0;
 
   return (
     <Card className="p-space-4">
@@ -67,27 +58,9 @@ export function SalesTrend({
           <h2 className="text-[15px] font-bold text-ink-900">Sales trend</h2>
           <p className="text-hint">
             {data
-              ? `${formatMoney(data.range_totals.revenue_minor, currency)} from ${data.range_totals.orders} order${data.range_totals.orders === 1 ? "" : "s"} · ${RANGE_LABEL[range].toLowerCase()}`
+              ? `${formatMoney(data.sales.revenue_minor, currency)} from ${data.sales.orders} order${data.sales.orders === 1 ? "" : "s"} · ${periodText(data?.period)}`
               : " "}
           </p>
-        </div>
-        <div className="flex overflow-hidden rounded-md border border-line text-[13px] font-semibold">
-          {RANGES.map((r) => (
-            <button
-              key={r.key}
-              type="button"
-              onClick={() => onRange(r.key)}
-              aria-pressed={range === r.key}
-              className={cn(
-                "px-space-3 py-1.5",
-                range === r.key
-                  ? "bg-brand-600 text-white"
-                  : "bg-card text-ink-600 hover:bg-brand-50",
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
         </div>
       </div>
       <Refreshing active={refreshing} className="h-[260px]">

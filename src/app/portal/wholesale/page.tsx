@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { Tabs } from "@/components/ui/Tabs";
+import { CreditSettingsTab } from "@/components/erp/wholesale/CreditSettingsTab";
 import {
   useCreatePriceList,
   useCustomerAccounts,
@@ -50,7 +51,8 @@ type Tab =
   | "customers"
   | "receivables"
   | "receipts"
-  | "price-lists";
+  | "price-lists"
+  | "credit-settings";
 const TABS: Tab[] = [
   "orders",
   "invoices",
@@ -58,6 +60,7 @@ const TABS: Tab[] = [
   "receivables",
   "receipts",
   "price-lists",
+  "credit-settings",
 ];
 
 /** Wholesale (Back office): selling in bulk to retailers, dealers and contractors. Business customers carry a GSTIN, credit terms and
@@ -208,9 +211,9 @@ function WholesaleView() {
           </p>
           <Button
             className="mobile-page-action mt-space-3"
-            href="/portal/settings/wholesale"
+            href="/portal/settings/modules"
           >
-            Open Settings &gt; Wholesale
+            Open Settings &gt; Modules
           </Button>
         </Card>
       </PortalShell>
@@ -230,6 +233,10 @@ function WholesaleView() {
       : []),
     ...(canLists
       ? [{ key: "price-lists" as const, label: "Price lists" }]
+      : []),
+    // the credit defaults (only a tenant-wide settings editor can change them; anyone who works with business customers sees them)
+    ...(canAccounts || hasTenantWide(session, "tenant:update")
+      ? [{ key: "credit-settings" as const, label: "Credit settings" }]
       : []),
   ];
 
@@ -257,6 +264,7 @@ function WholesaleView() {
       <Tabs<Tab> tabs={tabs} value={tab} onChange={setTab} />
 
       {tab === "orders" && <SalesOrdersTab currency={cur} />}
+      {tab === "credit-settings" && <CreditSettingsTab />}
       {tab === "invoices" && <InvoicesTab currency={cur} />}
       {tab === "receivables" && <ReceivablesTab currency={cur} />}
       {tab === "receipts" && <ReceiptsTab currency={cur} />}
