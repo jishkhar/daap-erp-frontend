@@ -1,5 +1,5 @@
 /** How the business's tills look (Channels > POS). Tills read it on their next sync; the colour maths mirrors the till's
- * (ecommerce_pos lib/theme/brand_colors.dart) so the preview shows what the till will. */
+ * (shopconnect-pos lib/theme/brand_colors.dart) so the preview shows what the till will. */
 export type PosBranding = {
   app_name: string;
   /** "#RRGGBB": buttons, links, highlights. Must contrast 3:1 with white (the server checks). */

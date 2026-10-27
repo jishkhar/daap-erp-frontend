@@ -1,5 +1,5 @@
 /** GST state codes (the first two digits of every GSTIN) and their names, the one list every address form picks from. Mirrors
- * erp-ecommerce-backend/core/gst.py `STATE_CODES`; the server stores a state under exactly these names and refuses any other. */
+ * shopconnect-backend/core/gst.py `STATE_CODES`; the server stores a state under exactly these names and refuses any other. */
 const GST_CODES: { code: string; name: string }[] = [
   ["01", "Jammu & Kashmir"],
   ["02", "Himachal Pradesh"],

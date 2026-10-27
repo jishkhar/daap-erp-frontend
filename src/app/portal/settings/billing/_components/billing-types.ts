@@ -1,4 +1,4 @@
-// Shapes returned by /api/v1/billing (erp-ecommerce-backend api/billing.py). Money is in paise.
+// Shapes returned by /api/v1/billing (shopconnect-backend api/billing.py). Money is in paise.
 import type { Service, ServiceState } from "@/lib/services";
 
 export type BillingPlan = {

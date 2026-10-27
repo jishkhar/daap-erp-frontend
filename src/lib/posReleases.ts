@@ -1,4 +1,4 @@
-/** Published till releases, as the POS release workflow writes them to R2 (ecommerce_pos/.github/workflows/release.yml):
+/** Published till releases, as the POS release workflow writes them to R2 (shopconnect-pos/.github/workflows/release.yml):
  * `latest.json` (the newest) and `index.json` (every release, newest first). Read on the server only: the public R2
  * address does not allow browser requests from other sites, so the portal asks `/api/pos/latest` instead. */
 export type ReleaseFile = {

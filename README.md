@@ -15,7 +15,7 @@ npm run dev            # http://localhost:3000
 ```
 
 The backend must be running (default `http://localhost:8000`); override with `NEXT_PUBLIC_API_BASE_URL`.
-Sign in at `/portal/login` with **company code + email + password** (a tenant is created by a platform admin in the separate `admin-ecommerce` app).
+Sign in at `/portal/login` with **company code + email + password** (a tenant is created by a platform admin in the separate `shopconnect-admin` app).
 
 ## What's here
 
