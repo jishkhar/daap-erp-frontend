@@ -39,7 +39,7 @@ function Row({
                   : "bg-warning-tint text-warning",
               )}
             >
-              {ok ? "Online" : "Attention"}
+              {ok ? "Connected" : "Attention"}
             </span>
           )}
         </span>
@@ -49,7 +49,7 @@ function Row({
   );
 }
 
-/** The state of the sales channels: the online store, the POS tills and WhatsApp. A channel the business hasn't bought isn't shown. */
+/** The state of the sales channels: the website, the POS tills and WhatsApp. A channel the business hasn't bought isn't shown. */
 export function ChannelsCard({
   data,
   services,
@@ -73,7 +73,7 @@ export function ChannelsCard({
           {has("online") && (
             <Row
               icon={<Globe size={18} />}
-              title="Online store"
+              title="Website"
               href="/portal/channels"
               ok={null}
             >
@@ -94,7 +94,7 @@ export function ChannelsCard({
               }
             >
               {tills
-                ? `${tills.online} of ${tills.paired} till${tills.paired === 1 ? "" : "s"} online${tills.waiting_bills ? ` · ${tills.waiting_bills} bill${tills.waiting_bills === 1 ? "" : "s"} waiting to sync` : ""}${tills.last_seen_at ? ` · last seen ${formatDateTime(tills.last_seen_at)}` : ""}`
+                ? `${tills.online} of ${tills.paired} till${tills.paired === 1 ? "" : "s"} connected${tills.waiting_bills ? ` · ${tills.waiting_bills} bill${tills.waiting_bills === 1 ? "" : "s"} waiting to sync` : ""}${tills.last_seen_at ? ` · last seen ${formatDateTime(tills.last_seen_at)}` : ""}`
                 : "Your tills share this catalog, stock and customers."}
             </Row>
           )}

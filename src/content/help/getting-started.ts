@@ -39,7 +39,7 @@ export const gettingStarted: Doc = {
             [
               "What you will sell through",
               "No",
-              "Online, POS, WhatsApp. Only a hint; you can use any channel later.",
+              "Website, POS, WhatsApp. Only a hint; you can use any channel later.",
             ],
             ["Accept the terms", "Yes", "Required to create the account."],
           ],
@@ -87,7 +87,7 @@ export const gettingStarted: Doc = {
             ["Dashboard", "Today's numbers and low-stock items."],
             [
               "Orders",
-              "Every order from every channel. Use the Channel filter to see just Online, POS or WhatsApp.",
+              "Every order from every channel. Use the Channel filter to see just Website, POS or WhatsApp.",
             ],
             [
               "Products, Inventory, Transfers",
@@ -102,7 +102,7 @@ export const gettingStarted: Doc = {
             ["Analytics", "Sales numbers, charts and trends."],
             [
               "Sales channels (sidebar)",
-              "How each channel looks: your online store theme, the POS screen, WhatsApp. Orders are not here.",
+              "How each channel looks: your website theme, the POS screen, WhatsApp. Orders are not here.",
             ],
             [
               "Settings (bottom of the sidebar)",
@@ -139,9 +139,9 @@ export const gettingStarted: Doc = {
           head: ["Channel", "Where customers buy", "Set up"],
           rows: [
             [
-              "Online",
+              "Website",
               "Your website",
-              "An API key connects your site to this system. See the Online store doc.",
+              "An API key connects your site to this system. See the Website doc.",
             ],
             [
               "POS",

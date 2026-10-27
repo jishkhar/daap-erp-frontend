@@ -540,7 +540,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         onClose={() => setRevoking(null)}
         width="sm"
         title={`Revoke ${revoking?.name ?? "terminal"}?`}
-        description="The terminal locks at its next contact (within about a minute if it is online). Any bills it has not uploaded are handed over to you to approve or reject, then it wipes its data. To use that device again it must be paired with a new code."
+        description="The terminal locks at its next contact (within about a minute if it is connected). Any bills it has not uploaded are handed over to you to approve or reject, then it wipes its data. To use that device again it must be paired with a new code."
         footer={
           <>
             <Button variant="ghost" onClick={() => setRevoking(null)}>

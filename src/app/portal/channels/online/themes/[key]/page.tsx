@@ -8,7 +8,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 
-/** Customize one installed theme of the online store. */
+/** Customize one installed theme of the website. */
 export default function ThemeEditorPage() {
   const { key } = useParams<{ key: string }>();
   const { tenant, ready } = usePortalGuard();

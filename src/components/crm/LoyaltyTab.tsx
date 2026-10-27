@@ -4,11 +4,12 @@ import { useState } from "react";
 import { KpiTile, SegmentBadge } from "@/components/crm/shared";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import type { LoyaltyOverview } from "@/lib/crm";
-import { erp, formatDateTime, useErpQuery } from "@/lib/erp";
+import { erp, formatDateTime, formatMoney, useErpQuery } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
 export function LoyaltyTab({
@@ -65,16 +66,20 @@ export function LoyaltyTab({
         <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
           How points are earned
         </h2>
-        <p className="mb-space-3 text-[13px] text-ink-600">
-          Customers earn points when orders are placed. Cancelled orders do not
-          earn points, and refunds reduce earned points. Staff can add or take
-          away points from a customer&apos;s profile (for example to redeem a
-          reward).
+        <p className="mb-space-4 max-w-3xl text-[13px] leading-relaxed text-ink-600">
+          Customers earn points when orders are placed. Cancelled orders earn no
+          points, and refunds reduce earned points. Staff can adjust points from
+          the customer&apos;s profile.
         </p>
-        <div className="mobile-page-action-row flex max-w-sm items-end gap-space-3">
-          <Field label="Points per ₹100 spent" htmlFor="ppr">
+        <div className="flex w-full max-w-sm items-end gap-space-3">
+          <Field
+            label="Points per ₹100 spent"
+            htmlFor="ppr"
+            className="!mb-0 min-w-0 flex-1"
+          >
             <Input
               id="ppr"
+              className="block"
               inputMode="numeric"
               disabled={!canConfigure}
               value={rate ?? String(d.settings.points_per_100)}
@@ -83,44 +88,84 @@ export function LoyaltyTab({
           </Field>
           {canConfigure && (
             <Button
-              className="mobile-page-action"
+              className="h-11 shrink-0"
               disabled={busy || rate === null}
               onClick={save}
             >
-              Save
+              {busy ? "Saving…" : "Save"}
             </Button>
           )}
         </div>
       </Card>
-      <div className="grid gap-space-4 lg:grid-cols-2">
-        <Card className="p-space-4">
+      <div className="grid gap-space-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Card className="min-w-0 p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
             Top members
           </h2>
-          {d.top.length === 0 && (
-            <p className="text-[13px] text-ink-400">No points earned yet.</p>
-          )}
-          <ul className="divide-y divide-line">
-            {d.top.map((t) => (
-              <li
-                key={t.id}
-                className="flex items-center justify-between py-space-2 text-[13.5px]"
-              >
-                <button
-                  type="button"
-                  className="flex items-center gap-space-2 font-semibold text-ink-900 hover:underline"
-                  onClick={() => onOpenCustomer(t.id)}
-                >
-                  {t.name} <SegmentBadge segment={t.segment} />
-                </button>
-                <span className="font-bold">
-                  {t.loyalty_points.toLocaleString("en-IN")} pts
-                </span>
-              </li>
-            ))}
-          </ul>
+          <DataTable
+            data={d.top}
+            getRowId={(member) => member.id}
+            paginate={false}
+            emptyMessage="No enrolled members with points yet."
+            columns={[
+              {
+                header: "Customer ID",
+                cell: ({ row }) => (
+                  <button
+                    type="button"
+                    className="whitespace-nowrap font-semibold text-brand-700 hover:underline"
+                    onClick={() => onOpenCustomer(row.original.id)}
+                  >
+                    {row.original.customer_code ?? "View customer"}
+                  </button>
+                ),
+              },
+              {
+                header: "Name",
+                cell: ({ row }) => (
+                  <button
+                    type="button"
+                    className="font-semibold text-ink-900 hover:underline"
+                    onClick={() => onOpenCustomer(row.original.id)}
+                  >
+                    {row.original.name}
+                  </button>
+                ),
+              },
+              {
+                header: "Membership",
+                cell: ({ row }) => (
+                  <SegmentBadge segment={row.original.segment} />
+                ),
+              },
+              {
+                id: "loyalty_points",
+                header: () => <div className="text-right">Loyalty points</div>,
+                cell: ({ row }) => (
+                  <span className="block text-right font-semibold tabular-nums">
+                    {row.original.loyalty_points.toLocaleString("en-IN")}
+                  </span>
+                ),
+              },
+              {
+                id: "credit_balance",
+                header: () => (
+                  <div className="text-right">Credit balance (₹)</div>
+                ),
+                cell: ({ row }) => (
+                  <span className="block text-right font-semibold tabular-nums">
+                    {formatMoney(row.original.credit_balance_minor, "INR")}
+                  </span>
+                ),
+              },
+            ]}
+          />
+          <p className="mt-space-2 text-[12px] text-ink-600">
+            Credit balance is the value of loyalty points at the current
+            conversion rate. Checkout redemption limits apply.
+          </p>
         </Card>
-        <Card className="p-space-4">
+        <Card className="min-w-0 p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
             Recent adjustments
           </h2>

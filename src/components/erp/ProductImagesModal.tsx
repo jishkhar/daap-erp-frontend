@@ -168,7 +168,7 @@ export function ProductImagesModal({
       dismissible={!busy}
       width="lg"
       title={`Images — ${product?.name ?? ""}`}
-      description="Shown on the online store. The first image is the cover. Maximum 6 images per product. JPEG, PNG or WebP, up to 1 MB each."
+      description="Shown on the website. The first image is the cover. Maximum 6 images per product. JPEG, PNG or WebP, up to 1 MB each."
       footer={
         <>
           <input

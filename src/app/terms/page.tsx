@@ -22,7 +22,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: "5. Payments",
-    body: "Online payments are processed by the tenant's own payment gateway. We do not store raw card data. Fees charged by gateways are between the tenant and the gateway.",
+    body: "Website payments are processed by the tenant's own payment gateway. We do not store raw card data. Fees charged by gateways are between the tenant and the gateway.",
   },
   {
     title: "6. Availability and changes",

@@ -14,7 +14,7 @@ export const CHANNELS: Record<
   { label: string; slug: string; blurb: string }
 > = {
   online: {
-    label: "Online",
+    label: "Website",
     slug: "online",
     blurb: "Orders placed on the merchant's website.",
   },
@@ -130,6 +130,7 @@ export type ProductBarcode = {
 };
 
 export type Product = {
+  manual_barcode_generation?: boolean;
   created_at?: string;
   id: string; // the variant id: the sellable, stockable unit
   parent_product_id: string;
@@ -140,7 +141,6 @@ export type Product = {
   name: string; // product name, plus the variant when it is not the only one
   description: string | null;
   tax_code: string | null;
-  hsn_code?: string | null;
   /** Packed size for shipments: grams and centimetres (the editor shows the weight in kg). */
   ship_weight_g?: number | null;
   ship_length_cm?: number | null;
@@ -283,7 +283,8 @@ export const METHOD_LABEL: Record<string, string> = {
   netbanking: "Bank transfer",
   wallet: "Store credit",
   cod: "Cash on delivery",
-  other: "Online",
+  online: "Website",
+  other: "Website",
 };
 export const methodLabel = (m: string) => METHOD_LABEL[m] ?? humanize(m);
 /** "BANK_TRANSFER" -> "Bank Transfer", "UPI" -> "UPI". */
@@ -296,6 +297,10 @@ export const humanize = (code: string) =>
         : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
     )
     .join(" ");
+
+/** Display a channel without changing the API value used for filtering and routing. */
+export const channelLabel = (channel: string) =>
+  CHANNELS[channel as Channel]?.label ?? humanize(channel);
 
 // ------------------------------------------------------------------------------------------------ API calls
 export type ApiResult<T> = {
@@ -643,7 +648,16 @@ export type StoreCredit = {
 };
 export type DiscountKind = "percent" | "flat" | "free_delivery" | "bogo";
 
+export type DiscountTarget =
+  "all" | "category" | "collection" | "membership" | "individual";
+
 export type Discount = {
+  target_type: DiscountTarget;
+  category_id: string | null;
+  collection_id: string | null;
+  membership: import("@/lib/crm").Segment | null;
+  customer_id: string | null;
+  contact: (Customer & { birthday: string | null }) | null;
   id: string;
   code: string | null;
   name: string;

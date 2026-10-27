@@ -21,7 +21,13 @@ import {
   useReceiveReturn,
   useReturn,
 } from "@/hooks/useReturns";
-import { formatDateTime, formatMoney, humanize, methodLabel } from "@/lib/erp";
+import {
+  channelLabel,
+  formatDateTime,
+  formatMoney,
+  humanize,
+  methodLabel,
+} from "@/lib/erp";
 import {
   REASON_LABEL,
   REFUND_LABEL,
@@ -71,8 +77,10 @@ function Section({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-space-3 py-0.5 text-[13px]">
-      <span className="text-ink-600">{label}</span>
-      <span className="text-right font-medium text-ink-900">{value}</span>
+      <span className="shrink-0 text-ink-600">{label}</span>
+      <span className="min-w-0 break-words text-right font-medium text-ink-900">
+        {value}
+      </span>
     </div>
   );
 }
@@ -149,19 +157,69 @@ export function ReturnDetailPanel({
         />
         <Row label="Billed" value={formatDateTime(r.order_placed_at)} />
         <Row label="Total" value={formatMoney(r.order_total_minor, currency)} />
-        <Row label="Channel" value={humanize(r.order_channel)} />
+        <Row label="Channel" value={channelLabel(r.order_channel)} />
       </Section>
 
       <Section
         icon={<User size={15} className="text-brand-600" />}
         title="Customer"
       >
-        <p className="text-[13px] text-ink-900">
-          {r.customer_name ?? "Walk-in customer"}
-          {r.customer_phone && (
-            <span className="text-ink-600"> · {r.customer_phone}</span>
+        <div role="group" aria-label="Customer details">
+          <Row
+            label="Customer ID"
+            value={
+              r.customer_id ? (
+                <Link
+                  href={`/portal/customers/${r.customer_id}`}
+                  className="text-brand-700 hover:underline"
+                >
+                  {r.customer_code ?? "View customer"}
+                </Link>
+              ) : (
+                "Not recorded"
+              )
+            }
+          />
+          <Row label="Name" value={r.customer_name || "Not recorded"} />
+          <Row label="Phone" value={r.customer_phone || "Not recorded"} />
+          <Row label="Email" value={r.customer_email || "Not recorded"} />
+          {(r.customer_addresses ?? []).length > 0 ? (
+            <div className="mt-space-2 space-y-space-2">
+              <p className="text-[13px] text-ink-600">Saved addresses</p>
+              {r.customer_addresses.map((address) => (
+                <div
+                  key={address.id}
+                  className="min-w-0 break-words rounded-md border border-line p-space-2 text-[13px] text-ink-900"
+                >
+                  <p className="font-semibold">
+                    {address.label || "Address"}
+                    {address.is_default ? " · Default" : ""}
+                  </p>
+                  {address.name && <p>{address.name}</p>}
+                  <p>
+                    {[
+                      address.line1,
+                      address.line2,
+                      address.city,
+                      address.state,
+                      address.pincode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  {address.phone && <p>{address.phone}</p>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Row label="Address" value="Not recorded" />
           )}
-        </p>
+          {!r.customer_id && (
+            <p className="mt-space-2 text-[12px] text-ink-600">
+              No customer was linked to this walk-in sale.
+            </p>
+          )}
+        </div>
       </Section>
 
       <Section

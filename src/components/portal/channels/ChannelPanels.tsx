@@ -153,7 +153,7 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
             field: "fulfilment_enabled",
             label:
               channel === "online"
-                ? "Delivers online orders"
+                ? "Delivers website orders"
                 : "Delivers WhatsApp orders",
           },
           { field: "pickup_enabled", label: "Customers can pick up" },
@@ -251,7 +251,7 @@ export function OnlineChannelPanel() {
     <>
       <p className="max-w-2xl text-[14px] text-ink-600">
         Your website talks to the ERP with an API key. Orders it places are
-        recorded on the <strong>Online</strong> channel, reserve stock from the
+        recorded on the <strong>Website</strong> channel, reserve stock from the
         right branch, and appear in Orders and Customers like any other sale.
       </p>
       <ChannelConnections channel="online" />
@@ -287,7 +287,7 @@ export function PosChannelPanel() {
           </h2>
           <p className="text-[13px] text-ink-600">
             {summary.data
-              ? `${total.paired} terminal${total.paired === 1 ? "" : "s"} paired · ${total.online} online now`
+              ? `${total.paired} terminal${total.paired === 1 ? "" : "s"} paired · ${total.online} connected now`
               : summary.error
                 ? ""
                 : "Loading…"}
@@ -328,7 +328,7 @@ export function PosChannelPanel() {
                   </div>
                   {summary.data && paired > 0 && (
                     <p className="text-[12.5px] text-ink-600">
-                      {t?.online ?? 0} online · last seen{" "}
+                      {t?.online ?? 0} connected · last seen{" "}
                       {t?.last_seen_at
                         ? formatDateTime(t.last_seen_at)
                         : "never"}

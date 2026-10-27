@@ -477,7 +477,9 @@ export function ZoneEditor({
             aria-label="Cash on delivery"
           />
           <span className="text-[13px] text-ink-700">
-            {cod ? "Offered" : "Not offered: shoppers here pay online"}
+            {cod
+              ? "Offered"
+              : "Not offered: shoppers here pay through the website"}
           </span>
         </div>
         {cod && (
@@ -487,7 +489,7 @@ export function ZoneEditor({
               "Only for orders up to",
               codMax,
               setCodMax,
-              "Optional. Above this, shoppers pay online.",
+              "Optional. Above this, shoppers pay through the website.",
             )}
           </div>
         )}
@@ -529,7 +531,7 @@ export function ZoneEditor({
                 />
                 <span className="text-[13px] text-ink-700">
                   {allBranches
-                    ? "Any branch that delivers online orders sends it (the nearest one with every item)"
+                    ? "Any branch that delivers website orders sends it (the nearest one with every item)"
                     : "Only these branches send it:"}
                 </span>
               </div>

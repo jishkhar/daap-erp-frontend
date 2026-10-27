@@ -96,7 +96,7 @@ export default function WholesaleSettingsPage() {
                   current.data?.enabled &&
                   !current.data.active && (
                     <p className="mt-space-1 text-[12.5px] font-medium text-warning">
-                      It needs a live plan (Online, POS or WhatsApp) to work.
+                      It needs a live plan (Website, POS or WhatsApp) to work.
                     </p>
                   )}
               </div>

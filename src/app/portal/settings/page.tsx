@@ -325,7 +325,7 @@ function OperationsCard({
       <Field
         label="Hold stock for unpaid orders (minutes)"
         htmlFor="s_ttl"
-        hint="Online and WhatsApp orders release their stock if payment doesn't arrive in time. 5–1440."
+        hint="Website and WhatsApp orders release their stock if payment doesn't arrive in time. 5–1440."
       >
         <Input
           id="s_ttl"
