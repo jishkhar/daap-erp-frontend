@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { SEGMENT_META, type CrmSettings, type Segment } from "@/lib/crm";
+import {
+  SEGMENT_META,
+  SEGMENT_ORDER,
+  type CrmSettings,
+  type Segment,
+} from "@/lib/crm";
 import { erp, formatMoney, fromMinor, toMinor, useErpQuery } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
@@ -14,7 +19,7 @@ type Data = {
   settings: CrmSettings;
   segments: { key: Segment; customers: number; loyalty_points: number }[];
 };
-const CARD_ORDER: Segment[] = ["vip", "regular", "new", "inactive"];
+const CARD_ORDER = SEGMENT_ORDER;
 
 export function SegmentsTab({
   currency,
@@ -28,7 +33,9 @@ export function SegmentsTab({
   onChanged: () => void;
 }) {
   const data = useErpQuery<Data>("/api/v1/crm/segments");
-  const [vip, setVip] = useState<string | null>(null);
+  const [thresholds, setThresholds] = useState<
+    Partial<Record<"silver" | "gold" | "platinum", string>>
+  >({});
   const [days, setDays] = useState<string | null>(null);
   const [redemptionPoints, setRedemptionPoints] = useState<string | null>(null);
   const [redemptionAmount, setRedemptionAmount] = useState<string | null>(null);
@@ -52,20 +59,27 @@ export function SegmentsTab({
     );
 
   async function save() {
-    const points = Number(vip ?? s?.vip_min_points);
+    const tiers = ["silver", "gold", "platinum"] as const;
+    const points = tiers.map((tier) =>
+      Number(thresholds[tier] ?? s?.[`${tier}_min_points`]),
+    );
     const d = Number(days ?? s?.inactive_after_days ?? 180);
     if (
-      !Number.isSafeInteger(points) ||
-      points < 0 ||
-      points > 10 ** 12 ||
+      points.some(
+        (value, index) =>
+          !Number.isSafeInteger(value) ||
+          value < 0 ||
+          value > 10 ** 12 ||
+          thresholds[tiers[index]] === "",
+      ) ||
+      !(points[0] <= points[1] && points[1] <= points[2]) ||
       !Number.isInteger(d) ||
       d < 1 ||
-      d > 3650 ||
-      vip === ""
+      d > 3650
     )
       return toast.error(
         "Check the values",
-        "Enter whole loyalty points and 1–3650 inactive days.",
+        "Enter whole points ordered Silver ≤ Gold ≤ Platinum, and 1–3650 inactive days.",
       );
     if (!validConversion)
       return toast.error(
@@ -74,15 +88,17 @@ export function SegmentsTab({
       );
     setBusy(true);
     const res = await erp("/api/v1/crm/settings", "PUT", {
-      vip_min_points: points,
+      silver_min_points: points[0],
+      gold_min_points: points[1],
+      platinum_min_points: points[2],
       inactive_after_days: d,
       redemption_points: conversionPoints,
       redemption_value_minor: conversionMinor,
     });
     setBusy(false);
     if (res.error) return toast.error("Couldn't save", res.error);
-    toast.success("Segment rules saved");
-    setVip(null);
+    toast.success("Membership rules saved");
+    setThresholds({});
     setDays(null);
     setRedemptionPoints(null);
     setRedemptionAmount(null);
@@ -92,7 +108,7 @@ export function SegmentsTab({
 
   return (
     <div className="space-y-space-4">
-      <div className="grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-space-3 sm:grid-cols-2 xl:grid-cols-5">
         {[...(data.data?.segments ?? [])]
           .sort((a, b) => CARD_ORDER.indexOf(a.key) - CARD_ORDER.indexOf(b.key))
           .map((seg) => (
@@ -122,26 +138,37 @@ export function SegmentsTab({
       {s && (
         <Card className="p-space-4">
           <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
-            Segment rules
+            Membership rules
           </h2>
           <p className="mb-space-3 text-[13px] text-ink-600">
-            VIP status is based on current loyalty points, including adjustments
-            and redemptions. New and Inactive use joining and order dates; other
-            customers are Regular.
+            Customers must first join from their storefront Profile with their
+            name, date of birth, phone and email. Regular, Silver, Gold and
+            Platinum are based on current loyalty points, including adjustments
+            and redemptions. Regular starts below Silver. Customers who have
+            ordered but have no recent purchase are Inactive, regardless of
+            their points. Set thresholds in ascending order.
           </p>
           <div className="grid max-w-xl gap-space-3 sm:grid-cols-2">
-            <Field
-              label="VIP when loyalty points are at least"
-              htmlFor="vip_min"
-            >
-              <Input
-                id="vip_min"
-                inputMode="numeric"
-                disabled={!canConfigure}
-                value={vip ?? String(s.vip_min_points)}
-                onChange={(e) => setVip(e.target.value)}
-              />
-            </Field>
+            {(["silver", "gold", "platinum"] as const).map((tier) => (
+              <Field
+                key={tier}
+                label={`${SEGMENT_META[tier].label} when loyalty points are at least`}
+                htmlFor={`${tier}_min`}
+              >
+                <Input
+                  id={`${tier}_min`}
+                  inputMode="numeric"
+                  disabled={!canConfigure || busy}
+                  value={thresholds[tier] ?? String(s[`${tier}_min_points`])}
+                  onChange={(event) =>
+                    setThresholds((current) => ({
+                      ...current,
+                      [tier]: event.target.value,
+                    }))
+                  }
+                />
+              </Field>
+            ))}
             <Field
               label="Inactive after (days without an order)"
               htmlFor="inactive_days"
@@ -206,7 +233,7 @@ export function SegmentsTab({
               className="mobile-page-action mt-space-3"
               disabled={
                 busy ||
-                (vip === null &&
+                (Object.keys(thresholds).length === 0 &&
                   days === null &&
                   redemptionPoints === null &&
                   redemptionAmount === null)

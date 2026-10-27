@@ -389,7 +389,7 @@ function Preview({
                   <Cloud size={12} style={{ color: accent }} /> Sync Insight
                 </span>
                 <span className="rounded-full bg-emerald-50 px-2 text-emerald-700">
-                  Online
+                  Connected
                 </span>
               </p>
               <p className="mt-1 text-slate-600">

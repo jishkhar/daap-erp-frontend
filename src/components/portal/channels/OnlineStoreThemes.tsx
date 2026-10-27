@@ -44,7 +44,7 @@ import {
 import { toast } from "@/lib/toast";
 
 /**
- * Online store appearance, laid out like Shopify's Online Store > Themes: the live theme (a live view of the website), draft themes
+ * Website appearance, laid out like Shopify's Website Store > Themes: the live theme (a live view of the website), draft themes
  * (installed, not live) and themes to add. Editing happens in the theme editor (/portal/channels/online/themes/[key]); the themes
  * themselves are built into the storefront by DAAP, which also serves their screenshots (/theme-previews/{key}.jpg).
  */

@@ -88,9 +88,9 @@ export function CustomersTab({
           row.original.phone ?? <span className="text-ink-400">—</span>,
       },
       {
-        header: "Tags / Segment",
+        header: "Tags / Membership",
         cell: ({ row }) => {
-          const extra = row.original.tags.filter((t) => t !== "vip");
+          const extra = row.original.tags;
           return (
             <span className="flex flex-nowrap items-center gap-space-1">
               <SegmentBadge segment={row.original.segment} />
@@ -112,7 +112,7 @@ export function CustomersTab({
         },
       },
       {
-        header: "Total spent",
+        header: "Purchase amount",
         cell: ({ row }) =>
           formatMoney(row.original.total_spent_minor, currency),
       },
@@ -195,9 +195,9 @@ export function CustomersTab({
             value={segment}
             onValueChange={(value) => onFilterChange({ segment: value })}
             className="!w-auto"
-            aria-label="Segment"
+            aria-label="Membership"
           >
-            <option value="">All segments</option>
+            <option value="">All memberships</option>
             {SEGMENT_ORDER.map((s) => (
               <option key={s} value={s}>
                 {SEGMENT_META[s].label}

@@ -36,7 +36,7 @@ const planFeatures = (p: BillingPlan) => [
   ...(p.feature_labels ?? p.features),
 ];
 
-/** The plans on offer, from the public plans endpoint (no sign-in needed): choose a service (Online, POS, WhatsApp), then its plan pack. */
+/** The plans on offer, from the public plans endpoint (no sign-in needed): choose a service (Website, POS, WhatsApp), then its plan pack. */
 export function PlansView() {
   const [allPlans, setPlans] = useState<BillingPlan[] | null>(null);
   const [service, setService] = useState<Service>("pos");

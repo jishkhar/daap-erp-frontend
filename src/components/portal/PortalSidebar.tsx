@@ -179,7 +179,7 @@ const NAV_ITEMS: NavItem[] = [
 
   {
     key: "channel-online",
-    label: "Online",
+    label: "Website",
     icon: Globe,
     href: "/portal/channels/online",
     pageKey: "channels",

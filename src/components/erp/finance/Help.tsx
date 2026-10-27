@@ -10,7 +10,7 @@ const GLOSSARY: Record<string, string> = {
   "Net profit":
     "What is left after all costs: gross profit minus stock write-offs and operating expenses, plus other income.",
   "Cash & bank":
-    "Money in your cash drawers and bank accounts. The amount with the gateway is money customers paid online that the payment provider hasn't transferred to you yet.",
+    "Money in your cash drawers and bank accounts. The amount with the gateway is money customers paid through the website that the payment provider hasn't transferred to you yet.",
   "Customers owe us":
     "Orders already delivered but not fully paid yet, for example cash on delivery. Amounts are grouped by how many days overdue they are; 'Not due' is not yet late.",
   "We owe customers":

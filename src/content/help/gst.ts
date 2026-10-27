@@ -95,7 +95,7 @@ export const gst: Doc = {
       blocks: [
         {
           t: "p",
-          text: "Each product has its own rate and HSN code, set on the product. The Tax rates card on the Taxes page shows the rates in use.",
+          text: "Each product has its own tax rate, set on the product. The Tax rates card on the Taxes page shows the rates in use.",
         },
         {
           t: "p",

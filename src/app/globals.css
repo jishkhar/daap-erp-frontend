@@ -82,7 +82,7 @@
   --info-tint: #eaf0fd;
   --accent-violet: #6d28d9;
   --accent-violet-tint: #f1ecfc;
-  /* Service and plan badge colours (components/ui/ServicePlanBadge.tsx). Services are tinted like every other badge: Online = info blue,
+  /* Service and plan badge colours (components/ui/ServicePlanBadge.tsx). Services are tinted like every other badge: Website = info blue,
      POS = teal, WhatsApp = success green. Plans use hues nothing else uses (rose, indigo, slate), so a plan never looks like a service or
      a status. Each text colour on its tint is above 4.5:1. */
   --service-pos: #0f766e;

@@ -123,7 +123,7 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
           ? billed
             ? "A new plan starts at the end of your current billing period."
             : "Pay securely with Razorpay. Your data is kept exactly as you left it."
-          : "Online, POS and WhatsApp are bought separately, each with its own plan and renewal."
+          : "Website, POS and WhatsApp are bought separately, each with its own plan and renewal."
       }
       footer={
         <>
@@ -140,7 +140,7 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
     >
       {!configured && (
         <p className="mb-space-3 rounded-md bg-warning-tint p-space-3 text-[13px] text-warning">
-          Online payments aren&apos;t switched on for this platform yet. Please
+          Website payments aren&apos;t switched on for this platform yet. Please
           contact support to buy or change a plan.
         </p>
       )}

@@ -115,9 +115,9 @@ function BotCard({
           <p className="text-[13px] text-ink-600">
             Customers who message your WhatsApp number can browse your products,
             see sale items, offers and their reward points, fill a cart and pay
-            (cash on delivery or online) without leaving the chat. On first
-            contact the bot asks for their name, email and date of birth, so
-            they are the same customer as on your website.
+            (cash on delivery or website payment) without leaving the chat. On
+            first contact the bot asks for their name, email and date of birth,
+            so they are the same customer as on your website.
           </p>
         </div>
         <div className="flex items-center gap-space-2">

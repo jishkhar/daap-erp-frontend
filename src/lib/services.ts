@@ -5,7 +5,7 @@ export type Service = Channel;
 export const SERVICES: Service[] = ["online", "pos", "whatsapp"];
 
 export const SERVICE_LABEL: Record<Service, string> = {
-  online: "Online",
+  online: "Website",
   pos: "POS",
   whatsapp: "WhatsApp",
 };
@@ -18,7 +18,7 @@ export const SERVICE_TONE = {
 } as const;
 
 export const SERVICE_BLURB: Record<Service, string> = {
-  online: "Your online store and website orders.",
+  online: "Your website and its orders.",
   pos: "Billing at the counter on the POS till.",
   whatsapp: "Orders and customer chats over WhatsApp.",
 };

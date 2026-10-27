@@ -9,6 +9,13 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
+import { CustomerSelect } from "@/components/erp/CustomerSelect";
+import {
+  SEGMENT_META,
+  SEGMENT_ORDER,
+  type CrmProfile,
+  type Segment,
+} from "@/lib/crm";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -34,6 +41,8 @@ import {
   type Channel,
   type Discount,
   type DiscountKind,
+  type DiscountTarget,
+  type Customer,
 } from "@/lib/erp";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
@@ -45,7 +54,20 @@ const KIND_LABEL: Record<DiscountKind, string> = {
   bogo: "Buy one get one",
 };
 
+const TARGET_LABEL: Record<DiscountTarget, string> = {
+  all: "All products and customers",
+  category: "Category",
+  collection: "Collection",
+  membership: "Membership",
+  individual: "Individual",
+};
+
 type Form = {
+  target: DiscountTarget;
+  categoryId: string;
+  collectionId: string;
+  membership: Segment | "";
+  customer: Customer | null;
   code: string;
   name: string;
   kind: DiscountKind;
@@ -61,6 +83,11 @@ type Form = {
 };
 
 const EMPTY: Form = {
+  target: "all",
+  categoryId: "",
+  collectionId: "",
+  membership: "",
+  customer: null,
   code: "",
   name: "",
   kind: "percent",
@@ -87,6 +114,11 @@ const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
 
 function toForm(d: Discount): Form {
   return {
+    target: d.target_type ?? "all",
+    categoryId: d.category_id ?? "",
+    collectionId: d.collection_id ?? "",
+    membership: d.membership ?? "",
+    customer: d.contact ?? null,
     code: d.code ?? "",
     name: d.name,
     kind: d.kind,
@@ -140,6 +172,17 @@ export default function DiscountsPage() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<Discount | null>(null);
+  const categories = useErpQuery<{ id: string; name: string }[]>(
+    editing && form.target === "category" ? "/api/v1/categories" : null,
+  );
+  const collections = useErpQuery<{ id: string; name: string }[]>(
+    editing && form.target === "collection" ? "/api/v1/collections" : null,
+  );
+  const contact = useErpQuery<CrmProfile>(
+    editing && form.target === "individual" && form.customer
+      ? `/api/v1/crm/customers/${form.customer.id}`
+      : null,
+  );
 
   function openNew() {
     setForm(EMPTY);
@@ -183,7 +226,22 @@ export default function DiscountsPage() {
     if (!form.channels.length)
       return toast.error("Pick a channel", "Choose at least one channel.");
 
+    if (
+      (form.target === "category" && !form.categoryId) ||
+      (form.target === "collection" && !form.collectionId) ||
+      (form.target === "membership" && !form.membership) ||
+      (form.target === "individual" && !form.customer)
+    )
+      return toast.error(
+        "Choose a discount target",
+        "Select the category, collection, membership or customer for this discount.",
+      );
     const body = {
+      target_type: form.target,
+      category_id: form.target === "category" ? form.categoryId : null,
+      collection_id: form.target === "collection" ? form.collectionId : null,
+      membership: form.target === "membership" ? form.membership : null,
+      customer_id: form.target === "individual" ? form.customer?.id : null,
       code: form.code.trim() || null,
       name: form.name.trim(),
       kind: form.kind,
@@ -248,6 +306,19 @@ export default function DiscountsPage() {
         ),
       },
       { header: "Offer", cell: ({ row }) => describe(row.original) },
+      {
+        header: "Applies to",
+        cell: ({ row }) => (
+          <div className="text-ink-600">
+            {TARGET_LABEL[row.original.target_type ?? "all"]}
+            {row.original.membership &&
+              ` · ${SEGMENT_META[row.original.membership].label}`}
+            {row.original.target_type === "individual" && (
+              <p className="text-xs">Private campaign offer</p>
+            )}
+          </div>
+        ),
+      },
       {
         header: "Min order",
         cell: ({ row }) =>
@@ -343,7 +414,7 @@ export default function DiscountsPage() {
       <PageHeader
         icon={<HugeiconsIcon icon={Tag01Icon} size={20} />}
         title="Discounts"
-        description="Coupon codes and promotions across Online, POS and WhatsApp."
+        description="Coupon codes and promotions across Website, POS and WhatsApp."
         actionsClassName="w-full justify-end md:w-auto"
         actions={
           canManage && (
@@ -401,6 +472,139 @@ export default function DiscountsPage() {
             onChange={(e) => set("code", e.target.value)}
           />
         </Field>
+        <Field label="Applies to" htmlFor="d_target">
+          <Select
+            id="d_target"
+            value={form.target}
+            onValueChange={(value) => set("target", value as DiscountTarget)}
+          >
+            {(Object.keys(TARGET_LABEL) as DiscountTarget[]).map((target) => (
+              <option key={target} value={target}>
+                {TARGET_LABEL[target]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {form.target === "category" && (
+          <Field
+            label="Category"
+            htmlFor="d_category"
+            required
+            hint="Only products in this category receive the discount."
+          >
+            <Select
+              id="d_category"
+              value={form.categoryId}
+              onValueChange={(value) => set("categoryId", value)}
+            >
+              <option value="">Choose a category</option>
+              {(categories.data ?? []).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </Select>
+            {categories.error && (
+              <p className="mt-1 text-sm text-error">{categories.error}</p>
+            )}
+          </Field>
+        )}
+        {form.target === "collection" && (
+          <Field
+            label="Collection"
+            htmlFor="d_collection"
+            required
+            hint="Only products currently in this collection receive the discount."
+          >
+            <Select
+              id="d_collection"
+              value={form.collectionId}
+              onValueChange={(value) => set("collectionId", value)}
+            >
+              <option value="">Choose a collection</option>
+              {(collections.data ?? []).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </Select>
+            {collections.error && (
+              <p className="mt-1 text-sm text-error">{collections.error}</p>
+            )}
+          </Field>
+        )}
+        {form.target === "membership" && (
+          <Field
+            label="Membership"
+            htmlFor="d_membership"
+            required
+            hint="Customers must have this membership when they use the offer."
+          >
+            <Select
+              id="d_membership"
+              value={form.membership}
+              onValueChange={(value) => set("membership", value as Segment)}
+            >
+              <option value="">Choose a membership</option>
+              {SEGMENT_ORDER.filter((key) => key !== "not_member").map(
+                (key) => (
+                  <option key={key} value={key}>
+                    {SEGMENT_META[key].label}
+                  </option>
+                ),
+              )}
+            </Select>
+          </Field>
+        )}
+        {form.target === "individual" && (
+          <>
+            <Field
+              label="Contact"
+              htmlFor="d_contact"
+              required
+              hint="Select an existing customer for a future campaign. This discount is hidden from storefront coupon lists."
+            >
+              <div className="space-y-3 rounded-md border border-line p-3">
+                <CustomerSelect
+                  id="d_contact"
+                  value={form.customer}
+                  onChange={(customer) => set("customer", customer)}
+                />
+                {form.customer && (
+                  <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <dt className="text-ink-600">Email ID</dt>
+                      <dd className="break-words">
+                        {form.customer.email || "Not recorded"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-ink-600">Date of birth</dt>
+                      <dd>
+                        {contact.loading
+                          ? "Loading…"
+                          : contact.data?.birthday || "Not recorded"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-ink-600">Phone</dt>
+                      <dd>{form.customer.phone || "Not recorded"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-ink-600">Customer ID</dt>
+                      <dd>{form.customer.customer_code || "Not recorded"}</dd>
+                    </div>
+                  </dl>
+                )}
+                {contact.error && (
+                  <p className="text-sm text-error">
+                    Couldn&apos;t load contact details. {contact.error}
+                  </p>
+                )}
+              </div>
+            </Field>
+          </>
+        )}
         <Field label="Type" htmlFor="d_kind">
           <Select
             id="d_kind"

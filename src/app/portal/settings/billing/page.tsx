@@ -103,7 +103,7 @@ export default function BillingPage() {
       <PageHeader
         icon={<CreditCard size={20} />}
         title="Plan & Billing"
-        description="Online, POS and WhatsApp are bought separately: each has its own plan, renewal and billing."
+        description="Website, POS and WhatsApp are bought separately: each has its own plan, renewal and billing."
       />
       {view.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">
@@ -112,8 +112,8 @@ export default function BillingPage() {
       )}
       {data && !data.billing_configured && (
         <p className="mb-space-3 rounded-md bg-warning-tint p-space-3 text-[13px] text-warning">
-          Online payments aren&apos;t switched on for this platform yet. Contact
-          your account manager to change a plan.
+          Website payments aren&apos;t switched on for this platform yet.
+          Contact your account manager to change a plan.
         </p>
       )}
 

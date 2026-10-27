@@ -12,7 +12,7 @@ import {
   useSaveHours,
   type Hour,
 } from "@/hooks/useBranches";
-import { humanize } from "@/lib/erp";
+import { channelLabel } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 
@@ -110,7 +110,7 @@ export function BranchPanels({
                 {h.channel && (
                   <span className="text-ink-400">
                     {" "}
-                    · {humanize(h.channel)} only
+                    · {channelLabel(h.channel)} only
                   </span>
                 )}
               </span>
@@ -184,7 +184,7 @@ export function BranchPanels({
         </h2>
         <p className="mb-space-3 text-[13px] text-ink-600">
           Where the business delivers, and for how much, is set as delivery
-          zones; each zone says which branches deliver it. Online orders go to
+          zones; each zone says which branches deliver it. Website orders go to
           the nearest branch serving the shopper&apos;s zone that has every
           item.
         </p>
@@ -192,7 +192,7 @@ export function BranchPanels({
           <SkeletonLines rows={2} />
         ) : zones.length === 0 ? (
           <p className="mb-space-3 text-[13.5px] text-ink-400">
-            No delivery zone uses this branch, so it ships no online orders.
+            No delivery zone uses this branch, so it ships no website orders.
           </p>
         ) : (
           <ul className="mb-space-3 flex flex-wrap gap-space-2">

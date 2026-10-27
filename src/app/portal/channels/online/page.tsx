@@ -9,7 +9,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/ui/PageHeader";
 
-/** Online store: how the website looks and reads. Orders from it are in Orders (filter: Online). */
+/** Website: how the website looks and reads. Orders from it are in Orders (filter: Website). */
 export default function OnlineChannelPage() {
   const { tenant, ready } = usePortalGuard();
   if (!ready) return null;
@@ -17,7 +17,7 @@ export default function OnlineChannelPage() {
     <PortalShell tenant={tenant} active="channel-online">
       <PageHeader
         icon={<Globe size={20} />}
-        title="Online store"
+        title="Website"
         description="Pick a theme, customize it and publish it to your website."
         actions={<LearnMore doc="online-store" />}
       />

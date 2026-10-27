@@ -78,7 +78,7 @@ export default function BranchesPage() {
         ),
       },
       {
-        header: "Online orders",
+        header: "Website orders",
         cell: ({ row }) => {
           const o = [
             row.original.fulfilment_enabled &&

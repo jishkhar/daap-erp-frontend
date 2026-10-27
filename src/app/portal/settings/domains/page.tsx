@@ -111,7 +111,7 @@ export default function DomainsSettingsPage() {
       <PageHeader
         icon={<Globe size={20} />}
         title="Domains"
-        description="The addresses your online store answers on. Shoppers on any of them are sent to your primary domain."
+        description="The addresses your website answers on. Shoppers on any of them are sent to your primary domain."
         actions={
           canEdit && data?.enabled ? (
             <Button onClick={() => setConnecting(true)}>
@@ -133,7 +133,7 @@ export default function DomainsSettingsPage() {
             <span className="pr-12">Status</span>
           </div>
           <p className="border-b border-line px-space-4 py-2 text-[13px] font-medium text-ink-900">
-            Online store
+            Website
           </p>
           {list.isPending ? (
             <div className="p-space-5">

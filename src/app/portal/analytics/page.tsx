@@ -272,7 +272,7 @@ export default function AnalyticsPage() {
             )}
           </Card>
         </div>
-        <Card className="no-scrollbar overflow-x-auto p-space-4">
+        <Card className="no-scrollbar mb-space-5 overflow-x-auto p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
             Branch comparison
           </h2>

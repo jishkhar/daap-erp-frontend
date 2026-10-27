@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   title:
     "ERP — Orders, inventory and customers across every branch and channel",
   description:
-    "One ERP for every branch and every sales channel — Online, POS and WhatsApp.",
+    "One ERP for every branch and every sales channel — Website, POS and WhatsApp.",
 };
 
 export const viewport: Viewport = { viewportFit: "cover" };

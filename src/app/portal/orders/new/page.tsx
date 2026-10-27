@@ -512,7 +512,7 @@ function NewOrder() {
                   <option value="cod">
                     Cash on delivery (confirms the order)
                   </option>
-                  <option value="online">Online (awaits payment)</option>
+                  <option value="online">Website (awaits payment)</option>
                 </Select>
               </Field>
             </div>
