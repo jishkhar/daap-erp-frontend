@@ -149,9 +149,9 @@ export default function BranchDetailPage() {
                 </Item>
               </Section>
             )}
-            <Section title="Sales & online orders" onEdit={edit}>
+            <Section title="Sales & website orders" onEdit={edit}>
               <Item label="POS sales">{onOff(b.accepts_pos)}</Item>
-              <Item label="Delivers online and WhatsApp orders">
+              <Item label="Delivers website and WhatsApp orders">
                 {b.fulfilment_enabled
                   ? `Yes, priority ${b.fulfilment_priority}`
                   : "No"}

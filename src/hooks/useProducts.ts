@@ -89,6 +89,15 @@ function useRefreshProducts() {
     ]);
 }
 
+export function useGenerateProductBarcode() {
+  const refresh = useRefreshProducts();
+  return useMutation({
+    mutationFn: (id: string) =>
+      erpSend<Product>(`/api/v1/products/${id}/generate-barcode`, "POST", {}),
+    onSuccess: refresh,
+  });
+}
+
 export function useSaveProduct() {
   const refresh = useRefreshProducts();
   return useMutation({

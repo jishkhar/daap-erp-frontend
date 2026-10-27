@@ -2,7 +2,7 @@
 export type MakerBarcode = "never" | "ask" | "always";
 
 export type LabelSettings = {
-  /** Products that carry the manufacturer's scannable barcode: leave them out, offer them unticked, or label them like the rest. */
+  /** Never disables automatic shop barcodes and labels for all products; ask/always control labels for manufacturer-barcoded products. */
   maker_barcode: MakerBarcode;
   /** Ask branches holding a product to relabel it when its selling price changes. */
   relabel_on_price_change: boolean;
@@ -37,6 +37,6 @@ export const MAKER_BARCODE_CHOICES: {
   {
     value: "never",
     label: "Never label them",
-    hint: "Their own barcode scans at the till, so they are left out.",
+    hint: "No automatic shop barcodes or labels. Generate barcodes manually from each product page when needed.",
   },
 ];

@@ -327,8 +327,8 @@ export function BranchForm({
       )}
 
       <Section
-        title="Sales & online orders"
-        description="The online store and WhatsApp are switched on for the whole business (under Sales channels). Here you choose what this branch does."
+        title="Sales & website orders"
+        description="The website and WhatsApp are switched on for the whole business (under Sales channels). Here you choose what this branch does."
       >
         <Toggle
           checked={draft.accepts_pos}
@@ -339,12 +339,12 @@ export function BranchForm({
         <Toggle
           checked={draft.fulfilment_enabled}
           onChange={(v) => set({ fulfilment_enabled: v })}
-          label="Delivers online and WhatsApp orders"
+          label="Delivers website and WhatsApp orders"
           hint="Off for a branch that only sells at the counter."
         />
         <p className="sm:col-span-2 mb-space-4 rounded-md bg-paper p-space-3 text-[12.5px] text-ink-600">
           <strong className="text-ink-900">
-            How online orders reach a branch.
+            How website orders reach a branch.
           </strong>{" "}
           The customer never picks a branch to order from. For{" "}
           <strong>delivery</strong>, the order goes to one branch that delivers
@@ -352,7 +352,7 @@ export function BranchForm({
           customer is offered pickup. For <strong>pickup</strong>, they choose
           from branches where pickup is on and every item is in stock. An order
           is never split across branches. A branch set to &ldquo;Closed&rdquo;
-          below gets no online or WhatsApp orders, but still takes POS sales.
+          below gets no website or WhatsApp orders, but still takes POS sales.
         </p>
         <Field
           label="Delivery priority"

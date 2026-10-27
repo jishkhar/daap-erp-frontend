@@ -4,6 +4,8 @@ export type Feedback = {
   comment: string | null;
   product_name: string | null;
   customer_name: string | null;
+  customer_id: string | null;
+  customer_code: string | null;
   order_number: string | null;
   order_id: string | null;
   branch_name: string | null;

@@ -335,7 +335,7 @@ export function CampaignsTab({
           </Select>
         </Field>
         <div className="grid grid-cols-2 gap-space-3">
-          <Field label="Segment" htmlFor="k_seg">
+          <Field label="Membership" htmlFor="k_seg">
             <Select
               id="k_seg"
               value={form.segment}

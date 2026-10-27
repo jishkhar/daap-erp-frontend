@@ -58,12 +58,7 @@ const COLUMNS = [
   {
     name: "barcode",
     guide:
-      "Optional manufacturer barcode, up to 64 printable characters; must be unique. Shop-label barcodes are generated automatically.",
-  },
-  {
-    name: "hsn_code",
-    guide:
-      "HSN code for GST invoices. Format this column as text in Excel to preserve leading zeros.",
+      "Optional manufacturer barcode, up to 64 printable characters; must be unique. Shop-label barcodes follow your barcode label settings.",
   },
   {
     name: "status",

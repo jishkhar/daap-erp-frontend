@@ -25,12 +25,12 @@ Sign in at `/portal/login` with **company code + email + password** (a tenant is
 | Orders (+ detail: fulfil, cancel, record payment, collect COD, bind IMEIs) | `/portal/orders` | `/api/v1/orders`, `/payments` |
 | Products (+ receive stock) | `/portal/products` | `/api/v1/products`, `/inventory` |
 | Customers (+ activity timeline) | `/portal/customers` | `/api/v1/customers` |
-| Sales channels: Online · POS · WhatsApp (+ API keys) | `/portal/channels/{online,pos,whatsapp}` | orders by channel, `/api/v1/channel-clients` |
+| Sales channels: Website · POS · WhatsApp (+ API keys) | `/portal/channels/{online,pos,whatsapp}` | orders by channel, `/api/v1/channel-clients` |
 | Analytics / Reports | `/portal/analytics` | orders (revenue by channel / branch / day) |
 | Procurement: suppliers (+ statement, pay), requests, purchase orders (approve, receive goods with freight & IMEIs, return) | `/portal/procurement` | `/api/v1/purchase-*`, `/suppliers`, `/goods-receipts` |
 | Finance: overview, expenses, GST tax invoices, gateway reconciliation, journal & period lock | `/portal/finance` | `/api/v1/finance/*` |
 | Financial reports: P&L (by branch / channel), branch × channel, balance sheet, GST, product margin, aging | `/portal/analytics` → *Financial reports* | `/api/v1/finance/reports/*` |
-| Settings, Team & Access, Roles & Permissions, Activity log, Online Storefront | `/portal/settings/*` | tenant, users, roles, audit-logs, channel keys |
+| Settings, Team & Access, Roles & Permissions, Activity log, Website Storefront | `/portal/settings/*` | tenant, users, roles, audit-logs, channel keys |
 
 **Not built yet (shown in the sidebar, but say so on the page):** WhatsApp Inbox, WhatsApp Automation, Discounts — they depend on later backend phases.
 Growth is listed but disabled. **Workforce** (Attendance, Check-in/out, My Leave, Holidays, Team Attendance, Leave Requests) runs on the ERP's
@@ -40,7 +40,7 @@ the till has no attendance.
 ## Conventions
 
 - `src/lib/erp.ts` — typed API helper (`erp()`, `useErpQuery()`), money helpers (`formatMoney`, `toMinor`: amounts are integer minor units), channel metadata
-  (UI labels Online / POS / WhatsApp for the API codes `online` / `pos` / `whatsapp`).
+  (UI labels Website / POS / WhatsApp for the API codes `online` / `pos` / `whatsapp`).
 - `src/lib/staffAuth.ts` — sign-in, silent token refresh, `useStaffSession()`, and `hasPermission()` which maps sidebar pages onto the API's `module:action` permissions.
   Hiding a menu item is a convenience only; the server enforces every permission and branch scope.
 - The **branch switcher** (top bar) only narrows what list pages request; access itself is decided server-side from the person's role grants.

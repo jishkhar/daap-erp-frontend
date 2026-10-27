@@ -18,6 +18,7 @@ import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import {
   useAddVariant,
+  useGenerateProductBarcode,
   useProductCategories,
   useSaveProduct,
 } from "@/hooks/useProducts";
@@ -74,6 +75,9 @@ export function ProductEditor({ product }: { product?: Product }) {
   const taxes = useTaxRules();
   const saveProduct = useSaveProduct();
   const addVariant = useAddVariant();
+  const generateBarcode = useGenerateProductBarcode();
+  const [generatedProduct, setGeneratedProduct] = useState<Product>();
+  const labelProduct = generatedProduct ?? product;
   const stock = useStockFor(product ? [product.id] : [], "");
   const attrs = product?.variant_attributes ?? {};
   const initial = {
@@ -91,7 +95,6 @@ export function ProductEditor({ product }: { product?: Product }) {
       ? attrs.tags.filter((tag) => typeof tag === "string").join(", ")
       : "",
     tax_code: product?.tax_code ?? "",
-    hsn_code: product?.hsn_code ?? "",
     weight_kg:
       product?.ship_weight_g != null
         ? String(product.ship_weight_g / 1000)
@@ -244,7 +247,6 @@ export function ProductEditor({ product }: { product?: Product }) {
       mrp_minor: mrp,
       cost_minor: cost,
       tax_code: draft.tax_code || null,
-      hsn_code: draft.hsn_code.trim(),
       serialization_type: draft.serialization_type,
       lifecycle_status: draft.lifecycle_status,
       variant_attributes: attributes,
@@ -487,19 +489,55 @@ export function ProductEditor({ product }: { product?: Product }) {
               </Field>
             </div>
             {product ? (
-              <details className="mt-5 border-t border-line pt-4">
-                <summary className="cursor-pointer text-sm font-medium">
-                  Barcodes · {product.barcode || "No label"}
-                </summary>
-                <div className="mt-4">
-                  <ExtraBarcodes product={product} />
+              <>
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
+                  <p className="min-w-0 break-words text-sm font-medium">
+                    Barcodes · {labelProduct?.barcode || "No label"}
+                  </p>
+                  {hasTenantWide(session, "products:update") && (
+                    <div className="max-w-[55%] shrink-0 [&>button]:h-auto [&>button]:min-h-10 [&>button]:py-2 [&_svg]:shrink-0">
+                      {product.manual_barcode_generation &&
+                      !generatedProduct ? (
+                        <Button
+                          variant="secondary"
+                          disabled={generateBarcode.isPending}
+                          onClick={() =>
+                            generateBarcode.mutate(product.id, {
+                              onSuccess: (saved) => {
+                                setGeneratedProduct(saved);
+                                toast.success(
+                                  product.barcode
+                                    ? "Barcode ready"
+                                    : "Barcode generated",
+                                );
+                              },
+                              onError: (error) =>
+                                toast.error(
+                                  "Couldn't generate barcode",
+                                  error.message,
+                                ),
+                            })
+                          }
+                        >
+                          {generateBarcode.isPending
+                            ? "Generating…"
+                            : "Generate barcode"}
+                        </Button>
+                      ) : labelProduct?.barcode ? (
+                        <SendLabelsToTill product={labelProduct} />
+                      ) : null}
+                    </div>
+                  )}
                 </div>
-                {hasTenantWide(session, "products:update") && (
-                  <div className="mt-4 border-t border-line pt-4">
-                    <SendLabelsToTill product={product} />
+                <details className="mt-5 border-t border-line pt-4">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Manufacturer barcodes
+                  </summary>
+                  <div className="mt-4">
+                    <ExtraBarcodes product={product} />
                   </div>
-                )}
-              </details>
+                </details>
+              </>
             ) : (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Field
@@ -702,9 +740,6 @@ export function ProductEditor({ product }: { product?: Product }) {
                   ))}
               </div>
             </div>
-          </Section>
-          <Section title="Tax classification">
-            {text("hsn_code", "HSN code", { hint: "Used on tax invoices." })}
           </Section>
           {product && (
             <Section title="Stock management">

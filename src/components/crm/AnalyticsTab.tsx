@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { DataTable } from "@/components/ui/DataTable";
 import { KpiTile, SegmentBadge } from "@/components/crm/shared";
 import { Card } from "@/components/ui/Card";
 import { SkeletonLines } from "@/components/ui/Skeleton";
@@ -95,7 +97,7 @@ export function AnalyticsTab({
         </Card>
         <Card className="space-y-space-2 p-space-4">
           <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
-            Customers by segment
+            Customers by membership
           </h2>
           {a.segments.map((s) => (
             <Bar
@@ -126,33 +128,58 @@ export function AnalyticsTab({
             />
           ))}
         </Card>
-        <Card className="p-space-4">
+        <Card className="min-w-0 p-space-4">
           <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
             Top customers
           </h2>
-          {a.top_customers.length === 0 && (
-            <p className="text-[13px] text-ink-400">No completed orders yet.</p>
-          )}
-          <ol className="divide-y divide-line">
-            {a.top_customers.map((c, i) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between gap-space-2 py-space-2 text-[13.5px]"
-              >
-                <span className="flex items-center gap-space-2">
-                  <span className="w-5 text-ink-400">{i + 1}</span>
-                  <span className="font-semibold text-ink-900">{c.name}</span>
-                  <SegmentBadge segment={c.segment} />
-                </span>
-                <span>
-                  {formatMoney(c.total_spent_minor, currency)}{" "}
-                  <span className="text-ink-400">
-                    · {c.total_orders} orders
+          <DataTable
+            data={a.top_customers}
+            getRowId={(customer) => customer.id}
+            paginate={false}
+            emptyMessage="No completed orders yet."
+            columns={[
+              {
+                header: "#",
+                cell: ({ row }) => (
+                  <span className="text-ink-400">{row.index + 1}</span>
+                ),
+              },
+              {
+                header: "Customer ID",
+                cell: ({ row }) => (
+                  <Link
+                    href={`/portal/customers/${row.original.id}`}
+                    className="whitespace-nowrap font-semibold text-brand-700 hover:underline"
+                  >
+                    {row.original.customer_code ?? "View customer"}
+                  </Link>
+                ),
+              },
+              {
+                header: "Name",
+                cell: ({ row }) => (
+                  <span className="font-semibold text-ink-900">
+                    {row.original.name}
                   </span>
-                </span>
-              </li>
-            ))}
-          </ol>
+                ),
+              },
+              {
+                header: "Membership",
+                cell: ({ row }) => (
+                  <SegmentBadge segment={row.original.segment} />
+                ),
+              },
+              {
+                header: "Purchase amount",
+                cell: ({ row }) =>
+                  formatMoney(row.original.total_spent_minor, currency),
+              },
+              {
+                header: "Orders",
+                cell: ({ row }) => row.original.total_orders,
+              },
+            ]}
+          />
         </Card>
       </div>
     </div>

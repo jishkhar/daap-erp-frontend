@@ -14,7 +14,7 @@ import { Modal } from "@/components/ui/Modal";
 import { hasGrantAt, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { erpSend, formatDateTime, humanize, useErpQuery } from "@/lib/erp";
+import { channelLabel, erpSend, formatDateTime, useErpQuery } from "@/lib/erp";
 import type { Feedback } from "@/lib/feedback";
 
 export default function FeedbackDetailPage() {
@@ -123,7 +123,7 @@ export default function FeedbackDetailPage() {
             </div>
             <div>
               <dt className="text-ink-400">Channel</dt>
-              <dd>{review.channel ? humanize(review.channel) : "—"}</dd>
+              <dd>{review.channel ? channelLabel(review.channel) : "—"}</dd>
             </div>
             <div>
               <dt className="text-ink-400">Received</dt>

@@ -44,11 +44,12 @@ export default function LabelSettingsPage() {
           <>
             <fieldset disabled={!canEdit}>
               <legend className="text-[15px] font-bold text-ink-900">
-                Products with the maker&apos;s barcode
+                Product barcode labels
               </legend>
               <p className="mb-space-3 text-[13px] text-ink-600">
-                Packets that arrive with a scannable barcode already work at the
-                till. Choose whether they get your shop label too.
+                Products with a manufacturer barcode already scan at the till.
+                Choose how they get shop labels, or select “Never label them” to
+                turn off automatic shop barcodes and labels for all products.
               </p>
               <div className="space-y-space-2">
                 {MAKER_BARCODE_CHOICES.map((c) => (

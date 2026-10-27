@@ -42,7 +42,7 @@ type Tab =
   | "analytics";
 const TABS: { key: Tab; label: string }[] = [
   { key: "customers", label: "All Customers" },
-  { key: "segments", label: "Segments" },
+  { key: "segments", label: "Membership" },
   { key: "tags", label: "Tags" },
   { key: "campaigns", label: "Campaigns" },
   { key: "communication", label: "Communication" },
@@ -75,6 +75,8 @@ export default function CustomersPage() {
   const openCustomer = (id: string) => router.push(`/portal/customers/${id}`);
 
   async function create() {
+    if (busy || !form.name.trim() || (!form.phone.trim() && !form.email.trim()))
+      return;
     setBusy(true);
     const res = await erp("/api/v1/customers", "POST", {
       name: form.name.trim(),
@@ -93,7 +95,7 @@ export default function CustomersPage() {
     <PortalShell tenant={tenant} active="customers">
       <PageHeader
         icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />}
-        title="CRM"
+        title="Customer Management"
         description="Manage your customers, build relationships and increase repeat sales."
         actionsClassName="w-full justify-end md:w-auto"
         actions={
@@ -133,8 +135,8 @@ export default function CustomersPage() {
         />
         <KpiTile
           stackOnMobile
-          label="VIP customers"
-          value={s?.vip_customers ?? "—"}
+          label="Platinum customers"
+          value={s?.platinum_customers ?? "—"}
           icon={<HugeiconsIcon icon={CrownIcon} size={20} />}
         />
         <KpiTile
@@ -219,7 +221,7 @@ export default function CustomersPage() {
         open={open}
         onClose={() => setOpen(false)}
         title="Add customer"
-        description="A phone number or an email is required."
+        description="Name is required, along with at least one of phone or email."
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
@@ -231,36 +233,54 @@ export default function CustomersPage() {
                 !form.name.trim() ||
                 (!form.phone.trim() && !form.email.trim())
               }
-              onClick={create}
+              type="submit"
+              form="add-customer-form"
             >
               Add customer
             </Button>
           </>
         }
       >
-        <Field label="Name" htmlFor="c_name" required>
-          <Input
-            id="c_name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </Field>
-        <Field label="Phone" htmlFor="c_phone">
-          <Input
-            id="c_phone"
-            inputMode="tel"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          />
-        </Field>
-        <Field label="Email" htmlFor="c_email">
-          <Input
-            id="c_email"
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-        </Field>
+        <form
+          id="add-customer-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void create();
+          }}
+        >
+          <Field label="Name" htmlFor="c_name" required>
+            <Input
+              id="c_name"
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </Field>
+          <Field
+            label="Phone"
+            htmlFor="c_phone"
+            required={!form.email.trim()}
+            hint="Phone or email is required; either one is enough."
+          >
+            <Input
+              id="c_phone"
+              type="tel"
+              required={!form.email.trim()}
+              inputMode="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            />
+          </Field>
+          <Field label="Email" htmlFor="c_email" required={!form.phone.trim()}>
+            <Input
+              id="c_email"
+              type="email"
+              required={!form.phone.trim()}
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </Field>
+        </form>
       </Modal>
     </PortalShell>
   );

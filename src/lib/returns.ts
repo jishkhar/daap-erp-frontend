@@ -34,6 +34,7 @@ export type ReturnRow = {
   order_placed_at: string;
   order_total_minor: number;
   customer_id: string | null;
+  customer_code: string | null;
   customer_name: string | null;
   customer_phone: string | null;
   quantity: number;
@@ -62,6 +63,19 @@ export type ReturnItem = {
 };
 
 export type ReturnDetail = ReturnRow & {
+  customer_email: string | null;
+  customer_addresses: {
+    id: string;
+    label: string | null;
+    name: string | null;
+    phone: string | null;
+    line1: string;
+    line2: string | null;
+    city: string | null;
+    state: string | null;
+    pincode: string | null;
+    is_default: boolean;
+  }[];
   items: ReturnItem[];
   refunds: {
     id: string;

@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ChannelBadge } from "@/components/erp/StatusBadges";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -28,7 +29,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { usePagedQuery } from "@/hooks/usePagedQuery";
 import { useActiveBranch } from "@/lib/branch";
-import { formatDateTime, humanize } from "@/lib/erp";
+import { channelLabel, formatDateTime, useErpQuery } from "@/lib/erp";
 import { useDebounced } from "@/lib/useDebounced";
 
 import type { Feedback } from "@/lib/feedback";
@@ -40,12 +41,16 @@ export default function FeedbackPage() {
   const router = useRouter();
   const { branchId, branches, setBranch } = useActiveBranch();
   const [rating, setRating] = useState("");
+  const [category, setCategory] = useState("");
+  const categories = useErpQuery<{ id: string; name: string }[]>(
+    ready ? "/api/v1/feedback/categories" : null,
+  );
   const [search, setSearch] = useState("");
   const q = useDebounced(search.trim());
   const feedback = usePagedQuery<Feedback>(
     feedbackKey,
     "/api/v1/feedback",
-    { branch_id: branchId, rating, q },
+    { branch_id: branchId, rating, q, category_id: category },
     ready,
   );
   const columns = useMemo<ColumnDef<Feedback, unknown>[]>(
@@ -85,6 +90,20 @@ export default function FeedbackPage() {
         ),
       },
       {
+        header: "Customer ID",
+        cell: ({ row }) =>
+          row.original.customer_id && row.original.customer_code ? (
+            <Link
+              href={`/portal/customers/${row.original.customer_id}`}
+              className="whitespace-nowrap font-medium text-brand-600 hover:underline"
+            >
+              {row.original.customer_code}
+            </Link>
+          ) : (
+            (row.original.customer_code ?? "—")
+          ),
+      },
+      {
         header: "Customer",
         cell: ({ row }) => row.original.customer_name ?? "—",
       },
@@ -109,8 +128,20 @@ export default function FeedbackPage() {
       },
       {
         header: "Channel",
-        cell: ({ row }) =>
-          row.original.channel ? humanize(row.original.channel) : "—",
+        cell: ({ row }) => {
+          const channel = row.original.channel;
+          if (
+            channel === "online" ||
+            channel === "pos" ||
+            channel === "whatsapp"
+          )
+            return <ChannelBadge channel={channel} />;
+          return channel ? (
+            <Badge tone="neutral">{channelLabel(channel)}</Badge>
+          ) : (
+            "—"
+          );
+        },
       },
       {
         header: "Received",
@@ -161,13 +192,13 @@ export default function FeedbackPage() {
           </Button>
         }
       />
-      <Card className="mb-space-4 flex flex-wrap items-center gap-space-3 p-space-3">
+      <Card className="mb-space-4 grid grid-cols-2 items-center gap-space-3 p-space-3 md:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))]">
         <Input
           aria-label="Search feedback"
           placeholder="Search product, customer or order…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="col-span-2 min-w-0 w-full md:col-span-1"
         />
         <Select
           aria-label="Filter feedback by branch"
@@ -193,7 +224,25 @@ export default function FeedbackPage() {
             </option>
           ))}
         </Select>
+        <Select
+          aria-label="Filter feedback by category"
+          className="col-span-2 md:col-span-1"
+          value={category}
+          onValueChange={setCategory}
+        >
+          <option value="">All categories</option>
+          {(categories.data ?? []).map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </Select>
       </Card>
+      {categories.error && (
+        <p role="alert" className="mb-space-3 text-[13px] text-error">
+          Couldn&apos;t load categories. {categories.error}
+        </p>
+      )}
       {feedback.error && (
         <p role="alert" className="mb-space-3 text-[13px] text-error">
           {feedback.error.message}
@@ -207,7 +256,7 @@ export default function FeedbackPage() {
           paginate={false}
           loading={feedback.isFetching}
           emptyMessage={
-            q || rating || branchId
+            q || rating || branchId || category
               ? "No feedback matches these filters."
               : "No reviews yet. Customers can review products on the storefront after placing an order."
           }

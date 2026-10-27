@@ -138,7 +138,7 @@ export function ServiceBillingCard({
             {sub.current_period_end
               ? `Paid until ${formatDate(sub.current_period_end)}.`
               : "Managed by your account manager."}{" "}
-            Choose a plan to pay online.
+            Choose a plan to pay through the website.
           </p>
         )}
         {info.state === "comped" && (

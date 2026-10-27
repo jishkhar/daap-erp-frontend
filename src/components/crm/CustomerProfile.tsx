@@ -355,7 +355,7 @@ export function CustomerProfile({
               value={formatMoney(c.total_spent_minor, currency)}
             />
           </div>
-          {canAdjustLoyalty && (
+          {canAdjustLoyalty && c.membership_eligible && (
             <Button
               className="mobile-page-action"
               variant="ghost"
@@ -363,6 +363,12 @@ export function CustomerProfile({
             >
               Adjust loyalty points
             </Button>
+          )}
+          {!c.membership_eligible && (
+            <p className="text-[12px] text-ink-600">
+              The customer must join membership from their storefront Profile
+              before earning or redeeming loyalty points.
+            </p>
           )}
 
           <div>

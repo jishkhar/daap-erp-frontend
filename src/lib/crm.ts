@@ -1,6 +1,7 @@
 import type { Channel, CustomerAddress } from "@/lib/erp";
 
-export type Segment = "vip" | "new" | "regular" | "inactive";
+export type Segment =
+  "regular" | "silver" | "gold" | "platinum" | "inactive" | "not_member";
 export type MessageChannel = "whatsapp" | "sms" | "email";
 
 export const SEGMENT_META: Record<
@@ -11,20 +12,30 @@ export const SEGMENT_META: Record<
     rule: string;
   }
 > = {
-  vip: {
-    label: "VIP",
-    tone: "warning",
-    rule: "Loyalty points meet or exceed the VIP threshold.",
-  },
-  new: {
-    label: "New",
-    tone: "violet",
-    rule: "Joined in the last 30 days with at most one order.",
+  not_member: {
+    label: "Not a member",
+    tone: "neutral",
+    rule: "Has not completed membership enrollment with name, date of birth, phone and email.",
   },
   regular: {
     label: "Regular",
     tone: "neutral",
-    rule: "Everyone else who is buying.",
+    rule: "Below the Silver loyalty-point threshold.",
+  },
+  silver: {
+    label: "Silver",
+    tone: "neutral",
+    rule: "Meets the Silver threshold, below Gold.",
+  },
+  gold: {
+    label: "Gold",
+    tone: "warning",
+    rule: "Meets the Gold threshold, below Platinum.",
+  },
+  platinum: {
+    label: "Platinum",
+    tone: "violet",
+    rule: "Meets the highest loyalty-point threshold.",
   },
   inactive: {
     label: "Inactive",
@@ -32,7 +43,14 @@ export const SEGMENT_META: Record<
     rule: "Has ordered before, but not within the inactive window.",
   },
 };
-export const SEGMENT_ORDER: Segment[] = ["vip", "new", "regular", "inactive"];
+export const SEGMENT_ORDER: Segment[] = [
+  "regular",
+  "silver",
+  "gold",
+  "platinum",
+  "inactive",
+  "not_member",
+];
 
 export const MESSAGE_CHANNELS: Record<MessageChannel, string> = {
   whatsapp: "WhatsApp",
@@ -54,6 +72,8 @@ export type CrmCustomer = {
   last_order_at: string | null;
   created_at: string;
   segment: Segment;
+  membership_eligible: boolean;
+  membership_joined_at: string | null;
   loyalty_points: number;
 };
 
@@ -70,7 +90,7 @@ export type CrmProfile = CrmCustomer & {
 export type CrmSummary = {
   total_customers: number;
   active_customers: number;
-  vip_customers: number;
+  platinum_customers: number;
   new_this_month: number;
   avg_purchase_value_minor: number;
   repeat_rate_pct: number;
@@ -79,7 +99,9 @@ export type CrmSummary = {
 };
 
 export type CrmSettings = {
-  vip_min_points: number;
+  silver_min_points: number;
+  gold_min_points: number;
+  platinum_min_points: number;
   inactive_after_days: number;
   points_per_100: number;
   redemption_points: number;
@@ -132,7 +154,14 @@ export type LoyaltyOverview = {
   members: number;
   points_earned: number;
   points_adjusted: number;
-  top: { id: string; name: string; segment: Segment; loyalty_points: number }[];
+  top: {
+    id: string;
+    customer_code: string | null;
+    name: string;
+    segment: Segment;
+    loyalty_points: number;
+    credit_balance_minor: number;
+  }[];
   recent: {
     id: string;
     customer_id: string;
@@ -147,6 +176,7 @@ export type CrmAnalytics = {
   customer_growth: { month: string; customers: number }[];
   top_customers: {
     id: string;
+    customer_code: string | null;
     name: string;
     segment: Segment;
     total_orders: number;

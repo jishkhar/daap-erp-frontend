@@ -3,6 +3,7 @@
 import { ArrowLeftRight, Inbox, Search, Undo2 } from "lucide-react";
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { PortalShell } from "@/components/portal/PortalShell";
 import {
   ReturnDetailPanel,
@@ -15,8 +16,8 @@ import { SkeletonLines } from "@/components/ui/Skeleton";
 import { useReturnList } from "@/hooks/useReturns";
 import { useActiveBranch } from "@/lib/branch";
 import { cn } from "@/lib/cn";
-import { formatMoney, humanize } from "@/lib/erp";
 import { useGlobalFilter } from "@/lib/globalFilter";
+import { channelLabel, formatMoney } from "@/lib/erp";
 import { REASON_LABEL, REFUND_LABEL } from "@/lib/returns";
 import { useDebounced } from "@/lib/useDebounced";
 
@@ -78,7 +79,7 @@ function ReturnsView() {
     },
     {
       key: "requests",
-      label: "Website requests",
+      label: "New Request",
       icon: <Inbox size={16} />,
       count: counts?.requests,
     },
@@ -141,7 +142,7 @@ function ReturnsView() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by bill, order, return number, customer or product…"
+                placeholder="Search by bill, order, return number, customer ID, name, phone or product…"
                 className="min-w-0 w-full bg-transparent text-[14px] text-ink-900 outline-none placeholder:text-ink-400"
               />
             </label>
@@ -172,7 +173,9 @@ function ReturnsView() {
                     <th className="py-space-2 pr-space-3">Date & time</th>
                     <th className="py-space-2 pr-space-3">Return</th>
                     <th className="py-space-2 pr-space-3">Bill</th>
-                    <th className="py-space-2 pr-space-3">Customer</th>
+                    <th className="py-space-2 pr-space-3">
+                      Customer ID & details
+                    </th>
                     <th className="py-space-2 pr-space-3">Item(s)</th>
                     <th className="py-space-2 pr-space-3">Reason</th>
                     <th className="py-space-2 pr-space-3 text-right">Qty</th>
@@ -211,11 +214,33 @@ function ReturnsView() {
                         {r.bill_number ?? r.order_number}
                         <br />
                         <span className="text-[11.5px] font-normal text-ink-400">
-                          {humanize(r.order_channel)}
+                          {channelLabel(r.order_channel)}
                         </span>
                       </td>
-                      <td className="max-w-[140px] truncate py-space-2 pr-space-3">
-                        {r.customer_name ?? "Walk-in"}
+                      <td className="min-w-[180px] max-w-[240px] py-space-2 pr-space-3 whitespace-normal">
+                        {r.customer_id ? (
+                          <Link
+                            href={`/portal/customers/${r.customer_id}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="font-semibold text-brand-700 hover:underline"
+                          >
+                            {r.customer_code ?? "Customer details"}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-ink-600">
+                            {r.customer_code ?? "Walk-in"}
+                          </span>
+                        )}
+                        {(r.customer_name || r.customer_id) && (
+                          <span className="block break-words text-[12.5px] text-ink-900">
+                            {r.customer_name || "Unnamed customer"}
+                          </span>
+                        )}
+                        {r.customer_phone && (
+                          <span className="block whitespace-nowrap text-[12px] text-ink-600">
+                            {r.customer_phone}
+                          </span>
+                        )}
                       </td>
                       <td className="max-w-[180px] truncate py-space-2 pr-space-3">
                         {r.first_item_name}

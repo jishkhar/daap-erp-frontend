@@ -62,7 +62,7 @@ function paint(
       fillOpacity: 1,
     })
       .bindTooltip(
-        `${b.name}${b.delivers ? "" : " (doesn't deliver online orders)"}`,
+        `${b.name}${b.delivers ? "" : " (doesn't deliver website orders)"}`,
         { permanent: data.branches.length <= 6, direction: "top" },
       )
       .addTo(marks);

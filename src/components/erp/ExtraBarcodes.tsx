@@ -65,9 +65,6 @@ export function ExtraBarcodes({ product }: { product: Product | null }) {
 
   return (
     <div className="sm:col-span-2">
-      <p className="text-[13px] font-semibold text-ink-900">
-        Manufacturer barcodes
-      </p>
       <p className="mb-space-2 text-[12px] text-ink-400">
         The barcode on a supplier&apos;s box. Scanning it opens this same
         product and shares its stock. Your own shop label above is the one that

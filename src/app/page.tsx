@@ -20,7 +20,7 @@ const FEATURES = [
   },
   {
     title: "Every channel",
-    desc: "Online, POS and WhatsApp, branch-aware",
+    desc: "Website, POS and WhatsApp, branch-aware",
     icon: TaskDone01Icon,
   },
   {
@@ -64,8 +64,8 @@ export default function HomePage() {
               </p>
 
               <h1 className="text-display-lg mb-space-5 max-w-[650px]">
-                Sell on <span className="text-brand-600">WhatsApp</span>, online
-                and POS. Managed from one ERP dashboard.
+                Sell on <span className="text-brand-600">WhatsApp</span>,
+                Website and POS. Managed from one ERP dashboard.
               </h1>
 
               <p className="text-body mb-space-6 max-w-[620px]">

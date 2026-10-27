@@ -10,7 +10,7 @@ import {
 // Service and plan badges, kept separate so a screen shows only what it needs: a table whose column already names the service shows just
 // the plan; a list that mixes services shows both. A copy of this file lives in shopconnect-admin (components/ui/ServicePlanBadge.tsx) -- keep the two in step.
 
-/** A service in its own colour: Online blue, POS teal, WhatsApp green. */
+/** A service in its own colour: Website blue, POS teal, WhatsApp green. */
 export function ServiceBadge({
   service,
   className,
