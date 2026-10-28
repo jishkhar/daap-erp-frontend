@@ -41,8 +41,11 @@ const under = (path: string, prefix: string) =>
 
 // Optional modules (Settings > Modules): their pages don't open while the module is off for the business, whatever the role allows.
 const MODULE_ROUTES: [prefix: string, module: string][] = [
+  ["/portal/procurement", "procurement"],
   ["/portal/wholesale", "wholesale"],
+  ["/portal/inventory", "inventory"],
   ["/portal/transfers", "transfers"],
+  ["/portal/finance", "finance"],
   ["/portal/attendance", "workforce"],
   ["/portal/attendance-overview", "workforce"],
   ["/portal/check-in-out", "workforce"],

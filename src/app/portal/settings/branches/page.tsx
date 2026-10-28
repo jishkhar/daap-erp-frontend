@@ -161,15 +161,17 @@ export default function BranchesPage() {
               </Link>{" "}
               on its page.
             </li>
-            <li>
-              <Link
-                className="font-semibold text-brand-700 underline"
-                href="/portal/inventory"
-              >
-                Receive opening stock
-              </Link>{" "}
-              into it.
-            </li>
+            {session?.modules?.inventory !== false && (
+              <li>
+                <Link
+                  className="font-semibold text-brand-700 underline"
+                  href="/portal/inventory"
+                >
+                  Receive opening stock
+                </Link>{" "}
+                into it.
+              </li>
+            )}
           </ul>
           <button
             type="button"

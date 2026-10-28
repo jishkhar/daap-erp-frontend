@@ -741,7 +741,7 @@ export function ProductEditor({ product }: { product?: Product }) {
               </div>
             </div>
           </Section>
-          {product && (
+          {product && session?.modules?.inventory !== false && (
             <Section title="Stock management">
               <p className="mb-3 text-sm text-ink-600">
                 Receive stock and review movements in Inventory.

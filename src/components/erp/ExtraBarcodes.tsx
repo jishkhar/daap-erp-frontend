@@ -16,6 +16,7 @@ import {
 import { useSuppliers } from "@/hooks/useProcurement";
 import { useProductBarcodes } from "@/hooks/useProducts";
 import type { Product } from "@/lib/erp";
+import { useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 /**
@@ -28,7 +29,8 @@ export function ExtraBarcodes({ product }: { product: Product | null }) {
   const [supplierId, setSupplierId] = useState("");
   const [maker, setMaker] = useState("");
   const [value, setValue] = useState("");
-  const suppliers = useSuppliers(Boolean(product));
+  const procurementOn = useStaffSession()?.modules?.procurement !== false;
+  const suppliers = useSuppliers(Boolean(product) && procurementOn);
   const barcodes = useProductBarcodes(product?.id ?? ""); // each change refreshes the product lists, which carry the barcodes
   const busy = barcodes.add.isPending || barcodes.remove.isPending;
   if (!product) return null;
@@ -129,19 +131,21 @@ export function ExtraBarcodes({ product }: { product: Product | null }) {
             }
           }}
         />
-        <Select
-          aria-label="Supplier this barcode came from"
-          className="w-44"
-          value={supplierId}
-          onValueChange={(value) => setSupplierId(value)}
-        >
-          <option value="">Supplier (optional)</option>
-          {(suppliers.data ?? []).map((sp) => (
-            <option key={sp.id} value={sp.id}>
-              {sp.name}
-            </option>
-          ))}
-        </Select>
+        {procurementOn && (
+          <Select
+            aria-label="Supplier this barcode came from"
+            className="w-44"
+            value={supplierId}
+            onValueChange={(value) => setSupplierId(value)}
+          >
+            <option value="">Supplier (optional)</option>
+            {(suppliers.data ?? []).map((sp) => (
+              <option key={sp.id} value={sp.id}>
+                {sp.name}
+              </option>
+            ))}
+          </Select>
+        )}
         {!supplierId && (
           <Input
             aria-label="Maker or brand when the supplier is not known"

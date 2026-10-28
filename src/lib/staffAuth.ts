@@ -108,6 +108,17 @@ export function clearStaffSession() {
   notifyStorageChange();
 }
 
+/** The optional modules (services/optional_modules.py): Back office and its modules, and Workforce. */
+const OPTIONAL_MODULES = new Set([
+  "back_office",
+  "procurement",
+  "wholesale",
+  "inventory",
+  "transfers",
+  "finance",
+  "workforce",
+]);
+
 /** A service whose plan ended is refused by the server (403, reason service_ended / access_ended). Re-read who-am-I so its lock shows at once. */
 let refreshingForEnded = false;
 function noteServiceEnded(status: number, data: unknown) {
@@ -116,10 +127,7 @@ function noteServiceEnded(status: number, data: unknown) {
   )?.error;
   const reason = err?.reason;
   // a service that ended, or an optional module switched off (by the business or the platform): re-read the session so the menu follows
-  const moduleOff =
-    err?.feature === "wholesale" ||
-    err?.feature === "transfers" ||
-    err?.feature === "workforce";
+  const moduleOff = !!err?.feature && OPTIONAL_MODULES.has(err.feature);
   if (
     status === 403 &&
     (reason === "service_ended" || reason === "access_ended" || moduleOff) &&

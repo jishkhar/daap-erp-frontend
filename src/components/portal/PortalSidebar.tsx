@@ -324,8 +324,9 @@ type Props = {
   onClose?: () => void;
 };
 
-/** A sidebar item whose key names an access module ("whatsapp-inbox" -> whatsapp_inbox) is hidden when that module is off; the whole
- * Workforce group is the one optional module "workforce"; the rest are unaffected. */
+/** A sidebar item whose key names an access module ("whatsapp-inbox" -> whatsapp_inbox) is hidden when that module is off; each Back Office
+ * item is its own optional module (off too while Back office is off: the server works that out); the whole Workforce group is the one
+ * optional module "workforce"; the rest are unaffected. */
 function moduleOn(
   modules: Record<string, boolean> | undefined,
   item: NavItem,

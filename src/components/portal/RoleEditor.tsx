@@ -70,10 +70,14 @@ export function RoleEditor({ role }: { role?: Role }) {
   const pages = useMemo(() => {
     const off = (m: string) => session?.modules?.[m] === false;
     const MODULE_PAGES: Record<string, string> = {
+      procurement: "procurement",
+      suppliers: "procurement",
       wholesale: "wholesale",
       customer_accounts: "wholesale",
       price_lists: "wholesale",
+      inventory: "inventory",
       transfers: "transfers",
+      finance: "finance",
     };
     return (catalogue.data?.pages ?? []).filter(
       (p) =>

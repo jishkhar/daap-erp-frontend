@@ -11,10 +11,22 @@ import { StatTile } from "@/components/portal/StatTile";
 import type { Dashboard } from "@/hooks/useDashboard";
 import { formatMoney } from "@/lib/erp";
 import { prevText } from "@/lib/globalFilter";
+import { useStaffSession } from "@/lib/staffAuth";
 import { pctChange } from "./format";
 
+/** A tile that links to its page, or stays a plain tile when that page is off (an optional module switched off). */
+function TileLink({
+  href,
+  children,
+}: {
+  href: string | null;
+  children: React.ReactNode;
+}) {
+  return href ? <Link href={href}>{children}</Link> : <div>{children}</div>;
+}
+
 /** The headline numbers for the global filter's period, each against the period before it (stock is as of now). Each is a link to the
- * page behind it; a tile is left out when the person may not see its figure. */
+ * page behind it (stock: while Inventory is on); a tile is left out when the person may not see its figure. */
 export function KpiRow({
   data,
   currency,
@@ -25,6 +37,10 @@ export function KpiRow({
   const loading = !data;
   const s = data?.sales;
   const vs = prevText(data?.period);
+  const stockHref =
+    useStaffSession()?.modules?.inventory === false
+      ? null
+      : "/portal/inventory";
   return (
     <div className="mb-space-4 grid gap-space-3 sm:grid-cols-2 xl:grid-cols-3">
       <Link href="/portal/orders">
@@ -66,7 +82,7 @@ export function KpiRow({
         </Link>
       )}
       {(loading || data.stock) && (
-        <Link href="/portal/inventory">
+        <TileLink href={stockHref}>
           <StatTile
             loading={loading}
             label="Stock value"
@@ -76,7 +92,7 @@ export function KpiRow({
             tone="clay"
             icon={<Boxes size={22} />}
           />
-        </Link>
+        </TileLink>
       )}
       <Link href="/portal/returns">
         <StatTile
@@ -97,7 +113,7 @@ export function KpiRow({
         />
       </Link>
       {(loading || data.stock) && (
-        <Link href="/portal/inventory">
+        <TileLink href={stockHref}>
           <StatTile
             loading={loading}
             label="Low-stock items"
@@ -107,7 +123,7 @@ export function KpiRow({
             tone="warning"
             icon={<AlertTriangle size={22} />}
           />
-        </Link>
+        </TileLink>
       )}
     </div>
   );

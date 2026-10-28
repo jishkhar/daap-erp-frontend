@@ -8,14 +8,15 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonLines } from "@/components/ui/Skeleton";
-import { Switch } from "@/components/ui/Switch";
 import { useLabelSettings, useSaveLabelSettings } from "@/hooks/useLabels";
 import { MAKER_BARCODE_CHOICES, type LabelSettings } from "@/lib/labels";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-/** Settings > Barcode labels: which products the tills are asked to label, and whether a price change asks for new labels. Labels are
- * printed on the till (it has the label printer); goods received, price changes and "Send labels to till" ask for them. */
+/** Settings > Barcode labels: which products the tills are asked to label. Labels are printed on the till (it has the label printer);
+ * goods received and "Send labels to till" ask for them. One label per product, never reprinted for a price change: the till bills the
+ * current price when the barcode is scanned. (The "relabel when a price changes" setting is kept on the server, switched off, and not
+ * offered here; saving leaves it as it is.) */
 export default function LabelSettingsPage() {
   const { tenant, ready } = usePortalGuard();
   const session = useStaffSession();
@@ -35,7 +36,7 @@ export default function LabelSettingsPage() {
       <PageHeader
         icon={<Tag size={20} />}
         title="Barcode labels"
-        description="Your shop's own barcode stickers. Tills print them; goods received, price changes and labels you send ask for them."
+        description="Your shop's own barcode stickers, one per product. Tills print them; goods received and labels you send ask for them. A price change needs no new label: the till bills the current price when the barcode is scanned."
       />
       <Card className="max-w-2xl space-y-space-4 p-space-5">
         {!draft ? (
@@ -79,28 +80,6 @@ export default function LabelSettingsPage() {
                 ))}
               </div>
             </fieldset>
-            <div className="flex items-start justify-between gap-space-4 border-t border-line pt-space-4">
-              <div>
-                <h2 className="text-[15px] font-bold text-ink-900">
-                  Relabel when a price changes
-                </h2>
-                <p className="text-[13px] text-ink-600">
-                  Each branch holding the product is asked to print new labels
-                  for everything it has, so shelves never show an old price.
-                  Turn off if your labels do not show prices.
-                </p>
-              </div>
-              <Switch
-                checked={draft.relabel_on_price_change}
-                disabled={!canEdit}
-                onChange={() =>
-                  setDraft({
-                    ...draft,
-                    relabel_on_price_change: !draft.relabel_on_price_change,
-                  })
-                }
-              />
-            </div>
             {canEdit ? (
               <div className="mobile-page-actions flex justify-end gap-space-2">
                 <Button
