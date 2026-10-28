@@ -296,14 +296,6 @@ export function WhatsAppConnect() {
             ? "Hide the Meta walkthrough"
             : "Show me where to click in Meta"}
         </Button>
-        <p className="mt-space-2 text-[12.5px] text-ink-400">
-          {a.webhook_verified_at
-            ? `Meta verified the webhook on ${formatDateTime(a.webhook_verified_at)}. `
-            : ""}
-          {a.last_message_at
-            ? `Last message received ${formatDateTime(a.last_message_at)}.`
-            : "No message received yet: send one to your number to test."}
-        </p>
       </Card>
 
       {guide && (
