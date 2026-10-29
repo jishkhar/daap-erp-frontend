@@ -3,6 +3,7 @@
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MessageList } from "@/components/crm/shared";
 import { Badge } from "@/components/ui/Badge";
@@ -25,6 +26,10 @@ import {
   type MessageChannel,
   type Segment,
 } from "@/lib/crm";
+import {
+  useWhatsAppTemplates,
+  type WhatsAppTemplate,
+} from "@/hooks/useWhatsApp";
 import { erp, useErpQuery, type Discount } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
@@ -36,6 +41,9 @@ type Form = {
   discountId: string;
   subject: string;
   message: string;
+  /** WhatsApp: the approved template, as "name|language", and one value per {{n}}. */
+  template: string;
+  params: string[];
 };
 const EMPTY: Form = {
   name: "",
@@ -45,7 +53,20 @@ const EMPTY: Form = {
   discountId: "",
   subject: "",
   message: "Hi {{name}}, ",
+  template: "",
+  params: [],
 };
+
+const templateKey = (t: { name: string; language?: string | null }) =>
+  `${t.name}|${t.language ?? ""}`;
+
+/** The template's body with the values typed so far in place of {{1}}, {{2}} … (tokens like {{name}} left as they are). */
+function fillPreview(body: string, params: string[]) {
+  return body.replace(
+    /\{\{\s*(\d+)\s*\}\}/g,
+    (whole, n) => params[Number(n) - 1] || whole,
+  );
+}
 
 function audienceLabel(a: Campaign["audience"]) {
   const parts = [
@@ -79,6 +100,27 @@ export function CampaignsTab({
     total: number;
     reachable: number;
   } | null>(null);
+  const templates = useWhatsAppTemplates();
+  const usable = (templates.data ?? []).filter((t) => t.usable);
+  const chosen: WhatsAppTemplate | undefined = usable.find(
+    (t) => templateKey(t) === form.template,
+  );
+  const whatsapp = form.channel === "whatsapp";
+  const { refetch: loadTemplates } = templates;
+
+  // Meta's templates are read when a WhatsApp campaign is being written (not on every page view)
+  useEffect(() => {
+    if (editing !== null && whatsapp) loadTemplates();
+  }, [editing, whatsapp, loadTemplates]);
+
+  // a campaign that is going out: refresh until it's done, so the counts move on their own
+  const { reload: reloadCampaigns } = campaigns;
+  const anySending = (campaigns.data ?? []).some((k) => k.status === "sending");
+  useEffect(() => {
+    if (!anySending) return;
+    const timer = setInterval(reloadCampaigns, 5000);
+    return () => clearInterval(timer);
+  }, [anySending, reloadCampaigns]);
 
   useEffect(() => {
     if (editing === null) return;
@@ -112,6 +154,13 @@ export function CampaignsTab({
       discountId: k.discount_id ?? "",
       subject: k.subject ?? "",
       message: k.message,
+      template: k.whatsapp_template
+        ? templateKey({
+            name: k.whatsapp_template,
+            language: k.template_language,
+          })
+        : "",
+      params: k.template_params ?? [],
     });
     setEditing(k);
   }
@@ -125,6 +174,13 @@ export function CampaignsTab({
       subject: form.channel === "email" ? form.subject.trim() || null : null,
       message: form.message,
       discount_id: form.discountId || null,
+      ...(whatsapp && chosen
+        ? {
+            whatsapp_template: chosen.name,
+            template_language: chosen.language ?? null,
+            template_params: form.params.slice(0, chosen.variables ?? 0),
+          }
+        : {}),
     };
     const res =
       editing === "new"
@@ -152,7 +208,12 @@ export function CampaignsTab({
     setSending(null);
     if (res.error) return toast.error("Couldn't send the campaign", res.error);
     const k = res.data!;
-    if (k.delivered_count === k.recipient_count)
+    if (k.status === "sending")
+      toast.success(
+        `Sending to ${k.recipient_count} customers`,
+        "The messages go out over the next minute. Delivered and read counts update here.",
+      );
+    else if (k.delivered_count === k.recipient_count)
       toast.success(`Sent to ${k.delivered_count} customers`);
     else
       toast.info(
@@ -202,19 +263,37 @@ export function CampaignsTab({
       {
         header: "Status",
         cell: ({ row }) => (
-          <Badge tone={row.original.status === "sent" ? "success" : "neutral"}>
-            {row.original.status}
+          <Badge
+            tone={
+              row.original.status === "sent"
+                ? "success"
+                : row.original.status === "sending"
+                  ? "warning"
+                  : "neutral"
+            }
+          >
+            {row.original.status === "sending"
+              ? "Sending…"
+              : row.original.status}
           </Badge>
         ),
       },
       {
         header: "Reach",
-        cell: ({ row }) =>
-          row.original.status === "sent" ? (
-            `${row.original.delivered_count} / ${row.original.recipient_count} delivered`
-          ) : (
-            <span className="text-ink-400">—</span>
-          ),
+        cell: ({ row }) => {
+          const k = row.original;
+          if (k.status === "draft")
+            return <span className="text-ink-400">—</span>;
+          if (k.channel !== "whatsapp")
+            return `${k.delivered_count} / ${k.recipient_count} delivered`;
+          return (
+            <span className="text-ink-600">
+              {k.delivered_n} delivered · {k.read_n} read
+              {k.failed_n ? ` · ${k.failed_n} failed` : ""}
+              <span className="text-ink-400"> of {k.recipient_count}</span>
+            </span>
+          );
+        },
       },
       {
         header: "Sent",
@@ -231,7 +310,7 @@ export function CampaignsTab({
           const k = row.original;
           return (
             <span className="flex justify-end gap-space-1">
-              {k.status === "sent" && (
+              {k.status !== "draft" && (
                 <Button variant="ghost" onClick={() => setViewing(k)}>
                   Messages
                 </Button>
@@ -297,14 +376,28 @@ export function CampaignsTab({
         open={editing !== null}
         onClose={() => setEditing(null)}
         title={editing === "new" ? "New campaign" : "Edit campaign"}
-        description="Use {{name}} for the customer's first name and {{code}} for the discount code."
+        description={
+          whatsapp
+            ? "WhatsApp campaigns send one of your approved Meta templates, to customers who said yes to offers."
+            : "Use {{name}} for the customer's first name and {{code}} for the discount code."
+        }
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>
               Cancel
             </Button>
             <Button
-              disabled={busy || !form.name.trim() || !form.message.trim()}
+              disabled={
+                busy ||
+                !form.name.trim() ||
+                !form.message.trim() ||
+                (whatsapp &&
+                  (!chosen ||
+                    form.params
+                      .slice(0, chosen.variables ?? 0)
+                      .filter((v) => v.trim()).length !==
+                      (chosen.variables ?? 0)))
+              }
               onClick={save}
             >
               {editing === "new" ? "Create draft" : "Save"}
@@ -387,6 +480,81 @@ export function CampaignsTab({
             ))}
           </Select>
         </Field>
+        {whatsapp && (
+          <>
+            <Field label="WhatsApp template" htmlFor="k_template" required>
+              <Select
+                id="k_template"
+                value={form.template}
+                onValueChange={(value) =>
+                  setForm({ ...form, template: value, params: [] })
+                }
+              >
+                <option value="">
+                  {templates.isFetching
+                    ? "Loading templates…"
+                    : "Choose a template"}
+                </option>
+                {usable.map((t) => (
+                  <option key={templateKey(t)} value={templateKey(t)}>
+                    {t.name} ({t.language})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {templates.error && (
+              <p className="text-[12.5px] text-error">
+                Couldn&apos;t read your WhatsApp templates.{" "}
+                <Link
+                  href="/portal/settings/channels/whatsapp"
+                  className="underline"
+                >
+                  Check the WhatsApp connection
+                </Link>
+                .
+              </p>
+            )}
+            {!templates.isFetching && templates.data && usable.length === 0 && (
+              <p className="text-[12.5px] text-ink-600">
+                No approved marketing or utility templates yet. Create one in
+                Meta&apos;s WhatsApp Manager (Message templates); once Meta
+                approves it, it appears here.
+              </p>
+            )}
+            {chosen && (
+              <>
+                <div className="rounded-md bg-ink-50 px-space-3 py-space-2 text-[13px] whitespace-pre-wrap text-ink-900">
+                  {fillPreview(chosen.body ?? "", form.params)}
+                </div>
+                {Array.from({ length: chosen.variables ?? 0 }, (_, i) => (
+                  <Field
+                    key={i}
+                    label={`Value for {{${i + 1}}}`}
+                    htmlFor={`k_param_${i}`}
+                    required
+                  >
+                    <Input
+                      id={`k_param_${i}`}
+                      value={form.params[i] ?? ""}
+                      placeholder={
+                        i === 0 ? "{{name}}" : "e.g. {{code}} or fixed text"
+                      }
+                      onChange={(e) => {
+                        const params = [...form.params];
+                        params[i] = e.target.value;
+                        setForm({ ...form, params });
+                      }}
+                    />
+                  </Field>
+                ))}
+                <p className="text-[12.5px] text-ink-600">
+                  In a value, {"{{name}}"} becomes each customer&apos;s first
+                  name and {"{{code}}"} the discount code.
+                </p>
+              </>
+            )}
+          </>
+        )}
         {form.channel === "email" && (
           <Field label="Subject" htmlFor="k_subject">
             <Input
@@ -396,7 +564,11 @@ export function CampaignsTab({
             />
           </Field>
         )}
-        <Field label="Message" htmlFor="k_msg" required>
+        <Field
+          label={whatsapp ? "Internal note" : "Message"}
+          htmlFor="k_msg"
+          required
+        >
           <textarea
             id="k_msg"
             rows={5}

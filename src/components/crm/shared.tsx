@@ -108,13 +108,19 @@ export function KpiTile({
 }
 
 const STATUS_TONE = {
-  sent: "success",
   queued: "warning",
+  sending: "warning",
+  sent: "success",
+  delivered: "success",
+  read: "success",
   failed: "error",
 } as const;
 const STATUS_LABEL = {
-  sent: "Sent",
   queued: "Saved, not sent",
+  sending: "Sending",
+  sent: "Sent",
+  delivered: "Delivered",
+  read: "Read",
   failed: "Failed",
 } as const;
 
@@ -135,7 +141,11 @@ export function MessageList({
         <li key={m.id} className="py-space-2 text-[13.5px]">
           <div className="flex flex-wrap items-center gap-space-2">
             <Badge tone="clay">{MESSAGE_CHANNELS[m.channel]}</Badge>
-            <Badge tone={STATUS_TONE[m.status]}>{STATUS_LABEL[m.status]}</Badge>
+            <Badge tone={STATUS_TONE[m.status]}>
+              {m.status === "queued" && m.channel === "whatsapp"
+                ? "Waiting to send"
+                : STATUS_LABEL[m.status]}
+            </Badge>
             {showCustomer && (
               <span className="font-semibold text-ink-900">
                 {m.customer_name}
