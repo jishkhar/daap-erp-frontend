@@ -31,6 +31,8 @@ import type { CrmSummary, Segment } from "@/lib/crm";
 import { erp, formatMoney, useErpQuery } from "@/lib/erp";
 import { hasPermission, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 type Tab =
   | "customers"
@@ -77,10 +79,12 @@ export default function CustomersPage() {
   async function create() {
     if (busy || !form.name.trim() || (!form.phone.trim() && !form.email.trim()))
       return;
+    const bad = phoneError(form.phone);
+    if (bad) return toast.error("Check the phone number", bad);
     setBusy(true);
     const res = await erp("/api/v1/customers", "POST", {
       name: form.name.trim(),
-      phone: form.phone.trim() || null,
+      phone: toE164(form.phone),
       email: form.email.trim() || null,
     });
     setBusy(false);
@@ -262,13 +266,11 @@ export default function CustomersPage() {
             required={!form.email.trim()}
             hint="Phone or email is required; either one is enough."
           >
-            <Input
+            <PhoneInput
               id="c_phone"
-              type="tel"
               required={!form.email.trim()}
-              inputMode="tel"
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(phone) => setForm({ ...form, phone })}
             />
           </Field>
           <Field label="Email" htmlFor="c_email" required={!form.phone.trim()}>

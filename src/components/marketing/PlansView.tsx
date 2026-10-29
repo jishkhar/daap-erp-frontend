@@ -184,7 +184,9 @@ export function PlansView() {
                 ))}
               </ul>
               {custom ? (
-                <DemoRequestButton>Contact us</DemoRequestButton>
+                <DemoRequestButton service={service}>
+                  Contact us
+                </DemoRequestButton>
               ) : (
                 <Button
                   href="/auth"

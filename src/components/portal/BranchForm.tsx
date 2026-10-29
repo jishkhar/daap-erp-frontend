@@ -6,9 +6,9 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import {
   digitsOnly,
-  formatPhone,
   type BranchDraft,
   type BranchErrors,
 } from "@/lib/branchSchema";
@@ -170,16 +170,14 @@ export function BranchForm({
           htmlFor="b_phone"
           required
           error={e.phone}
-          hint="Mobile or landline, e.g. 98765 43210."
+          hint="Mobile, or a landline with its STD code."
         >
-          <Input
+          <PhoneInput
             id="b_phone"
-            type="tel"
-            inputMode="tel"
+            kind="any"
             invalid={!!e.phone}
             value={draft.phone}
-            onChange={(ev) => set({ phone: ev.target.value })}
-            onBlur={() => set({ phone: formatPhone(draft.phone) })}
+            onChange={(phone) => set({ phone })}
           />
         </Field>
         <Field label="Email" htmlFor="b_email" error={e.email}>

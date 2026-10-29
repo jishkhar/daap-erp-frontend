@@ -25,6 +25,7 @@ import { formatMoney } from "@/lib/erp";
 import { formatShortDateTime, formatTimeOnly } from "@/lib/formatDate";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { formatPhone } from "@/lib/phone";
 
 type Filter = "waiting" | "all";
 
@@ -300,7 +301,7 @@ function Thread({
             >
               {c.customer.name || "Customer"}
             </Link>
-            <div>{c.customer.phone}</div>
+            <div>{formatPhone(c.customer.phone)}</div>
             {c.customer.email && <div>{c.customer.email}</div>}
           </div>
         ) : (

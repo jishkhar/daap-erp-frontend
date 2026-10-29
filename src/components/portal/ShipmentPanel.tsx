@@ -20,6 +20,8 @@ import {
 } from "@/hooks/useShipments";
 import { formatDateTime, formatMoney, humanize } from "@/lib/erp";
 import { toast } from "@/lib/toast";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { formatPhone, phoneError, toE164 } from "@/lib/phone";
 
 const TONE: Partial<
   Record<ShipmentStatus, "success" | "warning" | "neutral" | "info" | "error">
@@ -73,7 +75,7 @@ const bodyOf = (d: Draft): ShipmentDetails => ({
   tracking_number: d.tracking.trim() || null,
   tracking_url: d.url.trim() || null,
   rider_name: d.rider.trim() || null,
-  rider_phone: d.phone.trim() || null,
+  rider_phone: toE164(d.phone),
   weight_g: d.weight.trim() ? Math.round(Number(d.weight)) : null,
   cost_minor: d.cost.trim() ? Math.round(Number(d.cost) * 100) : null,
   notes: d.notes.trim() || null,
@@ -118,6 +120,8 @@ export function ShipmentPanel({
 
   const save = () => {
     if (!form) return;
+    const bad = phoneError(form.draft.phone);
+    if (bad) return toast.error("Check the rider's phone", bad);
     const body = bodyOf(form.draft);
     const opts = {
       onSuccess: () => {
@@ -205,7 +209,7 @@ export function ShipmentPanel({
           <p className="text-ink-600">
             {[
               live.rider_name &&
-                `Rider ${live.rider_name}${live.rider_phone ? ` (${live.rider_phone})` : ""}`,
+                `Rider ${live.rider_name}${live.rider_phone ? ` (${formatPhone(live.rider_phone)})` : ""}`,
               live.weight_g && `${live.weight_g} g`,
               live.cod_amount_minor > 0 &&
                 `collect ${formatMoney(live.cod_amount_minor, currency)}`,
@@ -300,7 +304,15 @@ export function ShipmentPanel({
               })}
             </div>
             {field("rider", "Rider's name")}
-            {field("phone", "Rider's phone", { inputMode: "tel" })}
+            <Field label="Rider's phone" htmlFor="sh-phone">
+              <PhoneInput
+                id="sh-phone"
+                value={form?.draft.phone ?? ""}
+                onChange={(phone) =>
+                  form && setForm({ ...form, draft: { ...form.draft, phone } })
+                }
+              />
+            </Field>
             {field("weight", "Weight (grams)", { inputMode: "numeric" })}
             {field("cost", `What it costs us (${currency})`, {
               inputMode: "decimal",

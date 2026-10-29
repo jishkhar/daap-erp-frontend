@@ -38,6 +38,7 @@ import {
 } from "@/lib/returns";
 import { hasGrant, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { formatPhone } from "@/lib/phone";
 
 export const ReturnStatusBadge = ({
   r,
@@ -207,7 +208,7 @@ export function ReturnDetailPanel({
                       .filter(Boolean)
                       .join(", ")}
                   </p>
-                  {address.phone && <p>{address.phone}</p>}
+                  {address.phone && <p>{formatPhone(address.phone)}</p>}
                 </div>
               ))}
             </div>

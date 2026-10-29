@@ -33,6 +33,8 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 export default function TeamAccessPage() {
   const { tenant, ready } = usePortalGuard();
@@ -144,13 +146,15 @@ export default function TeamAccessPage() {
     after?.();
   }
 
-  const createUser = () =>
-    run(
+  const createUser = () => {
+    const bad = phoneError(form.phone);
+    if (bad) return toast.error("Check the phone number", bad);
+    return run(
       () =>
         createPerson.mutateAsync({
           name: form.name.trim(),
           email: form.email.trim(),
-          phone: form.phone.trim() || null,
+          phone: toE164(form.phone),
           password: form.password,
           roles: form.role_id
             ? [{ role_id: form.role_id, branch_id: form.branch_id || null }]
@@ -169,6 +173,7 @@ export default function TeamAccessPage() {
         });
       },
     );
+  };
 
   return (
     <PortalShell tenant={tenant} active="staff">
@@ -245,11 +250,11 @@ export default function TeamAccessPage() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
           </Field>
-          <Field label="Phone" htmlFor="u_phone">
-            <Input
+          <Field label="Phone" htmlFor="u_phone" hint="Mobile number.">
+            <PhoneInput
               id="u_phone"
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(phone) => setForm({ ...form, phone })}
             />
           </Field>
           <Field

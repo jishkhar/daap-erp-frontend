@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { fromMinor, toMinor } from "@/lib/erp";
+import { phoneField } from "@/lib/phone";
 import { isStateName } from "@/lib/states";
 
 /** What the branch form holds: every input as the string (or boolean) the person typed, so the form can show half-typed values. */
@@ -155,20 +156,6 @@ export function branchToDraft(b: BranchRow): BranchDraft {
 export const digitsOnly = (v: string, max?: number) =>
   v.replace(/\D/g, "").slice(0, max);
 
-/** "98765 43210" / "+91 98765-43210" / "09876543210" -> "+919876543210". Anything else is only stripped of spaces and punctuation. */
-export function formatPhone(v: string): string {
-  const stripped = v.replace(/[\s().-]/g, "");
-  if (/^\d{10}$/.test(stripped)) return `+91${stripped}`;
-  if (/^0\d{10}$/.test(stripped)) return `+91${stripped.slice(1)}`;
-  return stripped;
-}
-
-/** "+919876543210" -> "+91 98765 43210" for display in the list. */
-export function displayPhone(v: string | null): string {
-  const m = v?.match(/^\+91(\d{5})(\d{5})$/);
-  return m ? `+91 ${m[1]} ${m[2]}` : (v ?? "");
-}
-
 // ---- validation -------------------------------------------------------------------------------------
 const blank = (v: unknown) =>
   typeof v === "string" && v.trim() === "" ? undefined : v;
@@ -191,19 +178,7 @@ const pincode = (label: string) =>
 export function branchSchema({ gstRequired }: { gstRequired: boolean }) {
   return z.object({
     branch_name: required("Branch name", 120),
-    phone: z
-      .string()
-      .trim()
-      .min(1, "Phone is required.")
-      .transform(formatPhone)
-      .pipe(
-        z
-          .string()
-          .regex(
-            /^\+?\d{7,15}$/,
-            "Enter a valid phone number, e.g. 98765 43210.",
-          ),
-      ),
+    phone: phoneField("any"), // mobile or landline
     email: optional(
       z.string().trim().max(200).email("Enter a valid email address."),
     ),

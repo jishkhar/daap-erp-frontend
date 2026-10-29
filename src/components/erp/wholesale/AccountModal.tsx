@@ -15,6 +15,8 @@ import { fromMinor, toMinor, type Customer } from "@/lib/erp";
 import { stateForGstin } from "@/lib/states";
 import { toast } from "@/lib/toast";
 import { GSTIN_RE, type CustomerAccount } from "@/lib/wholesale";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 type Draft = {
   who: "new" | "existing";
@@ -95,7 +97,9 @@ export function AccountModal({
     ? false
     : draft.who === "existing"
       ? !draft.customer
-      : !draft.name.trim() || !(draft.phone.trim() || draft.email.trim());
+      : !draft.name.trim() ||
+        !(draft.phone.trim() || draft.email.trim()) ||
+        Boolean(phoneError(draft.phone));
   const invalid =
     whoBad ||
     gstinBad ||
@@ -128,7 +132,7 @@ export function AccountModal({
             ...body,
             customer: {
               name: draft.name.trim(),
-              phone: draft.phone.trim() || null,
+              phone: toE164(draft.phone),
               email: draft.email.trim() || null,
             },
           };
@@ -209,12 +213,10 @@ export function AccountModal({
                 />
               </Field>
               <Field label="Phone" htmlFor="a_phone" hint="Phone or email">
-                <Input
+                <PhoneInput
                   id="a_phone"
-                  inputMode="tel"
                   value={draft.phone}
-                  maxLength={20}
-                  onChange={(e) => set({ phone: e.target.value })}
+                  onChange={(phone) => set({ phone })}
                 />
               </Field>
               <Field label="Email" htmlFor="a_email">

@@ -49,6 +49,7 @@ import {
   type StoreCredit,
 } from "@/lib/erp";
 import { toast } from "@/lib/toast";
+import { formatPhone } from "@/lib/phone";
 
 type Tab = "overview" | "orders" | "communication" | "notes";
 const TABS: { key: Tab; label: string }[] = [
@@ -306,7 +307,9 @@ export function CustomerProfile({
         <div className="space-y-space-4">
           <ul className="space-y-space-2">
             <Fact icon={<HugeiconsIcon icon={Call02Icon} size={16} />}>
-              {c.phone ?? <span className="text-ink-400">No phone</span>}
+              {formatPhone(c.phone) || (
+                <span className="text-ink-400">No phone</span>
+              )}
             </Fact>
             <Fact icon={<HugeiconsIcon icon={Mail01Icon} size={16} />}>
               {c.email ?? <span className="text-ink-400">No email</span>}

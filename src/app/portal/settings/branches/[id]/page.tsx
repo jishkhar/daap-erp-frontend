@@ -16,7 +16,7 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { displayPhone } from "@/lib/branchSchema";
+import { formatPhone } from "@/lib/phone";
 import { useBranch } from "@/hooks/useBranches";
 import { formatMoney } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
@@ -123,7 +123,7 @@ export default function BranchDetailPage() {
 
           <div className="flex flex-col gap-space-4">
             <Section title="Contact" onEdit={edit}>
-              <Item label="Phone">{displayPhone(b.phone)}</Item>
+              <Item label="Phone">{formatPhone(b.phone)}</Item>
               <Item label="Email">{b.email}</Item>
               <Item label="Manager">{manager ?? ""}</Item>
             </Section>

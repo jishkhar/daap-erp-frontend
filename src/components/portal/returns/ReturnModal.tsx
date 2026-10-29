@@ -28,6 +28,8 @@ import {
 import { useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { useDebounced } from "@/lib/useDebounced";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 type Picked = { product: ProductWithTax; quantity: number };
 const NOTE_MAX = 500;
@@ -104,7 +106,7 @@ export function ReturnModal({
   const ready =
     lines.length > 0 &&
     (reason !== "other" || note.trim().length > 0) &&
-    (!needsCustomer || phone.trim().length >= 10) &&
+    (!needsCustomer || !phoneError(phone, "mobile", { required: true })) &&
     (kind === "return" || picked.length > 0) &&
     (!isPos || due === 0 || payMethod === "cash" || payRef.trim().length > 0) &&
     !quote.isFetching;
@@ -119,7 +121,7 @@ export function ReturnModal({
         refund_mode: mode,
         branch_id: branchId,
         customer: needsCustomer
-          ? { name: name.trim() || null, phone: phone.trim() }
+          ? { name: name.trim() || null, phone: toE164(phone) ?? "" }
           : null,
         exchange:
           kind === "exchange"
@@ -517,11 +519,11 @@ export function ReturnModal({
                 required
                 hint="Store credit and exchanges need a customer."
               >
-                <Input
+                <PhoneInput
                   id="ret_phone"
-                  inputMode="tel"
+                  required
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={setPhone}
                 />
               </Field>
               <Field label="Customer name" htmlFor="ret_name">

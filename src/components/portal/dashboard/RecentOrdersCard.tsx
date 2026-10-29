@@ -6,6 +6,7 @@ import { SkeletonLines } from "@/components/ui/Skeleton";
 import { useRecentOrders } from "@/hooks/useOrders";
 import { formatDateTime, formatMoney, humanize } from "@/lib/erp";
 import type { useGlobalFilter } from "@/lib/globalFilter";
+import { formatPhone } from "@/lib/phone";
 
 /** The latest orders across the active branch scope, in the global filter's period and channel. */
 export function RecentOrdersCard({
@@ -72,7 +73,7 @@ export function RecentOrdersCard({
                         </span>
                         {o.customer_name && o.customer_phone && (
                           <span className="block text-[12px] text-ink-600">
-                            {o.customer_phone}
+                            {formatPhone(o.customer_phone)}
                           </span>
                         )}
                       </>
