@@ -6,6 +6,7 @@ import { SearchCombobox } from "@/components/ui/SearchCombobox";
 import { useCustomerSearch } from "@/hooks/useCustomers";
 import type { Customer } from "@/lib/erp";
 import { useDebounced } from "@/lib/useDebounced";
+import { formatPhone } from "@/lib/phone";
 
 /** A form field holding ONE existing customer: shows the chosen one (with a button to clear it), otherwise a search by name, phone or
  * email run on the server (8 results), so it works with any number of customers. Cleared = no existing customer (`emptyLabel`). */
@@ -29,7 +30,10 @@ export function CustomerSelect({
         <span className="min-w-0 truncate text-ink-900">
           {value.name}
           {value.phone && (
-            <span className="text-[12px] text-ink-400"> · {value.phone}</span>
+            <span className="text-[12px] text-ink-400">
+              {" "}
+              · {formatPhone(value.phone)}
+            </span>
           )}
         </span>
         <button

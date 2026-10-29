@@ -46,6 +46,7 @@ import {
 } from "@/lib/erp";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { formatPhone } from "@/lib/phone";
 
 const KIND_LABEL: Record<DiscountKind, string> = {
   percent: "Percentage off",
@@ -588,7 +589,9 @@ export default function DiscountsPage() {
                     </div>
                     <div>
                       <dt className="text-ink-600">Phone</dt>
-                      <dd>{form.customer.phone || "Not recorded"}</dd>
+                      <dd>
+                        {formatPhone(form.customer.phone) || "Not recorded"}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-ink-600">Customer ID</dt>

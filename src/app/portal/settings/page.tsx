@@ -24,6 +24,8 @@ import { formatMoney, fromMinor, toMinor } from "@/lib/erp";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 import { CardSkeleton } from "@/components/ui/Skeleton";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { formatPhone, phoneError, toE164 } from "@/lib/phone";
 
 const CONTACT_FIELDS: (keyof Contact)[] = [
   "email",
@@ -67,14 +69,19 @@ function GeneralSections({
 
   function save() {
     if (!draft) return;
-    saveContact.mutate(draft, {
-      onSuccess: () => {
-        toast.success("Contact details saved");
-        setDraft(null);
+    const bad = phoneError(draft.phone, "any");
+    if (bad) return toast.error("Check the phone number", bad);
+    saveContact.mutate(
+      { ...draft, phone: toE164(draft.phone, "any") ?? "" },
+      {
+        onSuccess: () => {
+          toast.success("Contact details saved");
+          setDraft(null);
+        },
+        onError: (e) =>
+          toast.error("Couldn't save the contact details", e.message),
       },
-      onError: (e) =>
-        toast.error("Couldn't save the contact details", e.message),
-    });
+    );
   }
 
   const row = (
@@ -151,7 +158,9 @@ function GeneralSections({
           {row(
             <Store size={16} />,
             t.display_name,
-            [contact.email, contact.phone].filter(Boolean).join(" · ") || null,
+            [contact.email, formatPhone(contact.phone)]
+              .filter(Boolean)
+              .join(" · ") || null,
             "Email and phone not set",
           )}
           {row(
@@ -244,12 +253,16 @@ function GeneralSections({
                 onChange={(e) => set("email", e.target.value)}
               />
             </Field>
-            <Field label="Phone" htmlFor="c_phone">
-              <Input
+            <Field
+              label="Phone"
+              htmlFor="c_phone"
+              hint="Mobile, or a landline with its STD code."
+            >
+              <PhoneInput
                 id="c_phone"
-                inputMode="tel"
+                kind="any"
                 value={draft.phone}
-                onChange={(e) => set("phone", e.target.value)}
+                onChange={(phone) => set("phone", phone)}
               />
             </Field>
             <Field label="Website" htmlFor="c_web" className="sm:col-span-2">

@@ -44,6 +44,7 @@ import {
   type CustomerAccount,
   type PriceList,
 } from "@/lib/wholesale";
+import { formatPhone } from "@/lib/phone";
 
 type Tab =
   | "orders"
@@ -124,7 +125,9 @@ function WholesaleView() {
             </p>
             <p className="text-[12px] text-ink-400">
               {row.original.account_code} · {row.original.customer_name}
-              {row.original.phone ? ` · ${row.original.phone}` : ""}
+              {row.original.phone
+                ? ` · ${formatPhone(row.original.phone)}`
+                : ""}
             </p>
           </div>
         ),

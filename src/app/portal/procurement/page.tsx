@@ -47,6 +47,8 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 type Tab = "orders" | "bills" | "payments" | "suppliers";
 export default function ProcurementPage() {
@@ -181,11 +183,13 @@ export default function ProcurementPage() {
   if (!ready) return null;
 
   function createSupplier() {
+    const bad = phoneError(form.phone, "any");
+    if (bad) return toast.error("Check the phone number", bad);
     createSupplierMutation.mutate(
       {
         name: form.name.trim(),
         gstin: form.gstin.trim() || null,
-        phone: form.phone.trim() || null,
+        phone: toE164(form.phone, "any"),
         email: form.email.trim() || null,
         state: gstinState ?? (form.state || null),
         payment_terms_days: parseInt(form.terms, 10) || 30,
@@ -427,10 +431,11 @@ export default function ProcurementPage() {
             />
           </Field>
           <Field label="Phone" htmlFor="s_phone">
-            <Input
+            <PhoneInput
               id="s_phone"
+              kind="any"
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(phone) => setForm({ ...form, phone })}
             />
           </Field>
           <Field label="Email" htmlFor="s_email">

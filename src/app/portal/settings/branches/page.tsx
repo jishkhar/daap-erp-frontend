@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { displayPhone, type BranchRow } from "@/lib/branchSchema";
+import { type BranchRow } from "@/lib/branchSchema";
+import { formatPhone } from "@/lib/phone";
 import { useBranches } from "@/hooks/useBranches";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 
@@ -49,7 +50,7 @@ export default function BranchesPage() {
             <p className="text-[12px] text-ink-400">
               {row.original.branch_code}
               {row.original.phone
-                ? ` · ${displayPhone(row.original.phone)}`
+                ? ` · ${formatPhone(row.original.phone)}`
                 : ""}
             </p>
           </div>

@@ -17,6 +17,8 @@ import {
   signupWithGoogle,
   type PendingSignup,
 } from "@/lib/staffAuth";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 // Step two of "set up your business": reached from /auth after Google verified a new email. Creates the business,
 // its first branch and the owner's admin account in one call, then drops them into the dashboard.
@@ -70,12 +72,14 @@ export default function OnboardingPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const badPhone = phoneError(phone, "any");
+    if (badPhone) return setError(badPhone);
     setSubmitting(true);
     setError(null);
     const failure = await signupWithGoogle({
       business_name: businessName.trim(),
       legal_name: legalName.trim() || undefined,
-      phone: phone.trim() || undefined,
+      phone: toE164(phone, "any") ?? undefined,
       gstin: gstinOk ? gstinValue : undefined,
       planned_channels: channels,
       accepted_terms: terms,
@@ -133,12 +137,11 @@ export default function OnboardingPage() {
             htmlFor="phone"
             hint="Used as your store's contact number."
           >
-            <Input
+            <PhoneInput
               id="phone"
-              type="tel"
-              autoComplete="tel"
+              kind="any"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={setPhone}
             />
           </Field>
           <Field

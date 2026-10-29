@@ -25,6 +25,19 @@ export function ServiceBadge({
   );
 }
 
+/** The services a demo or partner request (or a partner) is about, in a fixed order; requests from before services were asked show "Not given". */
+export function ServiceBadges({ services }: { services: Service[] }) {
+  if (services.length === 0)
+    return <span className="text-[13px] text-ink-400">Not given</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-1">
+      {SERVICES.filter((s) => services.includes(s)).map((s) => (
+        <ServiceBadge key={s} service={s} />
+      ))}
+    </span>
+  );
+}
+
 /** Each plan tier's own colour, whatever the service. A plan outside the three tiers (a custom one) is neutral. */
 const TIER_TONE = {
   starter: "rose",

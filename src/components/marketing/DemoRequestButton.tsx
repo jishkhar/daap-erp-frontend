@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -10,7 +11,14 @@ import {
   demoRequestSchema,
   type DemoRequestErrors,
 } from "@/lib/demoRequestSchema";
+import {
+  SERVICE_BLURB,
+  SERVICE_LABEL,
+  SERVICES,
+  type Service,
+} from "@/lib/services";
 import { API_BASE_URL } from "@/lib/staffAuth";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 type Variant = "button" | "link";
 type Kind = "demo" | "partner";
@@ -18,10 +26,17 @@ type Kind = "demo" | "partner";
 /** The same short form serves two public pages; a partner request has no company name. */
 const COPY: Record<
   Kind,
-  { endpoint: string; title: string; intro: string; placeholder: string }
+  {
+    endpoint: string;
+    title: string;
+    intro: string;
+    placeholder: string;
+    services: string;
+  }
 > = {
   demo: {
     endpoint: "demo-requests",
+    services: "Services you'd like to see",
     title: "Request a product demo",
     intro:
       "Tell us a little about you and we'll get in touch to arrange a demo.",
@@ -29,6 +44,7 @@ const COPY: Record<
   },
   partner: {
     endpoint: "partner-requests",
+    services: "Services you'd like to partner on",
     title: "Become a partner",
     intro:
       "Tell us a little about you and we'll get in touch to discuss partnering with us.",
@@ -45,19 +61,26 @@ const EMPTY = {
   website: "",
 };
 
-/** "Request a demo": opens a short form and posts it to the public demo-requests endpoint. `link` renders as a footer-style text link. */
+/** "Request a demo": opens a short form and posts it to the public demo-requests endpoint. `link` renders as a footer-style text link.
+ * At least one service must be ticked; `service` ticks one to start with (the Plans page passes the service being viewed). */
 export function DemoRequestButton({
   variant = "button",
   kind = "demo",
+  service,
   children,
 }: {
   variant?: Variant;
   kind?: Kind;
+  service?: Service;
   children: React.ReactNode;
 }) {
   const copy = COPY[kind];
+  const blank = () => ({
+    ...EMPTY,
+    services: service ? [service] : ([] as Service[]),
+  });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<DemoRequestErrors>({});
@@ -66,21 +89,25 @@ export function DemoRequestButton({
   const set =
     (k: keyof typeof EMPTY) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      // phone: digits only, so a pasted "+91 98..." or stray punctuation can't slip through unnoticed
-      const value =
-        k === "phone"
-          ? e.target.value.replace(/\D/g, "").slice(0, 10)
-          : e.target.value;
+      const value = e.target.value;
       setForm((f) => ({ ...f, [k]: value }));
       if (k in fieldErrors)
         setFieldErrors((errs) => ({ ...errs, [k]: undefined }));
     };
 
+  const toggle = (s: Service) => (on: boolean) => {
+    setForm((f) => ({
+      ...f,
+      services: on ? [...f.services, s] : f.services.filter((x) => x !== s),
+    }));
+    setFieldErrors((errs) => ({ ...errs, services: undefined }));
+  };
+
   function close() {
     setOpen(false);
     if (sent) {
       setSent(null);
-      setForm(EMPTY);
+      setForm(blank());
     }
     setError(null);
     setFieldErrors({});
@@ -208,16 +235,14 @@ export function DemoRequestButton({
             </Field>
             <div className="grid gap-x-space-3 sm:grid-cols-2">
               <Field label="Phone" htmlFor="dr-phone" error={fieldErrors.phone}>
-                <Input
+                <PhoneInput
                   id="dr-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder="10-digit mobile number"
                   value={form.phone}
-                  onChange={set("phone")}
+                  onChange={(phone) => {
+                    setForm((f) => ({ ...f, phone }));
+                    setFieldErrors((errs) => ({ ...errs, phone: undefined }));
+                  }}
                   invalid={!!fieldErrors.phone}
-                  maxLength={10}
-                  autoComplete="tel"
                 />
               </Field>
               {kind === "demo" && (
@@ -232,6 +257,29 @@ export function DemoRequestButton({
                 </Field>
               )}
             </div>
+            <Field label={copy.services} required error={fieldErrors.services}>
+              <div
+                role="group"
+                aria-label={copy.services}
+                className="grid gap-space-2 sm:grid-cols-3"
+              >
+                {SERVICES.map((s) => (
+                  <CheckboxRow
+                    key={s}
+                    checked={form.services.includes(s)}
+                    onChange={toggle(s)}
+                    className="rounded-lg border border-line p-space-3 has-[:checked]:border-brand-400"
+                  >
+                    <span className="block font-medium">
+                      {SERVICE_LABEL[s]}
+                    </span>
+                    <span className="block text-[12px] text-ink-600">
+                      {SERVICE_BLURB[s]}
+                    </span>
+                  </CheckboxRow>
+                ))}
+              </div>
+            </Field>
             <Field label="Message" htmlFor="dr-message" className="mb-0">
               <Textarea
                 id="dr-message"

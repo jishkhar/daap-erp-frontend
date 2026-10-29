@@ -18,6 +18,8 @@ import {
 } from "@/lib/staffAuth";
 import { roleLabel } from "@/lib/staffRoles";
 import { toast } from "@/lib/toast";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { formatPhone, phoneError, toE164 } from "@/lib/phone";
 
 type Profile = {
   id: string;
@@ -63,11 +65,13 @@ export default function ProfilePage() {
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving || !name.trim()) return;
+    const bad = phoneError(phone);
+    if (bad) return toast.error("Check the phone number", bad);
     setSaving(true);
     const result = await staffFetch("/api/v1/auth/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), phone: phone.trim() || null }),
+      body: JSON.stringify({ name: name.trim(), phone: toE164(phone) }),
     });
     setSaving(false);
     if (!result.ok) {
@@ -183,13 +187,10 @@ export default function ProfilePage() {
                   />
                 </Field>
                 <Field label="Phone" htmlFor="profile-phone">
-                  <Input
+                  <PhoneInput
                     id="profile-phone"
-                    type="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    maxLength={30}
-                    autoComplete="tel"
+                    onChange={setPhone}
                     disabled={saving}
                   />
                 </Field>
@@ -214,7 +215,7 @@ export default function ProfilePage() {
               <dl className="space-y-space-4 border-t border-line pt-space-4 text-sm">
                 {[
                   ["Email", profile.email],
-                  ["Phone", profile.phone || "—"],
+                  ["Phone", formatPhone(profile.phone) || "—"],
                   ["Workspace", session?.tenant.name || "—"],
                   ["Display ID", profile.display_id || "—"],
                 ].map(([label, value]) => (

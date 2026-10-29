@@ -20,6 +20,7 @@ import { useGlobalFilter } from "@/lib/globalFilter";
 import { channelLabel, formatMoney } from "@/lib/erp";
 import { REASON_LABEL, REFUND_LABEL } from "@/lib/returns";
 import { useDebounced } from "@/lib/useDebounced";
+import { formatPhone } from "@/lib/phone";
 
 type Tab = "return" | "exchange" | "requests";
 function ReturnsView() {
@@ -238,7 +239,7 @@ function ReturnsView() {
                         )}
                         {r.customer_phone && (
                           <span className="block whitespace-nowrap text-[12px] text-ink-600">
-                            {r.customer_phone}
+                            {formatPhone(r.customer_phone)}
                           </span>
                         )}
                       </td>

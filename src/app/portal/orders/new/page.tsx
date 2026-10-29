@@ -33,6 +33,8 @@ import {
 } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 import { useDebounced } from "@/lib/useDebounced";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { phoneError, toE164 } from "@/lib/phone";
 
 type Line = { product: Product; quantity: number; serials: string };
 
@@ -161,6 +163,10 @@ function NewOrder() {
     if (lines.length === 0) return "Add at least one product.";
     if (!customerId && walkName.trim() && !walkPhone.trim())
       return "Enter a phone number for the new customer.";
+    if (!customerId && walkPhone.trim()) {
+      const bad = phoneError(walkPhone);
+      if (bad) return bad;
+    }
     if (isPos) {
       const bad = lines.find(
         (l) =>
@@ -198,7 +204,7 @@ function NewOrder() {
           ? {
               customer: {
                 name: walkName.trim(),
-                phone: walkPhone.trim() || null,
+                phone: toE164(walkPhone),
               },
             }
           : {}),
@@ -341,12 +347,11 @@ function NewOrder() {
                 />
               </Field>
               <Field label="Phone" htmlFor="o_phone">
-                <Input
+                <PhoneInput
                   id="o_phone"
-                  inputMode="tel"
                   value={walkPhone}
                   disabled={!!customerId}
-                  onChange={(e) => setWalkPhone(e.target.value)}
+                  onChange={setWalkPhone}
                 />
               </Field>
             </div>
