@@ -10,7 +10,13 @@ export type ReturnReason =
   | "changed_mind"
   | "other";
 export type RefundMode =
-  "original" | "cash" | "card" | "upi" | "store_credit" | "none";
+  | "original"
+  | "cash"
+  | "card"
+  | "upi"
+  | "store_credit"
+  | "loyalty_points"
+  | "none";
 
 export type ReturnRow = {
   id: string;
@@ -20,10 +26,13 @@ export type ReturnRow = {
   status: ReturnStatus;
   reason_code: ReturnReason;
   reason_note: string | null;
-  customer_preference: "refund" | "exchange" | "store_credit" | null;
+  customer_preference:
+    "refund" | "exchange" | "store_credit" | "loyalty_points" | null;
   refund_mode: RefundMode | null;
   items_value_minor: number;
   refund_minor: number;
+  /** Points credited when the refund went back as loyalty points. */
+  loyalty_points?: number;
   difference_minor: number;
   branch_id: string;
   branch_name: string | null;
@@ -63,6 +72,15 @@ export type ReturnItem = {
 };
 
 export type ReturnDetail = ReturnRow & {
+  /** A website exchange: the replacement the customer chose, and how they pay any difference (COD when the original order was COD). */
+  requested_replacement: {
+    variant_id: string;
+    quantity: number;
+    name: string;
+    sku: string | null;
+    unit_price_minor: number;
+  }[];
+  exchange_payment: "cod" | "online" | null;
   customer_email: string | null;
   customer_addresses: {
     id: string;
@@ -144,6 +162,7 @@ export type ReturnPolicy = {
   online_window_days: number;
   exchanges_enabled: boolean;
   store_credit_enabled: boolean;
+  loyalty_enabled: boolean;
 };
 
 export const REASONS: ReturnReason[] = [
@@ -169,6 +188,7 @@ export const REFUND_LABEL: Record<RefundMode, string> = {
   card: "Card",
   upi: "UPI",
   store_credit: "Store credit",
+  loyalty_points: "Loyalty points",
   none: "No refund now",
 };
 

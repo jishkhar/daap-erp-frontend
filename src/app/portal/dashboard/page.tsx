@@ -60,9 +60,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="mb-space-4 grid gap-space-4 xl:grid-cols-3">
-        <div className="min-w-0 xl:col-span-2">
-          <RecentOrdersCard branchId={branchId} filter={params} />
-        </div>
+        {session?.modules?.orders !== false && (
+          <div className="min-w-0 xl:col-span-2">
+            <RecentOrdersCard branchId={branchId} filter={params} />
+          </div>
+        )}
         <NeedsAttention data={data} currency={currency} />
       </div>
 

@@ -39,8 +39,19 @@ const ROUTES: [prefix: string, pageKey: string][] = [
 const under = (path: string, prefix: string) =>
   path === prefix || path.startsWith(`${prefix}/`);
 
-// Optional modules (Settings > Modules): their pages don't open while the module is off for the business, whatever the role allows.
+// Modules: their pages don't open while the module is off for the business, whatever the role allows. The optional ones (Settings > Modules)
+// can be off by the business or the platform; the others only by the platform (super admin's Access Management), which the server enforces too.
 const MODULE_ROUTES: [prefix: string, module: string][] = [
+  ["/portal/dashboard", "dashboard"],
+  ["/portal/orders", "orders"],
+  ["/portal/returns", "returns"],
+  ["/portal/products", "products"],
+  ["/portal/collections", "collections"],
+  ["/portal/customers", "customers"],
+  ["/portal/whatsapp-inbox", "whatsapp_inbox"],
+  ["/portal/discounts", "discounts"],
+  ["/portal/feedback", "feedback"],
+  ["/portal/analytics", "analytics"],
   ["/portal/procurement", "procurement"],
   ["/portal/wholesale", "wholesale"],
   ["/portal/inventory", "inventory"],
@@ -62,6 +73,12 @@ export function moduleForPath(path: string): string | null {
 
 export function pageKeyForPath(path: string): string | null {
   return ROUTES.find(([prefix]) => under(path, prefix))?.[1] ?? null;
+}
+
+/** The page's module is switched off for the business (not a matter of the person's role). */
+export function moduleOffForPath(session: StaffSession, path: string): boolean {
+  const mod = moduleForPath(path);
+  return !!mod && session.modules?.[mod] === false;
 }
 
 export function canOpenPath(session: StaffSession, path: string): boolean {

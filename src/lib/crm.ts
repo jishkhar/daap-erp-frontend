@@ -138,7 +138,7 @@ export type Campaign = {
   id: string;
   name: string;
   channel: MessageChannel;
-  audience: { segment?: Segment; tag?: string };
+  audience: { segment?: Segment; tag?: string; customer_id?: string };
   subject: string | null;
   message: string;
   discount_id: string | null;

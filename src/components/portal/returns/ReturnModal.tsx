@@ -100,7 +100,10 @@ export function ReturnModal({
   );
 
   const needsCustomer =
-    !order.customer_id && (kind === "exchange" || mode === "store_credit");
+    !order.customer_id &&
+    (kind === "exchange" ||
+      mode === "store_credit" ||
+      mode === "loyalty_points");
   const due = kind === "exchange" ? (quote.data?.due_minor ?? 0) : 0;
   const isPos = order.channel === "pos";
   const ready =
@@ -517,7 +520,7 @@ export function ReturnModal({
                 label="Customer phone"
                 htmlFor="ret_phone"
                 required
-                hint="Store credit and exchanges need a customer."
+                hint="Store credit, loyalty points and exchanges need a customer."
               >
                 <PhoneInput
                   id="ret_phone"

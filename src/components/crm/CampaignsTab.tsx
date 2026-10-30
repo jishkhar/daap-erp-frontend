@@ -15,6 +15,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
+import { CustomerSelect } from "@/components/erp/CustomerSelect";
 import {
   MESSAGE_CHANNELS,
   SEGMENT_META,
@@ -30,12 +31,14 @@ import {
   useWhatsAppTemplates,
   type WhatsAppTemplate,
 } from "@/hooks/useWhatsApp";
-import { erp, useErpQuery, type Discount } from "@/lib/erp";
+import { erp, useErpQuery, type Customer, type Discount } from "@/lib/erp";
 import { toast } from "@/lib/toast";
 
 type Form = {
   name: string;
   channel: MessageChannel;
+  audienceType: "membership" | "individual";
+  customer: Customer | null;
   segment: string;
   tag: string;
   discountId: string;
@@ -48,6 +51,8 @@ type Form = {
 const EMPTY: Form = {
   name: "",
   channel: "whatsapp",
+  audienceType: "membership",
+  customer: null,
   segment: "",
   tag: "",
   discountId: "",
@@ -69,6 +74,7 @@ function fillPreview(body: string, params: string[]) {
 }
 
 function audienceLabel(a: Campaign["audience"]) {
+  if (a.customer_id) return "Individual customer";
   const parts = [
     a.segment ? SEGMENT_META[a.segment].label : null,
     a.tag ? `tag: ${a.tag}` : null,
@@ -125,10 +131,14 @@ export function CampaignsTab({
   useEffect(() => {
     if (editing === null) return;
     let cancelled = false;
-    const audience = {
-      ...(form.segment ? { segment: form.segment } : {}),
-      ...(form.tag ? { tag: form.tag } : {}),
-    };
+    const individual = form.audienceType === "individual";
+    if (individual && !form.customer) return; // nothing to count yet; the preview is hidden below
+    const audience = individual
+      ? { customer_id: form.customer!.id }
+      : {
+          ...(form.segment ? { segment: form.segment } : {}),
+          ...(form.tag ? { tag: form.tag } : {}),
+        };
     erp<{ total: number; reachable: number }>(
       "/api/v1/crm/audience-preview",
       "POST",
@@ -139,7 +149,14 @@ export function CampaignsTab({
     return () => {
       cancelled = true;
     };
-  }, [editing, form.channel, form.segment, form.tag]);
+  }, [
+    editing,
+    form.channel,
+    form.segment,
+    form.tag,
+    form.audienceType,
+    form.customer,
+  ]);
 
   function openNew() {
     setForm(EMPTY);
@@ -149,6 +166,8 @@ export function CampaignsTab({
     setForm({
       name: k.name,
       channel: k.channel,
+      audienceType: k.audience.customer_id ? "individual" : "membership",
+      customer: null,
       segment: k.audience.segment ?? "",
       tag: k.audience.tag ?? "",
       discountId: k.discount_id ?? "",
@@ -163,6 +182,11 @@ export function CampaignsTab({
       params: k.template_params ?? [],
     });
     setEditing(k);
+    const id = k.audience.customer_id;
+    if (id)
+      erp<Customer>(`/api/v1/crm/customers/${id}`).then((r) => {
+        if (r.data) setForm((f) => ({ ...f, customer: r.data! }));
+      });
   }
 
   async function save() {
@@ -170,7 +194,10 @@ export function CampaignsTab({
     const body = {
       name: form.name.trim(),
       channel: form.channel,
-      audience: { segment: form.segment || null, tag: form.tag || null },
+      audience:
+        form.audienceType === "individual"
+          ? { customer_id: form.customer?.id ?? null }
+          : { segment: form.segment || null, tag: form.tag || null },
       subject: form.channel === "email" ? form.subject.trim() || null : null,
       message: form.message,
       discount_id: form.discountId || null,
@@ -391,6 +418,7 @@ export function CampaignsTab({
                 busy ||
                 !form.name.trim() ||
                 !form.message.trim() ||
+                (form.audienceType === "individual" && !form.customer) ||
                 (whatsapp &&
                   (!chosen ||
                     form.params
@@ -427,37 +455,77 @@ export function CampaignsTab({
             ))}
           </Select>
         </Field>
-        <div className="grid grid-cols-2 gap-space-3">
-          <Field label="Membership" htmlFor="k_seg">
-            <Select
-              id="k_seg"
-              value={form.segment}
-              onValueChange={(value) => setForm({ ...form, segment: value })}
-            >
-              <option value="">Everyone</option>
-              {SEGMENT_ORDER.map((s: Segment) => (
-                <option key={s} value={s}>
-                  {SEGMENT_META[s].label}
-                </option>
-              ))}
-            </Select>
+        <Field label="Send to" htmlFor="k_audience">
+          <div
+            id="k_audience"
+            role="radiogroup"
+            aria-label="Audience type"
+            className="grid grid-cols-2 gap-space-1 rounded-lg border border-line bg-ink-50 p-space-1"
+          >
+            {(
+              [
+                ["membership", "Membership group"],
+                ["individual", "Individual customer"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={form.audienceType === key}
+                onClick={() => setForm({ ...form, audienceType: key })}
+                className={`h-9 rounded-md border text-[13.5px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-600 ${
+                  form.audienceType === key
+                    ? "border-brand-600 bg-card text-brand-700 shadow-sm"
+                    : "border-transparent text-ink-600 hover:text-ink-900"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+        {form.audienceType === "individual" ? (
+          <Field label="Customer" htmlFor="k_customer" required>
+            <CustomerSelect
+              id="k_customer"
+              value={form.customer}
+              onChange={(customer) => setForm({ ...form, customer })}
+            />
           </Field>
-          <Field label="Tag" htmlFor="k_tag">
-            <Select
-              id="k_tag"
-              value={form.tag}
-              onValueChange={(value) => setForm({ ...form, tag: value })}
-            >
-              <option value="">Any</option>
-              {(tags.data ?? []).map((t) => (
-                <option key={t.tag} value={t.tag}>
-                  {t.tag}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-        {preview && (
+        ) : (
+          <div className="grid grid-cols-2 gap-space-3">
+            <Field label="Membership" htmlFor="k_seg">
+              <Select
+                id="k_seg"
+                value={form.segment}
+                onValueChange={(value) => setForm({ ...form, segment: value })}
+              >
+                <option value="">Everyone</option>
+                {SEGMENT_ORDER.map((s: Segment) => (
+                  <option key={s} value={s}>
+                    {SEGMENT_META[s].label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Tag" htmlFor="k_tag">
+              <Select
+                id="k_tag"
+                value={form.tag}
+                onValueChange={(value) => setForm({ ...form, tag: value })}
+              >
+                <option value="">Any</option>
+                {(tags.data ?? []).map((t) => (
+                  <option key={t.tag} value={t.tag}>
+                    {t.tag}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        )}
+        {preview && !(form.audienceType === "individual" && !form.customer) && (
           <p className="text-[12.5px] text-ink-600">
             {preview.reachable} of {preview.total} customers can be reached
             {form.channel === "whatsapp"

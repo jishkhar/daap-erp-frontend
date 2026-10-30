@@ -131,7 +131,12 @@ export default function OrderDetailPage() {
       "completed",
     ].includes(o.status) &&
     outstanding > 0;
-  const steps = o ? (NEXT_STEP[o.status] ?? []) : [];
+  // Delivery orders are marked shipped from the Shipment card, where the courier's tracking link is entered.
+  const shipsViaPanel =
+    o?.order_type === "shipping" || o?.order_type === "delivery";
+  const steps = (o ? (NEXT_STEP[o.status] ?? []) : []).filter(
+    (s) => !(shipsViaPanel && s.to === "shipped"),
+  );
   const canCancelNow =
     !!o && ["pending", "confirmed", "preparing", "ready"].includes(o.status);
   const cur = o?.currency ?? tenant?.currency ?? "INR";
@@ -234,6 +239,7 @@ export default function OrderDetailPage() {
                 </Button>
               )}
               {hasGrant(session, "orders:return") &&
+                session?.modules?.returns !== false &&
                 o.status === "completed" && (
                   <Button
                     variant="secondary"
