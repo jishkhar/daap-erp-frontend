@@ -81,6 +81,12 @@ export type ReturnDetail = ReturnRow & {
     unit_price_minor: number;
   }[];
   exchange_payment: "cod" | "online" | null;
+  /** An online exchange's difference, paid by the customer when they asked for it (null once the request is handled). */
+  top_up?: {
+    due_minor: number;
+    paid_minor: number;
+    outstanding_minor: number;
+  } | null;
   customer_email: string | null;
   customer_addresses: {
     id: string;
