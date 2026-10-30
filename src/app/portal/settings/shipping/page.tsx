@@ -67,7 +67,7 @@ export default function ShippingSettingsPage() {
     </Field>
   );
   const toggle = (
-    key: "exchanges_enabled" | "store_credit_enabled",
+    key: "exchanges_enabled" | "store_credit_enabled" | "loyalty_enabled",
     label: string,
     hint: string,
   ) => (
@@ -127,6 +127,11 @@ export default function ShippingSettingsPage() {
                 "store_credit_enabled",
                 "Refund as store credit",
                 "Let staff (and customers asking on the website) choose store credit instead of money.",
+              )}
+              {toggle(
+                "loyalty_enabled",
+                "Refund as loyalty points",
+                "Let staff and website customers take a return as loyalty points (members only) instead of money.",
               )}
             </div>
             {canEdit ? (

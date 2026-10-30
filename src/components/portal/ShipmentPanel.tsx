@@ -1,6 +1,6 @@
 "use client";
 
-import { Truck } from "lucide-react";
+import { ExternalLink, Truck } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -108,6 +108,8 @@ export function ShipmentPanel({
     label: string;
   } | null>(null);
   const [note, setNote] = useState("");
+  const [link, setLink] = useState("");
+  const [shipping, setShipping] = useState(false);
   if (!delivers) return null;
 
   const shipments = list.data?.items ?? [];
@@ -117,6 +119,42 @@ export function ShipmentPanel({
     ) ?? null;
   const past = shipments.filter((s) => s !== live);
   const canShip = canUpdate && !live && SHIPPABLE.includes(order.status);
+
+  const packedOnly = live?.status === "ready_to_ship" ? live : null;
+  const showMarkShipped = canUpdate && (canShip || !!packedOnly);
+
+  /** One step for a DTDC parcel: pack it if it isn't packed yet, save the tracking link, and hand it to the courier. */
+  const markShipped = async () => {
+    const url = link.trim();
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      toast.error(
+        "Enter the DTDC tracking link",
+        "It should start with http:// or https://",
+      );
+      return;
+    }
+    setShipping(true);
+    try {
+      let shipment = packedOnly;
+      if (shipment) {
+        if (shipment.tracking_url !== url)
+          await edit.mutateAsync({ id: shipment.id, tracking_url: url });
+      } else {
+        shipment = await create.mutateAsync({
+          carrier_name: "DTDC",
+          tracking_url: url,
+          weight_g: list.data?.packed.weight_g ?? null,
+        });
+      }
+      await move.mutateAsync({ id: shipment.id, status: "in_transit" });
+      toast.success("Marked as shipped");
+      setLink("");
+    } catch (e) {
+      toast.error("Couldn't mark it as shipped", (e as Error).message);
+    } finally {
+      setShipping(false);
+    }
+  };
 
   const save = () => {
     if (!form) return;
@@ -155,24 +193,52 @@ export function ShipmentPanel({
 
   return (
     <Card className="min-w-0 p-space-3 md:p-space-4">
-      <div className="mb-space-2 flex items-center justify-between gap-space-2">
+      <div className="mb-space-3 flex items-center justify-between gap-space-2">
         <h2 className="flex items-center gap-1 text-[15px] font-bold text-ink-900">
           <Truck size={16} /> Shipment
         </h2>
-        {canShip && (
-          <Button
-            variant="secondary"
-            onClick={() =>
-              setForm({
-                shipment: null,
-                draft: draftOf(null, list.data?.packed.weight_g),
-              })
-            }
-          >
-            Pack and ship
-          </Button>
-        )}
       </div>
+      {list.data && showMarkShipped && (
+        <div className="mb-space-3 rounded-lg border border-line bg-ink-50 p-space-3">
+          <label
+            htmlFor="sh-dtdc-link"
+            className="mb-1 block text-[13px] font-semibold text-ink-800"
+          >
+            DTDC tracking link
+          </label>
+          <Input
+            id="sh-dtdc-link"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://www.dtdc.in/tracking/…"
+            inputMode="url"
+          />
+          <p className="mt-1 text-[12px] text-ink-400">
+            The customer can follow their parcel with this link.
+          </p>
+          <Button
+            className="mt-space-3 w-full"
+            onClick={markShipped}
+            disabled={shipping || !link.trim()}
+          >
+            <Truck size={16} /> Mark as Shipped
+          </Button>
+          {canShip && (
+            <button
+              type="button"
+              className="mt-space-2 w-full text-center text-[12.5px] font-medium text-ink-600 hover:text-ink-900 hover:underline"
+              onClick={() =>
+                setForm({
+                  shipment: null,
+                  draft: draftOf(null, list.data?.packed.weight_g),
+                })
+              }
+            >
+              Own rider or other courier? Pack with full details
+            </button>
+          )}
+        </div>
+      )}
       {!list.data && <p className="text-[13px] text-ink-400">Loading…</p>}
       {list.data && !live && (
         <p className="text-[13px] text-ink-400">
@@ -184,78 +250,145 @@ export function ShipmentPanel({
         </p>
       )}
       {live && (
-        <div className="space-y-space-2 text-[13.5px]">
-          <div className="flex flex-wrap items-center gap-space-2">
-            <Badge tone={TONE[live.status] ?? "neutral"}>
-              {STATUS_LABEL[live.status]}
-            </Badge>
-            {live.carrier_name && (
-              <span className="text-ink-700">{live.carrier_name}</span>
+        <div className="space-y-space-3 text-[13.5px]">
+          <div className="flex flex-wrap items-center justify-between gap-space-2">
+            <div className="flex flex-wrap items-center gap-space-2">
+              <Badge tone={TONE[live.status] ?? "neutral"}>
+                {STATUS_LABEL[live.status]}
+              </Badge>
+              {live.carrier_name && (
+                <span className="font-semibold text-ink-800">
+                  {live.carrier_name}
+                </span>
+              )}
+            </div>
+            {live.tracking_url && (
+              <a
+                href={live.tracking_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline"
+              >
+                Track parcel <ExternalLink size={13} />
+              </a>
             )}
-            {live.tracking_number &&
-              (live.tracking_url ? (
-                <a
-                  href={live.tracking_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-brand-700 hover:underline"
-                >
-                  {live.tracking_number}
-                </a>
-              ) : (
-                <span className="font-semibold">{live.tracking_number}</span>
-              ))}
           </div>
-          <p className="text-ink-600">
-            {[
+          {live.tracking_number && (
+            <p className="text-ink-600">
+              Tracking no.{" "}
+              <span className="font-semibold text-ink-900">
+                {live.tracking_number}
+              </span>
+            </p>
+          )}
+          {(() => {
+            const facts = [
               live.rider_name &&
                 `Rider ${live.rider_name}${live.rider_phone ? ` (${formatPhone(live.rider_phone)})` : ""}`,
               live.weight_g && `${live.weight_g} g`,
-              live.cod_amount_minor > 0 &&
-                `collect ${formatMoney(live.cod_amount_minor, currency)}`,
               live.cost_minor != null &&
                 `costs us ${formatMoney(live.cost_minor, currency)}`,
-            ]
-              .filter(Boolean)
-              .join(" · ") || "No rider or courier yet."}
-          </p>
-          <ol className="space-y-0.5 border-l border-line pl-space-3 text-[12.5px] text-ink-600">
+            ].filter(Boolean);
+            return (
+              (facts.length > 0 || live.cod_amount_minor > 0) && (
+                <div className="flex flex-wrap gap-space-2">
+                  {live.cod_amount_minor > 0 && (
+                    <span className="rounded-md bg-warning-tint px-2 py-1 text-[12.5px] font-semibold text-ink-800">
+                      Collect {formatMoney(live.cod_amount_minor, currency)} on
+                      delivery
+                    </span>
+                  )}
+                  {facts.map((f) => (
+                    <span
+                      key={String(f)}
+                      className="rounded-md bg-ink-50 px-2 py-1 text-[12.5px] text-ink-700"
+                    >
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              )
+            );
+          })()}
+          <ol className="space-y-space-2 pt-space-1">
             {live.events.map((e, i) => (
-              <li key={i}>
-                <span className="font-medium text-ink-800">
+              <li
+                key={i}
+                className="relative pl-space-4 text-[12.5px] text-ink-600"
+              >
+                <span
+                  className={`absolute left-0 top-[5px] h-2 w-2 rounded-full ${
+                    i === live.events.length - 1 ? "bg-brand-600" : "bg-ink-300"
+                  }`}
+                />
+                <span className="font-semibold text-ink-800">
                   {STATUS_LABEL[e.status]}
-                </span>{" "}
-                · {formatDateTime(e.at)}
-                {e.location && ` · ${e.location}`}
-                {e.note && ` — ${e.note}`}
+                </span>
+                <span className="block text-ink-500">
+                  {formatDateTime(e.at)}
+                  {e.location && ` · ${e.location}`}
+                  {e.note && ` — ${e.note}`}
+                </span>
               </li>
             ))}
           </ol>
           {canUpdate && (
-            <div className="mobile-page-actions flex flex-wrap gap-space-2 pt-space-1">
-              {(NEXT_SHIPMENT_STEP[live.status] ?? []).map((s) => (
-                <Button
-                  key={s.to}
-                  variant={s.to === "delivered" ? "primary" : "secondary"}
-                  disabled={move.isPending}
-                  onClick={() => {
-                    setNote("");
-                    setStep({ shipment: live, ...s });
-                  }}
-                >
-                  {s.label}
-                </Button>
-              ))}
-              {!["delivered", "lost"].includes(live.status) && (
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    setForm({ shipment: live, draft: draftOf(live) })
-                  }
-                >
-                  Edit details
-                </Button>
-              )}
+            <div className="space-y-space-2 border-t border-line pt-space-3">
+              {(() => {
+                const steps = NEXT_SHIPMENT_STEP[live.status] ?? [];
+                const main =
+                  steps.find((s) => s.to === "delivered") ??
+                  steps.find((s) => s.to === "in_transit") ??
+                  steps[0];
+                const danger = ["cancelled", "lost"];
+                const run = (s: (typeof steps)[number]) => {
+                  setNote("");
+                  setStep({ shipment: live, ...s });
+                };
+                return (
+                  <>
+                    {main && (
+                      <Button
+                        className="w-full"
+                        disabled={move.isPending || shipping}
+                        onClick={() => run(main)}
+                      >
+                        {main.label}
+                      </Button>
+                    )}
+                    <div className="flex flex-wrap gap-space-2">
+                      {steps
+                        .filter((s) => s !== main)
+                        .map((s) => (
+                          <Button
+                            key={s.to}
+                            variant={
+                              danger.includes(s.to)
+                                ? "destructive"
+                                : "secondary"
+                            }
+                            className="h-9 flex-1 whitespace-nowrap px-space-3 text-[13px]"
+                            disabled={move.isPending || shipping}
+                            onClick={() => run(s)}
+                          >
+                            {s.label}
+                          </Button>
+                        ))}
+                    </div>
+                    {!["delivered", "lost"].includes(live.status) && (
+                      <button
+                        type="button"
+                        className="w-full text-center text-[12.5px] font-medium text-ink-600 hover:text-ink-900 hover:underline"
+                        onClick={() =>
+                          setForm({ shipment: live, draft: draftOf(live) })
+                        }
+                      >
+                        Edit details
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>

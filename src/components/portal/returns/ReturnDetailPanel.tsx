@@ -115,8 +115,13 @@ export function ReturnDetailPanel({
 
   const canAct = hasGrant(session, "orders:return");
   const open = r.status === "requested" || r.status === "approved";
-  const defaultMode: RefundMode =
-    r.customer_preference === "store_credit" ? "store_credit" : "original";
+  const customerExchange = r.requested_replacement?.length > 0;
+  const defaultMode: RefundMode = customerExchange
+    ? "loyalty_points"
+    : r.customer_preference === "store_credit" ||
+        r.customer_preference === "loyalty_points"
+      ? r.customer_preference
+      : "original";
   const after = (msg: string) => ({
     onSuccess: () => {
       toast.success(msg);
@@ -319,6 +324,12 @@ export function ReturnDetailPanel({
           {r.refund_mode && (
             <Row label="Refund mode" value={REFUND_LABEL[r.refund_mode]} />
           )}
+          {!!r.loyalty_points && (
+            <Row
+              label="Loyalty points credited"
+              value={r.loyalty_points.toLocaleString("en-IN")}
+            />
+          )}
           {r.refunds
             .filter(
               (x) =>
@@ -347,7 +358,36 @@ export function ReturnDetailPanel({
 
       {open && canAct && (
         <div className="space-y-space-2 border-t border-line pt-space-3">
-          <Field label="Refund when received" htmlFor="recv_mode">
+          {customerExchange && (
+            <div className="rounded-md bg-black/[0.03] p-space-2 text-[12.5px] text-ink-700">
+              <p className="font-semibold text-ink-900">
+                Customer chose this replacement
+              </p>
+              {r.requested_replacement.map((x) => (
+                <p key={x.variant_id}>
+                  {x.name} × {x.quantity} ·{" "}
+                  {formatMoney(x.unit_price_minor, currency)} each
+                </p>
+              ))}
+              <p className="mt-1 text-ink-600">
+                When you mark it received, the replacement order is placed from
+                the value of the returned items.{" "}
+                {r.exchange_payment === "cod"
+                  ? "If it costs more, the difference is collected in cash on delivery (the original order was COD)."
+                  : r.exchange_payment === "online"
+                    ? "If it costs more, the customer pays the difference online; the order waits for that payment."
+                    : "If it costs less, the difference goes back as loyalty points."}
+              </p>
+            </div>
+          )}
+          <Field
+            label={
+              customerExchange
+                ? "If the replacement is cheaper, give the difference back as"
+                : "Refund when received"
+            }
+            htmlFor="recv_mode"
+          >
             <Select
               id="recv_mode"
               value={mode || defaultMode}
@@ -356,6 +396,7 @@ export function ReturnDetailPanel({
               {(
                 [
                   "original",
+                  "loyalty_points",
                   "store_credit",
                   "upi",
                   "cash",

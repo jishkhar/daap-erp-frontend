@@ -154,6 +154,45 @@ export function OrdersView({ initialAllDates = false }: Props) {
         cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
       },
       {
+        header: "Return / Exchange",
+        cell: ({ row }) => {
+          const { return_kind: kind, return_status: status } = row.original;
+          if (!kind || !status) return <span className="text-ink-400">—</span>;
+          const label =
+            status === "completed"
+              ? kind === "exchange"
+                ? "Exchanged"
+                : "Returned"
+              : `${kind === "exchange" ? "Exchange" : "Return"} ${status}`;
+          const more = (row.original.return_count ?? 1) - 1;
+          return (
+            <div className="flex flex-wrap items-center gap-space-1">
+              <Link
+                href={`/portal/returns?q=${encodeURIComponent(row.original.order_number)}`}
+                onClick={(event) => event.stopPropagation()}
+                title={row.original.return_number ?? undefined}
+              >
+                <Badge
+                  tone={
+                    status === "completed"
+                      ? kind === "exchange"
+                        ? "info"
+                        : "neutral"
+                      : "warning"
+                  }
+                  className="whitespace-nowrap"
+                >
+                  {label}
+                </Badge>
+              </Link>
+              {more > 0 && (
+                <span className="text-[12px] text-ink-600">+{more} more</span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
         header: "Placed At",
         cell: ({ row }) => (
           <span className="text-ink-600">

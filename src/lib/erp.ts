@@ -85,6 +85,11 @@ export type Order = {
   item_count?: number;
   /** Distinct recorded payment methods in list responses, excluding failed attempts. */
   payment_methods?: string[];
+  /** Present on the orders list: the order's open return or exchange (else its latest finished one), and how many it has. */
+  return_kind?: "return" | "exchange" | null;
+  return_status?: "requested" | "approved" | "completed" | null;
+  return_number?: string | null;
+  return_count?: number;
 };
 
 export type OrderItem = {
@@ -648,16 +653,12 @@ export type StoreCredit = {
 };
 export type DiscountKind = "percent" | "flat" | "free_delivery" | "bogo";
 
-export type DiscountTarget =
-  "all" | "category" | "collection" | "membership" | "individual";
-
 export type Discount = {
-  target_type: DiscountTarget;
-  category_id: string | null;
-  collection_id: string | null;
-  membership: import("@/lib/crm").Segment | null;
-  customer_id: string | null;
-  contact: (Customer & { birthday: string | null }) | null;
+  category_ids: string[];
+  collection_ids: string[];
+  memberships: import("@/lib/crm").Segment[];
+  customer_ids: string[];
+  contacts: Customer[];
   id: string;
   code: string | null;
   name: string;
