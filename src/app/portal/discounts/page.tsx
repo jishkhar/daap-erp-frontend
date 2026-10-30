@@ -8,6 +8,7 @@ import {
   Tag01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { useMemo, useState } from "react";
 import { CustomerSelect } from "@/components/erp/CustomerSelect";
 import { SEGMENT_META, SEGMENT_ORDER, type Segment } from "@/lib/crm";
@@ -79,39 +80,26 @@ function CheckList({
   onChange,
   loading,
   empty,
+  placeholder,
 }: {
   items: { id: string; label: string }[];
   selected: string[];
   onChange: (ids: string[]) => void;
   loading?: boolean;
   empty: string;
+  placeholder: string;
 }) {
   if (!items.length)
     return (
       <p className="text-[13px] text-ink-600">{loading ? "Loading…" : empty}</p>
     );
   return (
-    <div className="grid max-h-44 gap-space-2 overflow-y-auto sm:grid-cols-2">
-      {items.map((item) => (
-        <label
-          key={item.id}
-          className="flex items-center gap-space-2 text-[14px]"
-        >
-          <input
-            type="checkbox"
-            checked={selected.includes(item.id)}
-            onChange={(e) =>
-              onChange(
-                e.target.checked
-                  ? [...selected, item.id]
-                  : selected.filter((x) => x !== item.id),
-              )
-            }
-          />
-          <span className="min-w-0 truncate">{item.label}</span>
-        </label>
-      ))}
-    </div>
+    <MultiSelect
+      options={items.map((item) => ({ value: item.id, label: item.label }))}
+      value={selected}
+      onValueChange={onChange}
+      placeholder={placeholder}
+    />
   );
 }
 
@@ -555,24 +543,27 @@ export default function DiscountsPage() {
           hint="Tick several to combine them: a customer must match the customer options and the basket must contain a matching product."
         >
           <div id="d_target" className="space-y-space-3">
-            <label className="flex items-center gap-space-2 text-[14px]">
-              <input
-                type="checkbox"
-                checked={!SCOPES.some((x) => form.scopes[x.key])}
-                onChange={() =>
-                  set("scopes", {
-                    category: false,
-                    collection: false,
-                    membership: false,
-                    individual: false,
-                  })
-                }
-              />
-              All products and customers
-            </label>
-            {SCOPES.map((scope) => (
-              <div key={scope.key} className="space-y-space-2">
-                <label className="flex items-center gap-space-2 text-[14px]">
+            <div className="flex flex-wrap items-center gap-x-space-5 gap-y-space-2">
+              <label className="flex items-center gap-space-2 text-[14px]">
+                <input
+                  type="checkbox"
+                  checked={!SCOPES.some((x) => form.scopes[x.key])}
+                  onChange={() =>
+                    set("scopes", {
+                      category: false,
+                      collection: false,
+                      membership: false,
+                      individual: false,
+                    })
+                  }
+                />
+                All products and customers
+              </label>
+              {SCOPES.map((scope) => (
+                <label
+                  key={scope.key}
+                  className="flex items-center gap-space-2 text-[14px]"
+                >
                   <input
                     type="checkbox"
                     checked={form.scopes[scope.key]}
@@ -585,8 +576,15 @@ export default function DiscountsPage() {
                   />
                   {scope.label}
                 </label>
+              ))}
+            </div>
+            {SCOPES.map((scope) => (
+              <div key={scope.key} className="space-y-space-2">
                 {form.scopes[scope.key] && (
-                  <div className="ml-6 space-y-space-2 rounded-md border border-line p-space-3">
+                  <div className="space-y-space-2 rounded-md border border-line p-space-3">
+                    <p className="text-[13px] font-semibold text-ink-900">
+                      {scope.label}
+                    </p>
                     <p className="text-[12.5px] text-ink-600">{scope.hint}</p>
                     {scope.key === "category" && (
                       <>
@@ -599,6 +597,7 @@ export default function DiscountsPage() {
                           onChange={(ids) => set("categoryIds", ids)}
                           loading={categories.loading}
                           empty="No categories yet."
+                          placeholder="Select categories"
                         />
                         {categories.error && (
                           <p className="text-sm text-error">
@@ -618,6 +617,7 @@ export default function DiscountsPage() {
                           onChange={(ids) => set("collectionIds", ids)}
                           loading={collections.loading}
                           empty="No collections yet."
+                          placeholder="Select collections"
                         />
                         {collections.error && (
                           <p className="text-sm text-error">
@@ -637,6 +637,7 @@ export default function DiscountsPage() {
                         selected={form.memberships}
                         onChange={(ids) => set("memberships", ids as Segment[])}
                         empty="No memberships."
+                        placeholder="Select memberships"
                       />
                     )}
                     {scope.key === "individual" && (
