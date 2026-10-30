@@ -10,12 +10,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
 import { CustomerSelect } from "@/components/erp/CustomerSelect";
-import {
-  SEGMENT_META,
-  SEGMENT_ORDER,
-  type CrmProfile,
-  type Segment,
-} from "@/lib/crm";
+import { SEGMENT_META, SEGMENT_ORDER, type Segment } from "@/lib/crm";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
@@ -41,7 +36,6 @@ import {
   type Channel,
   type Discount,
   type DiscountKind,
-  type DiscountTarget,
   type Customer,
 } from "@/lib/erp";
 import { hasTenantWide, useStaffSession } from "@/lib/staffAuth";
@@ -55,20 +49,78 @@ const KIND_LABEL: Record<DiscountKind, string> = {
   bogo: "Buy one get one",
 };
 
-const TARGET_LABEL: Record<DiscountTarget, string> = {
-  all: "All products and customers",
-  category: "Category",
-  collection: "Collection",
-  membership: "Membership",
-  individual: "Individual",
-};
+type Scope = "category" | "collection" | "membership" | "individual";
+const SCOPES: { key: Scope; label: string; hint: string }[] = [
+  {
+    key: "category",
+    label: "Category",
+    hint: "Only products in the chosen categories receive the discount.",
+  },
+  {
+    key: "collection",
+    label: "Collection",
+    hint: "Only products currently in the chosen collections receive the discount.",
+  },
+  {
+    key: "membership",
+    label: "Membership",
+    hint: "Customers must hold one of the chosen memberships.",
+  },
+  {
+    key: "individual",
+    label: "Individual",
+    hint: "Named customers. The code is hidden from storefront coupon lists.",
+  },
+];
+
+function CheckList({
+  items,
+  selected,
+  onChange,
+  loading,
+  empty,
+}: {
+  items: { id: string; label: string }[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  loading?: boolean;
+  empty: string;
+}) {
+  if (!items.length)
+    return (
+      <p className="text-[13px] text-ink-600">{loading ? "Loading…" : empty}</p>
+    );
+  return (
+    <div className="grid max-h-44 gap-space-2 overflow-y-auto sm:grid-cols-2">
+      {items.map((item) => (
+        <label
+          key={item.id}
+          className="flex items-center gap-space-2 text-[14px]"
+        >
+          <input
+            type="checkbox"
+            checked={selected.includes(item.id)}
+            onChange={(e) =>
+              onChange(
+                e.target.checked
+                  ? [...selected, item.id]
+                  : selected.filter((x) => x !== item.id),
+              )
+            }
+          />
+          <span className="min-w-0 truncate">{item.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
 type Form = {
-  target: DiscountTarget;
-  categoryId: string;
-  collectionId: string;
-  membership: Segment | "";
-  customer: Customer | null;
+  scopes: Record<Scope, boolean>;
+  categoryIds: string[];
+  collectionIds: string[];
+  memberships: Segment[];
+  customers: Customer[];
   code: string;
   name: string;
   kind: DiscountKind;
@@ -84,11 +136,16 @@ type Form = {
 };
 
 const EMPTY: Form = {
-  target: "all",
-  categoryId: "",
-  collectionId: "",
-  membership: "",
-  customer: null,
+  scopes: {
+    category: false,
+    collection: false,
+    membership: false,
+    individual: false,
+  },
+  categoryIds: [],
+  collectionIds: [],
+  memberships: [],
+  customers: [],
   code: "",
   name: "",
   kind: "percent",
@@ -115,11 +172,16 @@ const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
 
 function toForm(d: Discount): Form {
   return {
-    target: d.target_type ?? "all",
-    categoryId: d.category_id ?? "",
-    collectionId: d.collection_id ?? "",
-    membership: d.membership ?? "",
-    customer: d.contact ?? null,
+    scopes: {
+      category: d.category_ids.length > 0,
+      collection: d.collection_ids.length > 0,
+      membership: d.memberships.length > 0,
+      individual: d.customer_ids.length > 0,
+    },
+    categoryIds: d.category_ids,
+    collectionIds: d.collection_ids,
+    memberships: d.memberships,
+    customers: d.contacts,
     code: d.code ?? "",
     name: d.name,
     kind: d.kind,
@@ -150,6 +212,27 @@ function describe(d: Discount): string {
   return KIND_LABEL[d.kind];
 }
 
+const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+function appliesTo(d: Discount): string {
+  const parts = [
+    d.category_ids.length
+      ? plural(d.category_ids.length, "category").replace(
+          "categorys",
+          "categories",
+        )
+      : null,
+    d.collection_ids.length
+      ? plural(d.collection_ids.length, "collection")
+      : null,
+    d.memberships.length
+      ? d.memberships.map((m) => SEGMENT_META[m].label).join(", ")
+      : null,
+    d.customer_ids.length ? plural(d.customer_ids.length, "customer") : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "All products and customers";
+}
+
 function status(d: Discount): {
   label: string;
   tone: "success" | "neutral" | "warning";
@@ -174,17 +257,11 @@ export default function DiscountsPage() {
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<Discount | null>(null);
   const categories = useErpQuery<{ id: string; name: string }[]>(
-    editing && form.target === "category" ? "/api/v1/categories" : null,
+    editing && form.scopes.category ? "/api/v1/categories" : null,
   );
   const collections = useErpQuery<{ id: string; name: string }[]>(
-    editing && form.target === "collection" ? "/api/v1/collections" : null,
+    editing && form.scopes.collection ? "/api/v1/collections" : null,
   );
-  const contact = useErpQuery<CrmProfile>(
-    editing && form.target === "individual" && form.customer
-      ? `/api/v1/crm/customers/${form.customer.id}`
-      : null,
-  );
-
   function openNew() {
     setForm(EMPTY);
     setEditing("new");
@@ -228,21 +305,22 @@ export default function DiscountsPage() {
       return toast.error("Pick a channel", "Choose at least one channel.");
 
     if (
-      (form.target === "category" && !form.categoryId) ||
-      (form.target === "collection" && !form.collectionId) ||
-      (form.target === "membership" && !form.membership) ||
-      (form.target === "individual" && !form.customer)
+      (form.scopes.category && !form.categoryIds.length) ||
+      (form.scopes.collection && !form.collectionIds.length) ||
+      (form.scopes.membership && !form.memberships.length) ||
+      (form.scopes.individual && !form.customers.length)
     )
       return toast.error(
-        "Choose a discount target",
-        "Select the category, collection, membership or customer for this discount.",
+        "Choose who this applies to",
+        "Select at least one item for every box you ticked, or choose all products and customers.",
       );
     const body = {
-      target_type: form.target,
-      category_id: form.target === "category" ? form.categoryId : null,
-      collection_id: form.target === "collection" ? form.collectionId : null,
-      membership: form.target === "membership" ? form.membership : null,
-      customer_id: form.target === "individual" ? form.customer?.id : null,
+      category_ids: form.scopes.category ? form.categoryIds : [],
+      collection_ids: form.scopes.collection ? form.collectionIds : [],
+      memberships: form.scopes.membership ? form.memberships : [],
+      customer_ids: form.scopes.individual
+        ? form.customers.map((c) => c.id)
+        : [],
       code: form.code.trim() || null,
       name: form.name.trim(),
       kind: form.kind,
@@ -311,10 +389,8 @@ export default function DiscountsPage() {
         header: "Applies to",
         cell: ({ row }) => (
           <div className="text-ink-600">
-            {TARGET_LABEL[row.original.target_type ?? "all"]}
-            {row.original.membership &&
-              ` · ${SEGMENT_META[row.original.membership].label}`}
-            {row.original.target_type === "individual" && (
+            {appliesTo(row.original)}
+            {row.original.customer_ids.length > 0 && (
               <p className="text-xs">Private campaign offer</p>
             )}
           </div>
@@ -473,141 +549,150 @@ export default function DiscountsPage() {
             onChange={(e) => set("code", e.target.value)}
           />
         </Field>
-        <Field label="Applies to" htmlFor="d_target">
-          <Select
-            id="d_target"
-            value={form.target}
-            onValueChange={(value) => set("target", value as DiscountTarget)}
-          >
-            {(Object.keys(TARGET_LABEL) as DiscountTarget[]).map((target) => (
-              <option key={target} value={target}>
-                {TARGET_LABEL[target]}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        {form.target === "category" && (
-          <Field
-            label="Category"
-            htmlFor="d_category"
-            required
-            hint="Only products in this category receive the discount."
-          >
-            <Select
-              id="d_category"
-              value={form.categoryId}
-              onValueChange={(value) => set("categoryId", value)}
-            >
-              <option value="">Choose a category</option>
-              {(categories.data ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
-            {categories.error && (
-              <p className="mt-1 text-sm text-error">{categories.error}</p>
-            )}
-          </Field>
-        )}
-        {form.target === "collection" && (
-          <Field
-            label="Collection"
-            htmlFor="d_collection"
-            required
-            hint="Only products currently in this collection receive the discount."
-          >
-            <Select
-              id="d_collection"
-              value={form.collectionId}
-              onValueChange={(value) => set("collectionId", value)}
-            >
-              <option value="">Choose a collection</option>
-              {(collections.data ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
-            {collections.error && (
-              <p className="mt-1 text-sm text-error">{collections.error}</p>
-            )}
-          </Field>
-        )}
-        {form.target === "membership" && (
-          <Field
-            label="Membership"
-            htmlFor="d_membership"
-            required
-            hint="Customers must have this membership when they use the offer."
-          >
-            <Select
-              id="d_membership"
-              value={form.membership}
-              onValueChange={(value) => set("membership", value as Segment)}
-            >
-              <option value="">Choose a membership</option>
-              {SEGMENT_ORDER.filter((key) => key !== "not_member").map(
-                (key) => (
-                  <option key={key} value={key}>
-                    {SEGMENT_META[key].label}
-                  </option>
-                ),
-              )}
-            </Select>
-          </Field>
-        )}
-        {form.target === "individual" && (
-          <>
-            <Field
-              label="Contact"
-              htmlFor="d_contact"
-              required
-              hint="Select an existing customer for a future campaign. This discount is hidden from storefront coupon lists."
-            >
-              <div className="space-y-3 rounded-md border border-line p-3">
-                <CustomerSelect
-                  id="d_contact"
-                  value={form.customer}
-                  onChange={(customer) => set("customer", customer)}
-                />
-                {form.customer && (
-                  <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                    <div className="min-w-0">
-                      <dt className="text-ink-600">Email ID</dt>
-                      <dd className="break-words">
-                        {form.customer.email || "Not recorded"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-600">Date of birth</dt>
-                      <dd>
-                        {contact.loading
-                          ? "Loading…"
-                          : contact.data?.birthday || "Not recorded"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-600">Phone</dt>
-                      <dd>
-                        {formatPhone(form.customer.phone) || "Not recorded"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-600">Customer ID</dt>
-                      <dd>{form.customer.customer_code || "Not recorded"}</dd>
-                    </div>
-                  </dl>
-                )}
-                {contact.error && (
-                  <p className="text-sm text-error">
-                    Couldn&apos;t load contact details. {contact.error}
-                  </p>
+        <Field
+          label="Applies to"
+          htmlFor="d_target"
+          hint="Tick several to combine them: a customer must match the customer options and the basket must contain a matching product."
+        >
+          <div id="d_target" className="space-y-space-3">
+            <label className="flex items-center gap-space-2 text-[14px]">
+              <input
+                type="checkbox"
+                checked={!SCOPES.some((x) => form.scopes[x.key])}
+                onChange={() =>
+                  set("scopes", {
+                    category: false,
+                    collection: false,
+                    membership: false,
+                    individual: false,
+                  })
+                }
+              />
+              All products and customers
+            </label>
+            {SCOPES.map((scope) => (
+              <div key={scope.key} className="space-y-space-2">
+                <label className="flex items-center gap-space-2 text-[14px]">
+                  <input
+                    type="checkbox"
+                    checked={form.scopes[scope.key]}
+                    onChange={(e) =>
+                      set("scopes", {
+                        ...form.scopes,
+                        [scope.key]: e.target.checked,
+                      })
+                    }
+                  />
+                  {scope.label}
+                </label>
+                {form.scopes[scope.key] && (
+                  <div className="ml-6 space-y-space-2 rounded-md border border-line p-space-3">
+                    <p className="text-[12.5px] text-ink-600">{scope.hint}</p>
+                    {scope.key === "category" && (
+                      <>
+                        <CheckList
+                          items={(categories.data ?? []).map((c) => ({
+                            id: c.id,
+                            label: c.name,
+                          }))}
+                          selected={form.categoryIds}
+                          onChange={(ids) => set("categoryIds", ids)}
+                          loading={categories.loading}
+                          empty="No categories yet."
+                        />
+                        {categories.error && (
+                          <p className="text-sm text-error">
+                            {categories.error}
+                          </p>
+                        )}
+                      </>
+                    )}
+                    {scope.key === "collection" && (
+                      <>
+                        <CheckList
+                          items={(collections.data ?? []).map((c) => ({
+                            id: c.id,
+                            label: c.name,
+                          }))}
+                          selected={form.collectionIds}
+                          onChange={(ids) => set("collectionIds", ids)}
+                          loading={collections.loading}
+                          empty="No collections yet."
+                        />
+                        {collections.error && (
+                          <p className="text-sm text-error">
+                            {collections.error}
+                          </p>
+                        )}
+                      </>
+                    )}
+                    {scope.key === "membership" && (
+                      <CheckList
+                        items={SEGMENT_ORDER.filter(
+                          (key) => key !== "not_member",
+                        ).map((key) => ({
+                          id: key,
+                          label: SEGMENT_META[key].label,
+                        }))}
+                        selected={form.memberships}
+                        onChange={(ids) => set("memberships", ids as Segment[])}
+                        empty="No memberships."
+                      />
+                    )}
+                    {scope.key === "individual" && (
+                      <>
+                        <CustomerSelect
+                          id="d_contact"
+                          value={null}
+                          onChange={(customer) =>
+                            customer &&
+                            !form.customers.some((c) => c.id === customer.id) &&
+                            set("customers", [...form.customers, customer])
+                          }
+                        />
+                        {form.customers.length > 0 && (
+                          <ul className="space-y-space-1">
+                            {form.customers.map((c) => (
+                              <li
+                                key={c.id}
+                                className="flex items-center justify-between gap-space-2 rounded-md bg-ink-50 px-space-3 py-space-1 text-[14px]"
+                              >
+                                <span className="min-w-0 truncate">
+                                  {c.name}
+                                  {c.phone && (
+                                    <span className="text-[12px] text-ink-400">
+                                      {" "}
+                                      · {c.phone}
+                                    </span>
+                                  )}
+                                </span>
+                                <button
+                                  type="button"
+                                  aria-label={`Remove ${c.name}`}
+                                  onClick={() =>
+                                    set(
+                                      "customers",
+                                      form.customers.filter(
+                                        (x) => x.id !== c.id,
+                                      ),
+                                    )
+                                  }
+                                  className="shrink-0 text-ink-400 hover:text-ink-900"
+                                >
+                                  ✕
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-            </Field>
-          </>
-        )}
+            ))}
+          </div>
+        </Field>
         <Field label="Type" htmlFor="d_kind">
           <Select
             id="d_kind"
