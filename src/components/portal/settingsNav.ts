@@ -69,7 +69,12 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     icon: ShieldCheck,
     href: "/portal/settings/roles",
   },
-  soon("payments", "Payments", CreditCard),
+  {
+    slug: "payments",
+    label: "Payments",
+    icon: CreditCard,
+    href: "/portal/settings/payments",
+  },
   soon("checkout", "Checkout", ShoppingCart),
   soon("customer-accounts", "Customer accounts", UserCircle),
   {

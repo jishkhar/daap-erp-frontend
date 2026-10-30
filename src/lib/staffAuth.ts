@@ -126,8 +126,11 @@ function noteServiceEnded(status: number, data: unknown) {
     data as { error?: { reason?: string; feature?: string } } | undefined
   )?.error;
   const reason = err?.reason;
-  // a service that ended, or an optional module switched off (by the business or the platform): re-read the session so the menu follows
-  const moduleOff = !!err?.feature && OPTIONAL_MODULES.has(err.feature);
+  // a service that ended, or a module switched off (an optional one by the business or the platform, any other by the platform): re-read
+  // the session so the menu follows
+  const moduleOff =
+    reason === "module_off" ||
+    (!!err?.feature && OPTIONAL_MODULES.has(err.feature));
   if (
     status === 403 &&
     (reason === "service_ended" || reason === "access_ended" || moduleOff) &&
