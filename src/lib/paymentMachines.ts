@@ -19,6 +19,9 @@ export type RazorpayAccount = {
   } | null;
   qr_on_tills: boolean;
   webhook_url: string;
+  /** The shop's website: Razorpay accepts website payments only from addresses registered on the account. */
+  website_url: string;
+  webhook_events: string[];
 };
 
 /** A test payment from the portal (Settings > Payments): a Razorpay QR or a connected machine, made the way a till does it; never a bill. */

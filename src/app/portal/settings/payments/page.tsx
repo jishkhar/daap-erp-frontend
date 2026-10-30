@@ -241,14 +241,30 @@ function RazorpayCard({ canEdit }: { canEdit: boolean }) {
               </div>
             </div>
           )}
-          <p className="text-[12.5px] text-ink-600">
-            Webhook URL for the Razorpay Dashboard:{" "}
-            <code className="break-all text-ink-900">{a.webhook_url}</code>. For
-            the tills&apos; QR, also tick the events{" "}
-            <code className="text-ink-900">qr_code.credited</code> and{" "}
-            <code className="text-ink-900">qr_code.closed</code>; without them a
-            QR payment still confirms, a few seconds later.
-          </p>
+          <div className="space-y-space-2 rounded-lg bg-paper p-space-3 text-[12.5px] text-ink-600">
+            <p className="font-medium text-ink-900">
+              In your Razorpay Dashboard
+            </p>
+            <p>
+              <span className="font-medium text-ink-900">Website:</span> add{" "}
+              <code className="break-all text-ink-900">{a.website_url}</code> to
+              your account&apos;s website details. Razorpay only accepts
+              payments from websites registered there.
+            </p>
+            <p>
+              <span className="font-medium text-ink-900">Webhook:</span>{" "}
+              <code className="break-all text-ink-900">{a.webhook_url}</code>{" "}
+              with the webhook secret saved above, and the events{" "}
+              {a.webhook_events.map((e, i) => (
+                <span key={e}>
+                  {i > 0 && ", "}
+                  <code className="text-ink-900">{e}</code>
+                </span>
+              ))}
+              . It confirms an order even if the shopper closes the page right
+              after paying.
+            </p>
+          </div>
           {settings.data && (
             <label className="flex items-start gap-space-3 text-[13px] text-ink-700">
               <Switch
