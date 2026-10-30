@@ -85,6 +85,11 @@ export type Order = {
   item_count?: number;
   /** Distinct recorded payment methods in list responses, excluding failed attempts. */
   payment_methods?: string[];
+  /** Present on the orders list: the order's open return or exchange (else its latest finished one), and how many it has. */
+  return_kind?: "return" | "exchange" | null;
+  return_status?: "requested" | "approved" | "completed" | null;
+  return_number?: string | null;
+  return_count?: number;
 };
 
 export type OrderItem = {

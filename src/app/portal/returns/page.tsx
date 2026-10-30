@@ -30,7 +30,7 @@ function ReturnsView() {
   const [tab, setTab] = useState<Tab>(
     params.get("status") === "open" ? "requests" : "return",
   );
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(params.get("q") ?? "");
   // the period and channel come from the header's global filter
   const { params: global } = useGlobalFilter();
   const [selected, setSelected] = useState<string | null>(params.get("id"));
