@@ -1393,7 +1393,7 @@ test(
 );
 
 test(
-  "Discount targets save categories, collections, memberships and private customer contacts",
+  "Discount targets can be combined: several categories, collections, memberships and private customers",
   { timeout: 60000 },
   async () => {
     const { page, context, writes } = await fixture();
@@ -1419,16 +1419,18 @@ test(
           id: `discount-${rows.length}`,
           times_used: 0,
           branch_ids: null,
-          contact:
-            saved.target_type === "individual"
-              ? { ...customer, birthday: "1990-03-14" }
-              : null,
+          contacts: saved.customer_ids.length ? [customer] : [],
         };
         rows.push(discount);
         return route.fulfill({ status: 201, json: discount });
       });
       await page.route("**/api/v1/categories", (route) =>
-        route.fulfill({ json: [{ id: "category-sarees", name: "Sarees" }] }),
+        route.fulfill({
+          json: [
+            { id: "category-sarees", name: "Sarees" },
+            { id: "category-kurtas", name: "Kurtas" },
+          ],
+        }),
       );
       await page.route("**/api/v1/collections", (route) =>
         route.fulfill({
@@ -1438,102 +1440,66 @@ test(
       await page.route("**/api/v1/customers?*", (route) =>
         route.fulfill({ json: [customer] }),
       );
-      await page.route("**/api/v1/crm/customers/target-customer", (route) =>
-        route.fulfill({ json: { ...customer, birthday: "1990-03-14" } }),
-      );
       await page.goto(`${baseURL}/portal/discounts`);
-      for (const [target, choice] of [
-        ["category", "Category"],
-        ["collection", "Collection"],
-        ["membership", "Membership"],
-        ["individual", "Individual"],
-      ]) {
-        await page
-          .getByRole("button", { name: "New discount", exact: true })
-          .click();
-        const modal = page.getByRole("dialog", {
-          name: "New discount",
-          exact: true,
-        });
-        await modal.getByLabel(/^Name/).fill(`Test ${choice}`);
-        await modal
-          .getByLabel("Coupon code", { exact: true })
-          .fill(`TEST-${target.toUpperCase()}`);
-        await modal.getByLabel(/^Percentage/).fill("10");
-        await modal
-          .getByRole("combobox", { name: "Applies to", exact: true })
-          .click();
-        await page.getByRole("option", { name: choice, exact: true }).click();
-        if (target === "category" || target === "collection") {
-          await modal
-            .getByRole("combobox", { name: new RegExp(`^${choice}`) })
-            .click();
-          await page
-            .getByRole("option", {
-              name: target === "category" ? "Sarees" : "Summer collection",
-              exact: true,
-            })
-            .click();
-        } else if (target === "membership") {
-          await modal.getByRole("combobox", { name: /^Membership/ }).click();
-          for (const name of [
-            "Regular",
-            "Silver",
-            "Gold",
-            "Platinum",
-            "Inactive",
-          ])
-            await page.getByRole("option", { name, exact: true }).waitFor();
-          await page.getByRole("option", { name: "Gold", exact: true }).click();
-        } else {
-          await modal
-            .getByRole("combobox", { name: "Search customers", exact: true })
-            .fill("Asha");
-          await page.getByRole("option", { name: /Asha Rao/ }).click();
-          await modal.getByText("asha@example.test", { exact: true }).waitFor();
-          await modal.getByText("1990-03-14", { exact: true }).waitFor();
-          assert(
-            (await modal.innerText()).includes(
-              "hidden from storefront coupon lists",
-            ),
-          );
-        }
-        for (const width of [320, 390, 768, 1440]) {
-          await page.setViewportSize({ width, height: 900 });
-          const box = await modal.boundingBox();
-          assert(box.x >= 0 && box.x + box.width <= width);
-        }
-        await modal
-          .getByRole("button", { name: "Create discount", exact: true })
-          .click();
-        await modal.waitFor({ state: "hidden" });
-        assert.equal(saved.target_type, target);
-        assert.equal(
-          saved.category_id,
-          target === "category" ? "category-sarees" : null,
-        );
-        assert.equal(
-          saved.collection_id,
-          target === "collection" ? "collection-summer" : null,
-        );
-        assert.equal(saved.membership, target === "membership" ? "gold" : null);
-        assert.equal(
-          saved.customer_id,
-          target === "individual" ? "target-customer" : null,
-        );
+      await page
+        .getByRole("button", { name: "New discount", exact: true })
+        .click();
+      const modal = page.getByRole("dialog", {
+        name: "New discount",
+        exact: true,
+      });
+      await modal.getByLabel(/^Name/).fill("Combined");
+      await modal.getByLabel("Coupon code", { exact: true }).fill("COMBINED");
+      await modal.getByLabel(/^Percentage/).fill("10");
+      const all = modal.getByLabel("All products and customers", {
+        exact: true,
+      });
+      await all.waitFor();
+      assert(await all.isChecked());
+      for (const name of ["Category", "Collection", "Membership", "Individual"])
+        await modal.getByLabel(name, { exact: true }).check();
+      assert(!(await all.isChecked()));
+      await modal.getByLabel("Sarees", { exact: true }).check();
+      await modal.getByLabel("Kurtas", { exact: true }).check();
+      await modal.getByLabel("Summer collection", { exact: true }).check();
+      await modal.getByLabel("Gold", { exact: true }).check();
+      await modal.getByLabel("Silver", { exact: true }).check();
+      await modal
+        .getByRole("combobox", { name: "Search customers", exact: true })
+        .fill("Asha");
+      await page.getByRole("option", { name: /Asha Rao/ }).click();
+      assert(
+        (await modal.innerText()).includes(
+          "hidden from storefront coupon lists",
+        ),
+      );
+      for (const width of [320, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        const box = await modal.boundingBox();
+        assert(box.x >= 0 && box.x + box.width <= width);
       }
-      const individual = page
+      await modal
+        .getByRole("button", { name: "Create discount", exact: true })
+        .click();
+      await modal.waitFor({ state: "hidden" });
+      assert.deepEqual(saved.category_ids, [
+        "category-sarees",
+        "category-kurtas",
+      ]);
+      assert.deepEqual(saved.collection_ids, ["collection-summer"]);
+      assert.deepEqual(saved.memberships.sort(), ["gold", "silver"]);
+      assert.deepEqual(saved.customer_ids, ["target-customer"]);
+      await page
         .getByRole("row")
-        .filter({ hasText: "Test Individual" });
-      await individual
+        .filter({ hasText: "Combined" })
         .getByRole("button", { name: "Edit", exact: true })
         .click();
       const edit = page.getByRole("dialog", {
         name: "Edit discount",
         exact: true,
       });
-      await edit.getByText("asha@example.test", { exact: true }).waitFor();
-      await edit.getByText("1990-03-14", { exact: true }).waitFor();
+      await edit.getByText("Asha Rao").waitFor();
+      assert(await edit.getByLabel("Sarees", { exact: true }).isChecked());
       assert.equal(writes.length, 0);
     } finally {
       await context.close();

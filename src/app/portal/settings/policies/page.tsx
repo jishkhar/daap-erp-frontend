@@ -134,11 +134,13 @@ function ReturnRules({
   pos_window_days,
   exchanges_enabled,
   store_credit_enabled,
+  loyalty_enabled,
 }: {
   online_window_days: number;
   pos_window_days: number;
   exchanges_enabled: boolean;
   store_credit_enabled: boolean;
+  loyalty_enabled: boolean;
 }) {
   const rows = [
     [
@@ -148,6 +150,7 @@ function ReturnRules({
     ["Counter (POS) bills", `${days(pos_window_days)} from the bill`],
     ["Exchanges", exchanges_enabled ? "On" : "Off"],
     ["Refund as store credit", store_credit_enabled ? "On" : "Off"],
+    ["Refund as loyalty points", loyalty_enabled ? "On" : "Off"],
   ];
   return (
     <>

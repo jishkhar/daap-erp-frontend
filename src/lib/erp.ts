@@ -648,16 +648,12 @@ export type StoreCredit = {
 };
 export type DiscountKind = "percent" | "flat" | "free_delivery" | "bogo";
 
-export type DiscountTarget =
-  "all" | "category" | "collection" | "membership" | "individual";
-
 export type Discount = {
-  target_type: DiscountTarget;
-  category_id: string | null;
-  collection_id: string | null;
-  membership: import("@/lib/crm").Segment | null;
-  customer_id: string | null;
-  contact: (Customer & { birthday: string | null }) | null;
+  category_ids: string[];
+  collection_ids: string[];
+  memberships: import("@/lib/crm").Segment[];
+  customer_ids: string[];
+  contacts: Customer[];
   id: string;
   code: string | null;
   name: string;
