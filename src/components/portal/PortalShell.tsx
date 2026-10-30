@@ -5,7 +5,12 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { canOpenPath, landingPath, pageKeyForPath } from "@/lib/routeAccess";
+import {
+  canOpenPath,
+  landingPath,
+  moduleOffForPath,
+  pageKeyForPath,
+} from "@/lib/routeAccess";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { GlobalFilter } from "@/components/portal/GlobalFilter";
 import { HelpButton } from "@/components/portal/help/HelpButton";
@@ -67,6 +72,7 @@ export function PortalShell({ tenant, active, children }: Props) {
   const restricted = pageKeyForPath(pathname) !== null;
   const allowed = session ? canOpenPath(session, pathname) : false;
   const onDashboard = pathname === "/portal/dashboard";
+  const moduleOff = !!session && moduleOffForPath(session, pathname);
   useEffect(() => {
     // Signing in lands on the dashboard; someone who cannot use it goes to the first page they can.
     if (session && !allowed && onDashboard)
@@ -96,10 +102,14 @@ export function PortalShell({ tenant, active, children }: Props) {
         <Lock size={22} />
       </span>
       <h1 className="mt-space-3 text-[18px] font-bold text-ink-900">
-        You do not have access to this page
+        {moduleOff
+          ? "This module is switched off"
+          : "You do not have access to this page"}
       </h1>
       <p className="mt-space-1 text-[13px] text-ink-600">
-        Your role does not include it. Ask an administrator if you need it.
+        {moduleOff
+          ? "It isn't available for your business. An administrator can check Settings > Modules, or contact support."
+          : "Your role does not include it. Ask an administrator if you need it."}
       </p>
       {session && (
         <Button

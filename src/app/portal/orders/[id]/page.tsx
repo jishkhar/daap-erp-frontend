@@ -234,6 +234,7 @@ export default function OrderDetailPage() {
                 </Button>
               )}
               {hasGrant(session, "orders:return") &&
+                session?.modules?.returns !== false &&
                 o.status === "completed" && (
                   <Button
                     variant="secondary"

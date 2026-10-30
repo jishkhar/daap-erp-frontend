@@ -168,6 +168,16 @@ export const queryKeys = {
   modules: ["erp", "tenant", "modules"] as const,
   labelSettings: ["erp", "labels", "settings"] as const,
   posBranding: ["erp", "channels", "pos", "branding"] as const,
+  paymentMachines: ["erp", "payment-machines"] as const,
+  paymentSettings: ["erp", "payment-machines", "settings"] as const,
+  paymentProviders: ["erp", "payment-machines", "providers"] as const,
+  razorpayAccount: ["erp", "payment-machines", "razorpay"] as const,
+  razorpayTestPayment: (id: string) =>
+    ["erp", "payment-machines", "razorpay", "test-payment", id] as const,
+  paymentConnections: ["erp", "payment-machines", "connections"] as const,
+  paymentDevices: ["erp", "payment-machines", "devices"] as const,
+  paymentRequests: (unused: boolean) =>
+    ["erp", "payment-machines", "requests", unused] as const,
   posLatestRelease: ["pos", "latest-release"] as const,
   priceLists: ["erp", "wholesale", "price-lists"] as const,
   priceList: (id: string, q: string) =>
