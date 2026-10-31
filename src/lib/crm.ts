@@ -134,11 +134,35 @@ export type CrmMessage = {
   created_at: string;
 };
 
+export type CampaignChannel = MessageChannel | "pos" | "website";
+export type CampaignObjective =
+  "sales" | "retention" | "loyalty" | "launch" | "reactivation" | "awareness";
+export type CampaignType =
+  "discount" | "loyalty" | "message" | "launch" | "event";
+export type CampaignAudience = {
+  segment?: Segment;
+  tag?: string;
+  customer_id?: string;
+  customer_type?: "individual" | "business";
+  only_new?: boolean;
+  city?: string;
+  purchase?: "bought" | "never" | "repeat" | "recent";
+  gender?: "male" | "female" | "other";
+  since?: "30d" | "90d" | "1y";
+};
+
 export type Campaign = {
   id: string;
   name: string;
   channel: MessageChannel;
-  audience: { segment?: Segment; tag?: string; customer_id?: string };
+  audience: CampaignAudience;
+  /** Every channel chosen: messaging channels send, POS and website show the offer. `channel` is the first that sends messages. */
+  channels: CampaignChannel[];
+  description: string | null;
+  objective: CampaignObjective;
+  campaign_type: CampaignType;
+  starts_at: string | null;
+  ends_at: string | null;
   subject: string | null;
   message: string;
   discount_id: string | null;

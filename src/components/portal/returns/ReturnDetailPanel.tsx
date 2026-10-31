@@ -373,9 +373,11 @@ export function ReturnDetailPanel({
                 When you mark it received, the replacement order is placed from
                 the value of the returned items.{" "}
                 {r.exchange_payment === "cod"
-                  ? "If it costs more, the difference is collected in cash on delivery (the original order was COD)."
+                  ? "It costs more: the difference is collected in cash on delivery (the original order was COD)."
                   : r.exchange_payment === "online"
-                    ? "If it costs more, the customer pays the difference online; the order waits for that payment."
+                    ? r.top_up && r.top_up.outstanding_minor > 0
+                      ? `It costs more: the customer still has to pay ${formatMoney(r.top_up.outstanding_minor, currency)} online, so it can't be received yet.`
+                      : `It costs more: the customer already paid ${formatMoney(r.top_up?.due_minor ?? r.difference_minor, currency)} online. The replacement order is held until the goods arrive; if you reject the request, it is cancelled and that payment is refunded.`
                     : "If it costs less, the difference goes back as loyalty points."}
               </p>
             </div>
@@ -450,7 +452,7 @@ export function ReturnDetailPanel({
               Reject
             </Button>
             <Button
-              disabled={busy}
+              disabled={busy || (r.top_up?.outstanding_minor ?? 0) > 0}
               onClick={() =>
                 receive.mutate(
                   { refund_mode: mode || defaultMode },
