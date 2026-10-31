@@ -460,10 +460,11 @@ type FetchResult =
     };
 
 /** axios wrapper for authenticated ERP requests. Access tokens last ~15 minutes, so a 401 first tries ONE silent
- * refresh before giving up and clearing the session. */
+ * refresh before giving up and clearing the session. `responseType: "blob"` returns a file (a PDF) instead of JSON. */
 export async function staffFetch(
   path: string,
   init?: RequestInit,
+  options?: { responseType?: "blob" },
 ): Promise<FetchResult> {
   let token = getStaffAccessToken();
   if (!token) return { ok: false, unauthorized: true };
@@ -472,6 +473,7 @@ export async function staffFetch(
   const request = (authToken: string) =>
     axios.request({
       ...config,
+      ...(options?.responseType ? { responseType: options.responseType } : {}),
       url: `${API_BASE_URL}${path}`,
       headers: { ...config.headers, Authorization: `Bearer ${authToken}` },
     });

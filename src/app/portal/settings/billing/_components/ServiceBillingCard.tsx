@@ -16,7 +16,8 @@ import {
   STATE_TONE,
   type Service,
 } from "@/lib/services";
-import type { BillingPlan, BillingService } from "./billing-types";
+import type { BillingPlan, BillingService, BillingView } from "./billing-types";
+import { gstNote } from "./gst";
 
 const planFeatures = (p: BillingPlan) => [
   p.max_branches
@@ -37,12 +38,14 @@ const planFeatures = (p: BillingPlan) => [
 export function ServiceBillingCard({
   service,
   info,
+  tax,
   canManage,
   onChoose,
   onCancel,
 }: {
   service: Service;
   info: BillingService;
+  tax: BillingView["tax"];
   canManage: boolean;
   onChoose: () => void;
   onCancel: () => void;
@@ -116,6 +119,9 @@ export function ServiceBillingCard({
             </span>{" "}
             <span className="text-[13px] text-ink-600">
               {plan.currency.trim()}/{cycle === "annual" ? "year" : "month"}
+            </span>
+            <span className="block text-[12px] text-ink-400">
+              {gstNote(tax.price_mode, tax.gst_rate)}
             </span>
           </p>
         )}

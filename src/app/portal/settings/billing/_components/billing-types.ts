@@ -19,7 +19,15 @@ export type BillingPlan = {
   feature_labels?: string[];
   is_popular: boolean;
   is_active: boolean;
+  /** What is paid per cycle, GST included (the plan list only). */
+  charge_monthly_minor?: number;
+  charge_yearly_minor?: number;
+  price_mode?: PriceMode;
+  gst_rate?: number;
 };
+
+/** exclusive: the plan price is before GST (GST is added); inclusive: GST is inside the price. */
+export type PriceMode = "exclusive" | "inclusive";
 
 export type BillingSubscription = {
   id: string;
@@ -55,6 +63,9 @@ export type BillingPayment = {
   card_network: string | null;
   razorpay_payment_id: string | null;
   invoice_url: string | null;
+  /** DAAP's tax invoice for this charge. */
+  tax_invoice_id: string | null;
+  tax_invoice_number: string | null;
   billing_cycle: "monthly" | "annual" | null;
   period_end: string | null;
   failure_reason: string | null;
@@ -75,6 +86,7 @@ export type BillingService = {
 export type BillingView = {
   billing_configured: boolean;
   services: Record<Service, BillingService>;
+  tax: { price_mode: PriceMode; gst_rate: number };
   /** Branches and users are the business's, limited by its most generous live plan; terminals belong to POS. */
   usage: {
     branches: number;
@@ -85,4 +97,42 @@ export type BillingView = {
     max_terminals: number | null;
   };
   payments: BillingPayment[];
+};
+
+/** A tax invoice or credit note DAAP issued to the business (/api/v1/billing/invoices). */
+export type TaxInvoice = {
+  id: string;
+  kind: "invoice" | "credit_note";
+  number: string;
+  /** Credit note: the invoice it reduces. */
+  invoice_number: string | null;
+  service: Service | null;
+  description: string;
+  billing_cycle: "monthly" | "annual" | null;
+  period_start: string | null;
+  period_end: string | null;
+  issued_at: string;
+  currency: string;
+  gst_rate: number | string;
+  supply_type: "INTRA" | "INTER";
+  taxable_minor: number;
+  cgst_minor: number;
+  sgst_minor: number;
+  igst_minor: number;
+  total_minor: number;
+  buyer_gstin: string | null;
+  emailed_to: string | null;
+  emailed_at: string | null;
+};
+
+/** Where invoices are emailed and whom they are made out to. */
+export type BillingContact = {
+  onboarding_email: string | null;
+  billing_email: string | null;
+  bill_to: {
+    legal_name: string | null;
+    gstin: string | null;
+    address: string | null;
+    state: string | null;
+  };
 };

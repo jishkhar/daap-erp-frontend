@@ -1,12 +1,13 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatMoney } from "@/lib/erp";
 import { formatDate } from "@/lib/formatDate";
 import { PlanBadge, ServiceBadge } from "@/components/ui/ServicePlanBadge";
 import type { BillingPayment } from "./billing-types";
+import { viewInvoice } from "./InvoicesSection";
 
 const TONE = {
   paid: "success",
@@ -23,7 +24,7 @@ const LABEL = {
   refunded: "Refunded",
 } as const;
 
-/** Column defs for the payment history table: one row per charge; the invoice is Razorpay's hosted page. */
+/** Column defs for the payment history table: one row per charge; the invoice is DAAP's tax invoice PDF (Razorpay's receipt for older charges). */
 export function createPaymentColumns(): ColumnDef<BillingPayment, unknown>[] {
   return [
     {
@@ -85,19 +86,36 @@ export function createPaymentColumns(): ColumnDef<BillingPayment, unknown>[] {
     },
     {
       header: "Invoice",
-      cell: ({ row }) =>
-        row.original.invoice_url ? (
+      cell: ({ row }) => {
+        const p = row.original;
+        if (p.tax_invoice_id && p.tax_invoice_number)
+          return (
+            <button
+              type="button"
+              onClick={() =>
+                viewInvoice({
+                  id: p.tax_invoice_id!,
+                  number: p.tax_invoice_number!,
+                })
+              }
+              className="inline-flex items-center gap-1 text-brand-600 hover:underline"
+            >
+              <FileText size={12} /> {p.tax_invoice_number}
+            </button>
+          );
+        return p.invoice_url ? (
           <a
-            href={row.original.invoice_url}
+            href={p.invoice_url}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-brand-600 hover:underline"
           >
-            View <ExternalLink size={12} />
+            Receipt <ExternalLink size={12} />
           </a>
         ) : (
           <span className="text-ink-400">—</span>
-        ),
+        );
+      },
     },
   ];
 }

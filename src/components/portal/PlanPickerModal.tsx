@@ -8,6 +8,7 @@ import { PlanBadge } from "@/components/ui/ServicePlanBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useBilling, useChoosePlan, useServicePlans } from "@/hooks/useBilling";
+import { gstNote } from "@/app/portal/settings/billing/_components/gst";
 import { formatMoney } from "@/lib/erp";
 import {
   buyLabel,
@@ -208,6 +209,11 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                 "annual"
                   ? p.price_yearly_minor
                   : p.price_monthly_minor;
+              const charge =
+                (billed ? current?.subscription?.billing_cycle : cycle) ===
+                "annual"
+                  ? p.charge_yearly_minor
+                  : p.charge_monthly_minor;
               const shownCycle = billed
                 ? current?.subscription?.billing_cycle
                 : cycle;
@@ -267,6 +273,15 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                       {p.currency.trim()}/
                       {shownCycle === "annual" ? "year" : "month"}
                     </span>
+                    {gstNote(p.price_mode, p.gst_rate) && (
+                      <span className="block text-[12px] text-ink-400">
+                        {gstNote(p.price_mode, p.gst_rate)}
+                        {p.price_mode === "exclusive" &&
+                          charge !== undefined &&
+                          charge !== price &&
+                          ` · you pay ${formatMoney(charge, p.currency.trim())}`}
+                      </span>
+                    )}
                   </p>
                   {shownCycle === "annual" && discount > 0 && !billed && (
                     <p className="text-[12px] text-success">
