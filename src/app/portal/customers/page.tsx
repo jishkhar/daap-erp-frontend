@@ -16,7 +16,7 @@ import { CampaignsTab } from "@/components/crm/CampaignsTab";
 import { CommunicationTab } from "@/components/crm/CommunicationTab";
 import { CustomersTab } from "@/components/crm/CustomersTab";
 import { LoyaltyTab } from "@/components/crm/LoyaltyTab";
-import { SegmentsTab } from "@/components/crm/SegmentsTab";
+import { MembershipTab } from "@/components/crm/membership/MembershipTab";
 import { KpiTile } from "@/components/crm/shared";
 import { TagsTab } from "@/components/crm/TagsTab";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs } from "@/components/ui/Tabs";
-import type { CrmSummary, Segment } from "@/lib/crm";
+import type { CrmSummary } from "@/lib/crm";
 import { erp, formatMoney, useErpQuery } from "@/lib/erp";
 import { hasPermission, hasTenantWide, useStaffSession } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
@@ -179,14 +179,11 @@ export default function CustomersPage() {
         />
       )}
       {tab === "segments" && (
-        <SegmentsTab
+        <MembershipTab
           currency={currency}
+          canEdit={canCreate}
           canConfigure={canConfigure}
           onChanged={changed}
-          onOpenSegment={(seg: Segment) => {
-            setFilter({ segment: seg, tag: "" });
-            setTab("customers");
-          }}
         />
       )}
       {tab === "tags" && (

@@ -1,0 +1,55 @@
+"use client";
+
+import { Input } from "@/components/ui/Input";
+
+/** ISO instant -> the value a datetime-local input wants (local time). */
+export const isoToLocalInput = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+};
+export const localInputToIso = (v: string) =>
+  v ? new Date(v).toISOString() : null;
+
+/** A date and a time on one line, under one label. `value` is "YYYY-MM-DDTHH:mm" (what a datetime-local input uses), "" when unset;
+ * picking a date fills in `defaultTime` when no time was chosen yet. */
+export function DateTimeField({
+  label,
+  id,
+  value,
+  onChange,
+  defaultTime = "00:00",
+}: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  defaultTime?: string;
+}) {
+  const [date = "", time = ""] = value.split("T");
+  const change = (d: string, t: string) =>
+    onChange(d ? `${d}T${t || defaultTime}` : "");
+  return (
+    <div>
+      <label htmlFor={id} className="text-label mb-space-1 block">
+        {label}
+      </label>
+      <div className="flex gap-space-2">
+        <Input
+          id={id}
+          type="date"
+          value={date}
+          onChange={(e) => change(e.target.value, time)}
+        />
+        <Input
+          type="time"
+          aria-label={`${label} (time)`}
+          value={time}
+          onChange={(e) => change(date, e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}

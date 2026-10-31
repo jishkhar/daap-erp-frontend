@@ -670,7 +670,8 @@ export type StoreCredit = {
     created_at: string;
   }[];
 };
-export type DiscountKind = "percent" | "flat" | "free_delivery" | "bogo";
+export type DiscountKind =
+  "percent" | "flat" | "free_delivery" | "bogo" | "buy_x_get_y" | "fixed_price";
 
 export type Discount = {
   category_ids: string[];
@@ -678,11 +679,23 @@ export type Discount = {
   memberships: import("@/lib/crm").Segment[];
   customer_ids: string[];
   contacts: Customer[];
+  product_ids: string[];
+  products: { id: string; name: string }[];
+  customer_tags: string[];
+  account_ids: string[];
+  description: string | null;
+  min_quantity: number;
+  buy_quantity: number | null;
+  get_quantity: number | null;
+  combine_with_discounts: boolean;
+  combine_with_points: boolean;
+  priority: "low" | "normal" | "high";
+  apply_on: "subtotal" | "total";
   id: string;
   code: string | null;
   name: string;
   kind: DiscountKind;
-  /** percent: 0–100; flat: minor units. */
+  /** percent: 0–100; flat and fixed_price: minor units. */
   value: number;
   max_discount_minor: number | null;
   min_order_minor: number;
