@@ -36,6 +36,13 @@ export type WhatsAppTemplate = {
   status: string;
   category?: string;
   language?: string;
+  /** The body text, with {{1}}, {{2}} … where values go. */
+  body?: string;
+  /** How many {{n}} values the body needs. */
+  variables?: number;
+  /** Whether a campaign can send it (approved, marketing or utility, nothing but body text to fill in); `problem` says why not. */
+  usable?: boolean;
+  problem?: string | null;
 };
 
 /** `enabled: false` (no channels permission) fetches nothing. */

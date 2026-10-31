@@ -135,6 +135,8 @@ export const queryKeys = {
   hrAttendanceSettings: ["hr", "attendance", "settings"] as const,
 
   billing: ["erp", "billing"] as const,
+  billingInvoices: ["erp", "billing", "invoices"] as const,
+  billingContact: ["erp", "billing", "contact"] as const,
   servicePlans: (service: string) =>
     ["erp", "billing", "plans", service] as const,
 

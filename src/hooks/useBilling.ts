@@ -2,10 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  BillingContact,
   BillingPlan,
   BillingView,
+  TaxInvoice,
 } from "@/app/portal/settings/billing/_components/billing-types";
-import { erpGet, erpSend } from "@/lib/erp";
+import { erpBlob, erpGet, erpSend } from "@/lib/erp";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Service } from "@/lib/services";
 
@@ -75,5 +77,65 @@ export function useChoosePlan() {
             { plan_code: input.plan_code, billing_cycle: input.billing_cycle },
           ),
     onSuccess: refresh,
+  });
+}
+
+/** DAAP's tax invoices and credit notes to this business, newest first. */
+export function useTaxInvoices() {
+  return useQuery({
+    queryKey: queryKeys.billingInvoices,
+    queryFn: () => erpGet<TaxInvoice[]>("/api/v1/billing/invoices?limit=200"),
+  });
+}
+
+/** Opens an invoice's PDF in a new tab (or downloads it where the browser cannot show PDFs). */
+export async function openInvoicePdf(invoice: { id: string; number: string }) {
+  // Opened before the request so the popup is not blocked; pointed at the file when it arrives.
+  const tab = window.open("", "_blank");
+  const res = await erpBlob(`/api/v1/billing/invoices/${invoice.id}/pdf`);
+  if (!res.data) {
+    tab?.close();
+    throw new Error(res.error ?? "Couldn't open the invoice.");
+  }
+  const url = URL.createObjectURL(res.data);
+  if (tab) tab.location.href = url;
+  else {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${invoice.number.replaceAll("/", "-")}.pdf`;
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Sends an invoice again to the sign-up email (and the billing email). */
+export function useEmailInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      erpSend<{ sent: boolean; to: string | null; cc: string[] }>(
+        `/api/v1/billing/invoices/${id}/email`,
+        "POST",
+      ),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.billingInvoices }),
+  });
+}
+
+export function useBillingContact() {
+  return useQuery({
+    queryKey: queryKeys.billingContact,
+    queryFn: () => erpGet<BillingContact>("/api/v1/billing/contact"),
+  });
+}
+
+export function useSaveBillingEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (billing_email: string | null) =>
+      erpSend<BillingContact>("/api/v1/billing/contact", "PUT", {
+        billing_email,
+      }),
+    onSuccess: (data) => qc.setQueryData(queryKeys.billingContact, data),
   });
 }

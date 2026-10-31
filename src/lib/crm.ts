@@ -128,7 +128,8 @@ export type CrmMessage = {
   channel: MessageChannel;
   subject: string | null;
   body: string;
-  status: "sent" | "queued" | "failed";
+  /** WhatsApp campaign messages go queued → sending → sent → delivered → read (or failed), from Meta's delivery reports. */
+  status: "queued" | "sending" | "sent" | "delivered" | "read" | "failed";
   error: string | null;
   created_at: string;
 };
@@ -142,9 +143,19 @@ export type Campaign = {
   message: string;
   discount_id: string | null;
   discount_code: string | null;
-  status: "draft" | "sent";
+  /** "sending": a WhatsApp campaign whose messages are going out in the background. */
+  status: "draft" | "sending" | "sent";
   recipient_count: number;
+  /** Messages WhatsApp (or the email provider) accepted. */
   delivered_count: number;
+  /** WhatsApp only: the approved Meta template sent, and one value per {{n}} (may use {{name}} / {{code}}). */
+  whatsapp_template: string | null;
+  template_language: string | null;
+  template_params: string[];
+  /** From Meta's delivery reports: reached the phone, opened, or failed. */
+  delivered_n: number;
+  read_n: number;
+  failed_n: number;
   sent_at: string | null;
   created_at: string;
 };

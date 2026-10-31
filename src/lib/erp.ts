@@ -353,6 +353,25 @@ export async function erp<T = unknown>(
   return { data: result.data as T, error: null, unauthorized: false };
 }
 
+/** A file from the ERP API (a PDF) as the signed-in user. */
+export async function erpBlob(path: string): Promise<ApiResult<Blob>> {
+  const result = await staffFetch(path, undefined, { responseType: "blob" });
+  if (!result.ok)
+    return result.unauthorized
+      ? {
+          data: null,
+          error: "Session expired — please sign in again.",
+          unauthorized: true,
+        }
+      : {
+          data: null,
+          error: "Couldn't open that file.",
+          unauthorized: false,
+          status: result.status,
+        };
+  return { data: result.data as Blob, error: null, unauthorized: false };
+}
+
 /** A multipart file upload (the browser sets the boundary header itself). */
 export async function erpUpload<T = unknown>(
   path: string,

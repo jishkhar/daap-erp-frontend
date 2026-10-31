@@ -19,6 +19,7 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+import { InvoicesSection } from "./_components/InvoicesSection";
 import { createPaymentColumns } from "./_components/payment-columns";
 import { ServiceBillingCard } from "./_components/ServiceBillingCard";
 
@@ -124,6 +125,7 @@ export default function BillingPage() {
               key={s}
               service={s}
               info={data.services[s]}
+              tax={data.tax}
               canManage={canManage}
               onChoose={() => setChoosing({ service: s })}
               onCancel={() => setCancelling(s)}
@@ -190,6 +192,8 @@ export default function BillingPage() {
           emptyMessage={view.isFetching ? "Loading…" : "No payments yet."}
         />
       </Card>
+
+      <InvoicesSection canManage={canManage} />
 
       <ConfirmDialog
         open={cancelling !== null}
