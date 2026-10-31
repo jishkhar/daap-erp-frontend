@@ -5,8 +5,10 @@ import type {
   BillingContact,
   BillingPlan,
   BillingView,
-  TaxInvoice,
+  CheckoutQuote,
+  CheckoutStart,
 } from "@/app/portal/settings/billing/_components/billing-types";
+import type { SubscriptionPaid } from "@/lib/razorpayCheckout";
 import { erpBlob, erpGet, erpSend } from "@/lib/erp";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Service } from "@/lib/services";
@@ -52,40 +54,76 @@ export function useCancelService() {
   });
 }
 
-/** Start a checkout for a service's plan (returns Razorpay's hosted page), or, for a service already paid, schedule a plan change. */
-export function useChoosePlan() {
+/** The checkout page's order summary for a plan and cycle. */
+export function useCheckoutQuote(
+  service: Service | null,
+  planCode: string | null,
+  cycle: "monthly" | "annual",
+) {
+  return useQuery({
+    queryKey: queryKeys.checkoutQuote(service ?? "", planCode ?? "", cycle),
+    queryFn: () =>
+      erpGet<CheckoutQuote>(
+        `/api/v1/billing/${service}/quote?plan_code=${encodeURIComponent(planCode ?? "")}&billing_cycle=${cycle}`,
+      ),
+    enabled: !!service && !!planCode,
+  });
+}
+
+/** Starts buying a plan: Razorpay's window details, or a cheaper plan scheduled for the period end. */
+export function useStartCheckout() {
   const refresh = useRefreshBilling();
   return useMutation({
     mutationFn: (input: {
       service: Service;
       plan_code: string;
-      /** The service already has a paid subscription: change plan at the cycle end instead of a new checkout. */
-      change: boolean;
       billing_cycle: "monthly" | "annual";
     }) =>
-      input.change
-        ? erpSend<unknown>(
-            `/api/v1/billing/${input.service}/change-plan`,
-            "POST",
-            {
-              plan_code: input.plan_code,
-            },
-          )
-        : erpSend<{ short_url: string }>(
-            `/api/v1/billing/${input.service}/subscribe`,
-            "POST",
-            { plan_code: input.plan_code, billing_cycle: input.billing_cycle },
-          ),
+      erpSend<CheckoutStart>(
+        `/api/v1/billing/${input.service}/checkout`,
+        "POST",
+        {
+          plan_code: input.plan_code,
+          billing_cycle: input.billing_cycle,
+        },
+      ),
+    onSuccess: (data) => {
+      if (data.kind === "scheduled") void refresh();
+    },
+  });
+}
+
+/** A new card or UPI AutoPay for a billed plan: what Razorpay's window opens with (charged now only when the last charge failed). */
+export function useStartPaymentMethod() {
+  return useMutation({
+    mutationFn: (service: Service) =>
+      erpSend<Exclude<CheckoutStart, { kind: "scheduled" }>>(
+        `/api/v1/billing/${service}/payment-method`,
+        "POST",
+      ),
+  });
+}
+
+/** Razorpay's signed answer: the plan goes live at once. */
+export function useConfirmCheckout() {
+  const refresh = useRefreshBilling();
+  return useMutation({
+    mutationFn: (input: { checkoutId: string; paid: SubscriptionPaid }) =>
+      erpSend(
+        `/api/v1/billing/checkouts/${input.checkoutId}/confirm`,
+        "POST",
+        input.paid,
+      ),
     onSuccess: refresh,
   });
 }
 
-/** DAAP's tax invoices and credit notes to this business, newest first. */
-export function useTaxInvoices() {
-  return useQuery({
-    queryKey: queryKeys.billingInvoices,
-    queryFn: () => erpGet<TaxInvoice[]>("/api/v1/billing/invoices?limit=200"),
-  });
+/** The window was closed without paying: the checkout is dropped (best effort, nothing was charged). */
+export function abandonCheckout(checkoutId: string) {
+  return erpSend(
+    `/api/v1/billing/checkouts/${checkoutId}/abandon`,
+    "POST",
+  ).catch(() => undefined);
 }
 
 /** Opens an invoice's PDF in a new tab (or downloads it where the browser cannot show PDFs). */
@@ -106,20 +144,6 @@ export async function openInvoicePdf(invoice: { id: string; number: string }) {
     a.click();
   }
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
-/** Sends an invoice again to the sign-up email (and the billing email). */
-export function useEmailInvoice() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      erpSend<{ sent: boolean; to: string | null; cc: string[] }>(
-        `/api/v1/billing/invoices/${id}/email`,
-        "POST",
-      ),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKeys.billingInvoices }),
-  });
 }
 
 export function useBillingContact() {

@@ -3,6 +3,7 @@
 import { LayoutDashboard } from "lucide-react";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { FirstRunChecklist } from "@/components/portal/onboarding/guide";
+import { PaymentFailedBanner } from "@/components/portal/PaymentFailedBanner";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { BreakdownCard } from "@/components/portal/dashboard/BreakdownCard";
 import { ChannelsCard } from "@/components/portal/dashboard/ChannelsCard";
@@ -39,6 +40,7 @@ export default function DashboardPage() {
         title="Dashboard"
         description={`A snapshot of ${branchId === null ? "all your branches" : "this branch"}.`}
       />
+      <PaymentFailedBanner />
       <FirstRunChecklist />
       {dash.error && (
         <p className="mb-space-3 text-[13px] font-medium text-error">

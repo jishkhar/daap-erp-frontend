@@ -11,7 +11,6 @@ import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonLines } from "@/components/ui/Skeleton";
 import { useBilling, useCancelService } from "@/hooks/useBilling";
-import { formatDate } from "@/lib/formatDate";
 import { SERVICE_LABEL, SERVICES, type Service } from "@/lib/services";
 import {
   refreshStaffSession,
@@ -19,38 +18,19 @@ import {
   useStaffSession,
 } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
-import { InvoicesSection } from "./_components/InvoicesSection";
+import { PaymentFailedBanner } from "@/components/portal/PaymentFailedBanner";
+import { BillingEmail } from "./_components/BillingEmail";
+import { PaymentMethodDialog } from "./_components/PaymentMethod";
 import { createPaymentColumns } from "./_components/payment-columns";
-import { ServiceBillingCard } from "./_components/ServiceBillingCard";
+import {
+  AddServiceCard,
+  cancelCopy,
+  ON_PLAN,
+  PlanRow,
+} from "./_components/ServicePlans";
+import { UsageStats } from "./_components/UsageStats";
 
-function Meter({
-  label,
-  used,
-  max,
-}: {
-  label: string;
-  used: number;
-  max: number | null;
-}) {
-  const pct = max ? Math.min(100, Math.round((used / max) * 100)) : 0;
-  return (
-    <div>
-      <div className="mb-1 flex justify-between text-[13px]">
-        <span className="text-ink-600">{label}</span>
-        <span className="font-semibold text-ink-900">
-          {used}
-          {max ? ` / ${max}` : " (unlimited)"}
-        </span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-black/[0.06]">
-        <div
-          className={`h-full rounded-full ${pct >= 100 ? "bg-error" : "bg-brand-600"}`}
-          style={{ width: max ? `${Math.max(pct, 2)}%` : "0%" }}
-        />
-      </div>
-    </div>
-  );
-}
+const heading = "mt-space-5 mb-space-3 text-[15px] font-bold text-ink-900";
 
 export default function BillingPage() {
   const { tenant, ready } = usePortalGuard();
@@ -62,6 +42,8 @@ export default function BillingPage() {
     null,
   );
   const [cancelling, setCancelling] = useState<Service | null>(null);
+  // Changing a plan's card / UPI AutoPay; emails link here with ?fix=pos (failed charge) or ?change=pos (renewal reminder).
+  const [methodFor, setMethodFor] = useState<Service | null>(null);
   const cancelService = useCancelService();
   const busy = cancelService.isPending;
   const columns = useMemo(() => createPaymentColumns(), []);
@@ -77,21 +59,42 @@ export default function BillingPage() {
     return () => window.removeEventListener("focus", refresh);
   }, [reload]);
 
-  // A link such as /portal/settings/billing#pos scrolls to that service once it is on screen.
+  // A link such as /portal/settings/billing#pos scrolls to that service once it is on screen; ?fix=pos / ?change=pos opens its payment method.
   const loaded = !!view.data;
   useEffect(() => {
     if (!loaded) return;
     const id = window.location.hash.slice(1);
     if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
+    const query = new URLSearchParams(window.location.search);
+    const asked = SERVICES.find(
+      (s) => s === (query.get("fix") ?? query.get("change")),
+    );
+    if (asked) {
+      window.history.replaceState(null, "", window.location.pathname);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- opened once from the email's link, after the plans load
+      setMethodFor(asked);
+    }
   }, [loaded]);
 
   if (!ready) return null;
   const data = view.data;
+  const onPlan = data
+    ? SERVICES.filter((s) => ON_PLAN.includes(data.services[s].state))
+    : [];
+  const others = data ? SERVICES.filter((s) => !onPlan.includes(s)) : [];
+  const confirm =
+    cancelling && data
+      ? cancelCopy(cancelling, data.services[cancelling])
+      : null;
 
   function cancel(service: Service) {
     cancelService.mutate(service, {
       onSuccess: () => {
-        toast.success("Cancellation scheduled.");
+        toast.success(
+          confirm?.label === "Cancel at period end"
+            ? "Cancellation scheduled."
+            : "Cancelled.",
+        );
         void refreshStaffSession();
       },
       onError: (e) => toast.error("Couldn't complete that", e.message),
@@ -111,6 +114,7 @@ export default function BillingPage() {
           {view.error.message}
         </p>
       )}
+      <PaymentFailedBanner />
       {data && !data.billing_configured && (
         <p className="mb-space-3 rounded-md bg-warning-tint p-space-3 text-[13px] text-warning">
           Website payments aren&apos;t switched on for this platform yet.
@@ -119,54 +123,59 @@ export default function BillingPage() {
       )}
 
       {data ? (
-        <div className="grid gap-space-4 xl:grid-cols-3">
-          {SERVICES.map((s) => (
-            <ServiceBillingCard
-              key={s}
-              service={s}
-              info={data.services[s]}
-              tax={data.tax}
-              canManage={canManage}
-              onChoose={() => setChoosing({ service: s })}
-              onCancel={() => setCancelling(s)}
-            />
-          ))}
-        </div>
+        <>
+          <UsageStats
+            usage={data.usage}
+            showTerminals={!data.services.pos.locked}
+          />
+
+          <h2 className={heading}>Your plans</h2>
+          {onPlan.length ? (
+            <Card className="divide-y divide-line p-0">
+              {onPlan.map((s) => (
+                <PlanRow
+                  key={s}
+                  service={s}
+                  info={data.services[s]}
+                  tax={data.tax}
+                  canManage={canManage}
+                  onChoose={() => setChoosing({ service: s })}
+                  onCancel={() => setCancelling(s)}
+                  onChangeMethod={() => setMethodFor(s)}
+                />
+              ))}
+            </Card>
+          ) : (
+            <Card className="p-space-4 text-[13px] text-ink-600">
+              You aren&apos;t on any plan yet. Pick a service below to get
+              started.
+            </Card>
+          )}
+
+          {others.length > 0 && (
+            <>
+              <h2 className={heading}>
+                {onPlan.length ? "Add more services" : "Services"}
+              </h2>
+              <div className="grid gap-space-3 md:grid-cols-2 xl:grid-cols-3">
+                {others.map((s) => (
+                  <AddServiceCard
+                    key={s}
+                    service={s}
+                    info={data.services[s]}
+                    canManage={canManage}
+                    onChoose={() => setChoosing({ service: s })}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       ) : view.isFetching ? (
         <Card className="p-space-4">
           <SkeletonLines rows={3} />
         </Card>
       ) : null}
-
-      <Card className="mt-space-4 p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Usage</h2>
-        {!data && view.isFetching && <SkeletonLines rows={3} />}
-        {data && (
-          <div className="space-y-space-3 rounded-md border border-line p-space-3">
-            <Meter
-              label="Branches"
-              used={data.usage.branches}
-              max={data.usage.max_branches}
-            />
-            <Meter
-              label="Users"
-              used={data.usage.users}
-              max={data.usage.max_users}
-            />
-            {!data.services.pos.locked && (
-              <Meter
-                label="POS terminals"
-                used={data.usage.terminals}
-                max={data.usage.max_terminals}
-              />
-            )}
-            <p className="text-[12px] text-ink-400">
-              Branches and users are limited by your most generous live plan;
-              POS terminals by your POS plan.
-            </p>
-          </div>
-        )}
-      </Card>
 
       <PlanPickerModal
         key={choosing?.service ?? "all"}
@@ -179,9 +188,7 @@ export default function BillingPage() {
         }}
       />
 
-      <h2 className="mt-space-5 mb-space-3 text-[15px] font-bold text-ink-900">
-        Payment history
-      </h2>
+      <h2 className={heading}>Billing history</h2>
       <Card className="p-space-2">
         <DataTable
           columns={columns}
@@ -192,8 +199,18 @@ export default function BillingPage() {
           emptyMessage={view.isFetching ? "Loading…" : "No payments yet."}
         />
       </Card>
+      <BillingEmail canManage={canManage} />
 
-      <InvoicesSection canManage={canManage} />
+      {canManage && methodFor && (
+        <PaymentMethodDialog
+          service={methodFor}
+          info={data?.services[methodFor]}
+          onClose={() => {
+            setMethodFor(null);
+            reload();
+          }}
+        />
+      )}
 
       <ConfirmDialog
         open={cancelling !== null}
@@ -202,12 +219,8 @@ export default function BillingPage() {
         title={
           cancelling ? `Cancel ${SERVICE_LABEL[cancelling]}?` : "Cancel plan?"
         }
-        confirmLabel="Cancel at period end"
-        message={
-          cancelling
-            ? `You keep ${SERVICE_LABEL[cancelling]} until ${formatDate(data?.services[cancelling].subscription?.current_period_end)}. After that it stops working until you subscribe again. Your other services and your data are not affected.`
-            : ""
-        }
+        confirmLabel={confirm?.label ?? "Cancel"}
+        message={confirm?.message ?? ""}
         onCancel={() => setCancelling(null)}
         onConfirm={() => cancelling && cancel(cancelling)}
       />

@@ -1,13 +1,14 @@
 "use client";
 
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { BillingPlan } from "@/app/portal/settings/billing/_components/billing-types";
 import { Badge } from "@/components/ui/Badge";
 import { PlanBadge } from "@/components/ui/ServicePlanBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { useBilling, useChoosePlan, useServicePlans } from "@/hooks/useBilling";
+import { useBilling, useServicePlans } from "@/hooks/useBilling";
 import { gstNote } from "@/app/portal/settings/billing/_components/gst";
 import { formatMoney } from "@/lib/erp";
 import {
@@ -19,7 +20,6 @@ import {
   STATE_TONE,
   type Service,
 } from "@/lib/services";
-import { toast } from "@/lib/toast";
 
 const planFeatures = (p: BillingPlan) => [
   p.max_branches
@@ -36,14 +36,14 @@ const planFeatures = (p: BillingPlan) => [
   ...(p.feature_labels ?? p.features),
 ];
 
-/** Buy a plan, in two steps: choose the service (skipped when `service` is given), then its plan pack (Starter / Growth / Enterprise). A service that
- * is already paid through Razorpay gets "switch at cycle end"; any other opens Razorpay's hosted checkout in a new tab. */
+/** Choose a plan, in two steps: the service (skipped when `service` is given), then its plan pack (Starter / Growth / Enterprise) and cycle.
+ * Choosing opens the checkout page, which shows the price with GST and what happens (pay now, or switch at the period end) before paying. */
 type PickerProps = {
   open: boolean;
   onClose: () => void;
   /** Start on this service's plans (the channel pages know which service they are about). */
   service?: Service;
-  /** Called after a checkout was opened or a plan change scheduled, so the caller can refresh. */
+  /** Kept for callers; checkout itself happens on the checkout page. */
   onDone?: () => void;
 };
 
@@ -53,59 +53,27 @@ export function PlanPickerModal(props: PickerProps) {
   return <Picker {...props} />;
 }
 
-function Picker({ open, onClose, service, onDone }: PickerProps) {
+function Picker({ open, onClose, service }: PickerProps) {
+  const router = useRouter();
   const [picked, setPicked] = useState<Service | null>(null);
   const chosen = service ?? picked;
 
   const view = useBilling();
   const plansQ = useServicePlans(chosen);
-  const choosePlan = useChoosePlan();
-  const [cycle, setCycle] = useState<"monthly" | "annual">("monthly");
-  const [busy, setBusy] = useState<string | null>(null);
   const plans = plansQ.data ?? [];
   const configured = view.data?.billing_configured ?? true;
   const current = chosen ? view.data?.services[chosen] : undefined;
-  const billed =
-    !!current?.subscription?.billed &&
-    (current.subscription.status === "active" ||
-      current.subscription.status === "past_due");
+  const live =
+    !!current && current.state !== "none" && current.state !== "ended";
+  const [cycle, setCycle] = useState<"monthly" | "annual">(
+    current?.subscription?.billing_cycle ?? "monthly",
+  );
 
   function choose(plan: BillingPlan) {
     if (!chosen) return;
-    setBusy(plan.code);
-    choosePlan.mutate(
-      {
-        service: chosen,
-        plan_code: plan.code,
-        change: billed,
-        billing_cycle: cycle,
-      },
-      {
-        onSuccess: (data) => {
-          if (billed) {
-            toast.success(
-              `Your ${SERVICE_LABEL[chosen]} plan will change to ${plan.name} at the end of the current period.`,
-            );
-          } else {
-            window.open(
-              (data as { short_url: string }).short_url,
-              "_blank",
-              "noopener",
-            );
-            toast.success(
-              "Checkout is ready — complete the payment in the new tab. This page updates by itself once it goes through.",
-            );
-          }
-          onDone?.();
-          onClose();
-        },
-        onError: (e) =>
-          toast.error(
-            billed ? "Couldn't change the plan" : "Couldn't start checkout",
-            e.message,
-          ),
-        onSettled: () => setBusy(null),
-      },
+    onClose();
+    router.push(
+      `/portal/settings/billing/checkout?service=${chosen}&plan=${encodeURIComponent(plan.code)}&cycle=${cycle}`,
     );
   }
 
@@ -121,9 +89,7 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
       }
       description={
         chosen
-          ? billed
-            ? "A new plan starts at the end of your current billing period."
-            : "Pay securely with Razorpay. Your data is kept exactly as you left it."
+          ? "Pick a plan. You'll see the full price with GST before you pay."
           : "Website, POS and WhatsApp are bought separately, each with its own plan and renewal."
       }
       footer={
@@ -195,8 +161,7 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                 key={c}
                 type="button"
                 onClick={() => setCycle(c)}
-                disabled={billed}
-                className={`rounded px-space-3 py-1 ${cycle === c ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-paper"} disabled:opacity-50`}
+                className={`rounded px-space-3 py-1 ${cycle === c ? "bg-brand-600 text-white" : "text-ink-600 hover:bg-paper"}`}
               >
                 {c === "monthly" ? "Monthly" : "Annual"}
               </button>
@@ -205,20 +170,18 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
           <div className="flex flex-col gap-space-3">
             {plans.map((p) => {
               const price =
-                (billed ? current?.subscription?.billing_cycle : cycle) ===
-                "annual"
+                cycle === "annual"
                   ? p.price_yearly_minor
                   : p.price_monthly_minor;
               const charge =
-                (billed ? current?.subscription?.billing_cycle : cycle) ===
-                "annual"
+                cycle === "annual"
                   ? p.charge_yearly_minor
                   : p.charge_monthly_minor;
-              const shownCycle = billed
-                ? current?.subscription?.billing_cycle
-                : cycle;
+              const shownCycle = cycle;
               const discount = Number(p.annual_discount_pct);
-              const isCurrent = current?.plan?.id === p.id;
+              const isCurrent = live && current?.plan?.id === p.id;
+              const onThis =
+                isCurrent && current?.subscription?.billing_cycle === cycle;
               const scheduled = current?.pending_plan?.id === p.id;
               return (
                 <div
@@ -235,25 +198,19 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                     </div>
                     {configured && (
                       <Button
-                        variant={billed ? "secondary" : "primary"}
+                        variant={p.is_popular ? "primary" : "secondary"}
                         disabled={
-                          busy !== null ||
-                          p.price_monthly_minor <= 0 ||
-                          (billed && (isCurrent || scheduled))
+                          p.price_monthly_minor <= 0 || onThis || scheduled
                         }
                         onClick={() => choose(p)}
                       >
                         {p.price_monthly_minor <= 0
                           ? "Contact us"
-                          : busy === p.code
-                            ? "Opening…"
-                            : billed
-                              ? isCurrent
-                                ? "Current plan"
-                                : scheduled
-                                  ? "Scheduled"
-                                  : "Switch at cycle end"
-                              : "Subscribe"}
+                          : onThis
+                            ? "Current plan"
+                            : scheduled
+                              ? "Scheduled"
+                              : "Choose"}
                       </Button>
                     )}
                   </div>
@@ -283,7 +240,7 @@ function Picker({ open, onClose, service, onDone }: PickerProps) {
                       </span>
                     )}
                   </p>
-                  {shownCycle === "annual" && discount > 0 && !billed && (
+                  {shownCycle === "annual" && discount > 0 && (
                     <p className="text-[12px] text-success">
                       You save {discount}% on yearly billing
                     </p>

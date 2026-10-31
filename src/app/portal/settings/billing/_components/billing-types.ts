@@ -66,6 +66,11 @@ export type BillingPayment = {
   /** DAAP's tax invoice for this charge. */
   tax_invoice_id: string | null;
   tax_invoice_number: string | null;
+  tax_taxable_minor: number | null;
+  tax_gst_minor: number | null;
+  tax_gst_rate: number | string | null;
+  /** Credit notes issued against this charge's invoice for refunds. */
+  credit_notes: { id: string; number: string; total_minor: number }[];
   billing_cycle: "monthly" | "annual" | null;
   period_end: string | null;
   failure_reason: string | null;
@@ -81,6 +86,16 @@ export type BillingService = {
   plan: BillingPlan | null;
   subscription: BillingSubscription | null;
   pending_plan: BillingPlan | null;
+  /** What a billed plan is charged to (its last charge, or a payment method set up since). */
+  pays_with: PaysWith | null;
+  /** What the next renewal charges (with GST), for the plan due then. */
+  next_charge_minor: number | null;
+};
+
+export type PaysWith = {
+  method: string;
+  card_last4: string | null;
+  card_network: string | null;
 };
 
 export type BillingView = {
@@ -99,33 +114,7 @@ export type BillingView = {
   payments: BillingPayment[];
 };
 
-/** A tax invoice or credit note DAAP issued to the business (/api/v1/billing/invoices). */
-export type TaxInvoice = {
-  id: string;
-  kind: "invoice" | "credit_note";
-  number: string;
-  /** Credit note: the invoice it reduces. */
-  invoice_number: string | null;
-  service: Service | null;
-  description: string;
-  billing_cycle: "monthly" | "annual" | null;
-  period_start: string | null;
-  period_end: string | null;
-  issued_at: string;
-  currency: string;
-  gst_rate: number | string;
-  supply_type: "INTRA" | "INTER";
-  taxable_minor: number;
-  cgst_minor: number;
-  sgst_minor: number;
-  igst_minor: number;
-  total_minor: number;
-  buyer_gstin: string | null;
-  emailed_to: string | null;
-  emailed_at: string | null;
-};
-
-/** Where invoices are emailed and whom they are made out to. */
+/** Where invoices are emailed (and whom they are made out to, as printed on them). */
 export type BillingContact = {
   onboarding_email: string | null;
   billing_email: string | null;
@@ -136,3 +125,67 @@ export type BillingContact = {
     state: string | null;
   };
 };
+
+/** The checkout page's order summary (GET /api/v1/billing/{service}/quote). */
+export type CheckoutQuote = {
+  /** new: first paid plan; upgrade: replaces the billed plan now; scheduled: a cheaper plan from the period end; current / unavailable: can't be bought (see reason). */
+  kind: "new" | "upgrade" | "scheduled" | "current" | "unavailable";
+  reason: string | null;
+  service: Service;
+  plan: {
+    id: string;
+    code: string;
+    name: string;
+    service: Service;
+    currency: string;
+  };
+  billing_cycle: "monthly" | "annual";
+  price_minor: number;
+  taxable_minor: number;
+  cgst_minor: number;
+  sgst_minor: number;
+  igst_minor: number;
+  total_minor: number;
+  due_now_minor: number;
+  gst_rate: number | string;
+  price_mode: PriceMode;
+  supply_type: "INTRA" | "INTER";
+  starts_at: string | null;
+  renews_at: string | null;
+  current: {
+    plan_name: string;
+    billing_cycle: "monthly" | "annual";
+    status: string;
+    period_end: string | null;
+    billed: boolean;
+  } | null;
+  bill_to: {
+    legal_name: string | null;
+    gstin: string | null;
+    address: string | null;
+    state: string | null;
+    email: string | null;
+  };
+  billing_configured: boolean;
+};
+
+/** POST /api/v1/billing/{service}/checkout: what Razorpay's window opens with, or a change scheduled for the period end. */
+export type CheckoutStart =
+  | {
+      kind: "new" | "upgrade" | "payment_method";
+      checkout_id: string;
+      /** payment_method: false = only authorised now, first charge on starts_at (the renewal date). */
+      charge_now: boolean;
+      starts_at: string | null;
+      key_id: string;
+      razorpay_subscription_id: string;
+      amount_minor: number;
+      currency: string;
+      description: string;
+      prefill: {
+        name: string | null;
+        email: string | null;
+        contact: string | null;
+      };
+    }
+  | { kind: "scheduled"; subscription: BillingSubscription; plan: BillingPlan };
